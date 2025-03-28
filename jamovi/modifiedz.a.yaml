@@ -1,0 +1,36 @@
+---
+name:  ModifiedZ
+title: Outlier Detection
+menuGroup: BSS
+menuSubgroup: Data handling
+menuSubtitle: Modified Z-Score Method
+version: '0.0.1'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+
+    - name: vars
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+     
+    - name: groups
+      title: Grouping Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+        
+    - name: threshold
+      title: Threshold
+      type: Number
+      default: 3.5
+     
+    - name: dispTable
+      title: Display Table
+      type: Bool
+      default: true
+...

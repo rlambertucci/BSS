@@ -1,0 +1,33 @@
+---
+name: ModifiedZ
+title: Modified Z-Score Method Results
+jrs: '1.1'
+
+items:
+    - name: text
+      title: Modified Z-Score Outlier Detection
+      type: Preformatted
+  
+    - name: outlierTable
+      title: Outliers Summary
+      type: Table
+      rows: (vars)
+      visible: (threshold)
+      columns:
+          - name: variable
+            title: Variable Name
+            type: text
+            
+          - name: row_number
+            title: Row Number
+            type: integer
+            
+          - name: modified_z_score
+            title: Modified Z-Score
+            type: number
+          
+          - name: is_outlier
+            title: Is Outlier?
+            type: text
+            
+

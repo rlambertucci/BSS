@@ -1,0 +1,35 @@
+name: finiteSampleSize
+title: Finite Population
+menuGroup: BSS
+menuSubgroup: Sample Size Calculation
+menuSubtitle: Cochran and Slovin formulas
+version: '0.0.1'
+jas: '1.2'
+options:
+  - name: method
+    title: Method
+    type: List
+    options:
+      - Cochran
+      - Slovin
+    default: Cochran
+  - name: population_size
+    title: Population Size (N)
+    type: Integer
+    default: 1000
+  - name: confidence_level
+    title: Confidence Level (%)
+    type: Number
+    default: 95
+  - name: margin_error
+    title: Margin of Error (%)
+    type: Number
+    default: 5
+  - name: population_proportion
+    title: Population Proportion (p)
+    type: Number
+    default: 0.5
+  - name: correction
+    title: Apply Small Sample Correction
+    type: Bool
+    default: false

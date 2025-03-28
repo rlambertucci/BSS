@@ -1,0 +1,49 @@
+name: finiteSampleSize
+title: Finite Population Sample Size Calculation
+jrs: '1.1'
+
+items:
+  - name: text
+    title: Finite Population Sample Size Calculation
+    type: Preformatted
+
+  - name: sampleSizeTable
+    title: Sample Size Calculation Results
+    type: Table
+    rows: (method)
+    visible: TRUE
+    columns:
+      - name: method
+        title: Method
+        type: text
+        content: ($key)
+
+      - name: population_size
+        title: Population Size (N)
+        type: integer
+        visible: TRUE
+
+      - name: confidence_level
+        title: Confidence Level (%)
+        type: number
+        visible: TRUE
+
+      - name: margin_error
+        title: Margin of Error (%)
+        type: number
+        visible: TRUE
+
+      - name: population_proportion
+        title: Population Proportion (p)
+        type: number
+        visible: (method == "Cochran")
+
+      - name: sample_size
+        title: Sample Size (n)
+        type: integer
+        visible: TRUE
+
+      - name: correction_applied
+        title: Small Sample Correction Applied
+        type: text
+        visible: TRUE

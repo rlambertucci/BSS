@@ -1,0 +1,52 @@
+name: correlationComparison
+title: Correlations
+menuGroup: BSS
+menuSubgroup: Comparisons
+menuSubtitle: Independent and Dependent
+version: '0.0.1'
+jas: '1.2'
+
+options:
+   
+    - name: correlation_type
+      title: Correlation Type
+      type: List
+      options:
+        - Independent
+        - Dependent
+      default: Independent
+
+    - name: independent_n1
+      title: Sample Size (Group 1)
+      type: Integer
+      default: 0
+
+    - name: independent_n2
+      title: Sample Size (Group 2)
+      type: Integer
+      default: 0
+
+    - name: independent_r1
+      title: Correlation Coefficient (Group 1)
+      type: Number
+      default: 0
+
+    - name: independent_r2
+      title: Correlation Coefficient (Group 2)
+      type: Number
+      default: 0
+
+    - name: dependent_r12
+      title: Correlation Coefficient (r12)
+      type: Number
+      default: 0
+
+    - name: dependent_r13
+      title: Correlation Coefficient (r13)
+      type: Number
+      default: 0
+
+    - name: dependent_r23
+      title: Correlation Coefficient (r23)
+      type: Number
+      default: 0

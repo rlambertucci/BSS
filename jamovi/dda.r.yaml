@@ -1,0 +1,121 @@
+name:  DDA
+title: Descriptive Discriminant Analysis
+jrs:   '1.1'
+
+items:
+    
+    - name:  text
+      title: ' '
+      type:  Preformatted
+
+    - name: prop  # 1. Proportion of trace
+      title: 'Proportion of trace'
+      type: Table
+      visible: (prop)
+      rows: 1
+      clearWith:
+        - covs
+        - dep
+
+      columns:
+        - name: name
+          title: ''
+          type: 'text'
+          content: Proportion(%)
+
+    - name: coef  # 2. Coefficients of linear discriminants
+      title: 'Coefficients of linear discriminants'
+      type: Table
+      refs: MASS
+      visible: (coef)
+      clearWith:
+        - covs
+        - dep
+
+      columns:
+        - name: name
+          title: ''
+          type: 'text'
+          content: ($key)
+
+    - name: structCoefTable  # 3. Structure Coefficients
+      title: Structure Coefficients
+      type: Table
+      visible: (structCoef)
+      refs:
+        - MASS
+      clearWith:
+        - covs
+        - dep
+      columns:
+        - name: varName
+          title: ''
+          type: text
+
+    - name: gc  # 4. Group centroids
+      title: 'Group centroids'
+      type: Table
+      refs: MASS
+      visible: (gc)
+      clearWith:
+        - covs
+        - dep
+
+      columns:
+        - name: name
+          title: 'Groups'
+          type: 'text'
+          content: ($key)
+
+    - name:  plot  # 5. DDA plot
+      title: 'Descriptive discriminant analysis plot'
+      type:  Image
+      requiresData: true
+      visible: (plot)
+      renderFun: .plot
+      clearWith:
+        - covs
+        - dep
+        - width
+        - height
+
+    - name: discScoresTable  # 6. Discriminant scores
+      title: Discriminant Scores
+      type: Table
+      visible: (discScores)
+      refs:
+        - MASS
+      clearWith:
+        - covs
+        - dep
+      columns:
+        - name: obs
+          title: Observation
+          type: text
+          content: ($key)
+          
+    - name: pairwiseESTable  # 7. Pairwise Effect Sizes
+      title: 'Pairwise Effect Sizes'
+      type: Table
+      visible: (pairwiseES) 
+      refs: 
+        - effsize 
+      clearWith:
+        - covs
+        - dep
+      
+      columns:
+        - name: group1
+          title: 'Group 1'
+          type: text
+        - name: group2
+          title: 'Group 2'
+          type: text
+        - name: cohenD
+          title: "Cohen's d"
+          type: number
+          format: zto 
+        - name: hedgesG
+          title: "Hedges' g"
+          type: number
+          format: zto 

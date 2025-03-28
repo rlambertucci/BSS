@@ -1,0 +1,117 @@
+name:  Network
+title: Network Analysis
+menuGroup: BSS
+menuSubgroup: Network analysis
+version: '1.0.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+
+    - name: vars
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric 
+
+    - name: groupVar
+      title: Grouping Variable
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null 
+
+    - name: estimator
+      title: Estimator
+      type: List
+      options:
+        - name: EBICglasso
+          title: EBICglasso
+        - name: correlation
+          title: Correlation
+        - name: partial_correlation
+          title: Partial Correlation
+      default: EBICglasso
+
+    - name: corMethod
+      title: Correlation Method
+      type: List
+      options:
+        - name: auto
+          title: Auto
+        - name: cor
+          title: Correlation Matrix
+        - name: cov
+          title: Covariance Matrix
+      default: auto
+      
+    # --- Output Tables ---
+    - name: tableCentrality
+      title: Centrality Table
+      type: Bool
+      default: TRUE 
+
+    - name: tableClustering
+      title: Clustering Table
+      type: Bool
+      default: FALSE
+
+    - name: tableWeights
+      title: Weights (Adjacency) Table
+      type: Bool
+      default: FALSE 
+    
+    # --- Output Plots ---
+
+
+    - name: plotCentrality
+      title: Centrality Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotClustering
+      title: Clustering Plot
+      type: Bool
+      default: FALSE
+      
+    - name: plotNetwork
+      title: Network Plot
+      type: Bool
+      default: FALSE
+    
+    # --- Plotting Options ---
+    - name: layoutAlgorithm
+      title: Layout Algorithm
+      type: List
+      options:
+        - name: spring 
+          title: Spring (Fruchterman-Reingold) 
+        - name: circle
+          title: Circle
+      default: spring
+       
+
+    - name: showLabels
+      title: Show Labels
+      type: Bool
+      default: TRUE
+      
+
+    - name: plotWidth
+      title: Network Plot Width
+      type: Integer
+      default: 500
+      
+
+    - name: plotHeight
+      title: Network Plot Height
+      type: Integer
+      default: 500
+      

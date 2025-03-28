@@ -1,0 +1,54 @@
+name: resourceEquationSampleSize
+title: Resource Equation Sample Size Calculation
+jrs: '1.1'
+
+items:
+  - name: text
+    title: Resource Equation Sample Size Calculation
+    type: Preformatted
+
+  - name: sampleSizeTable
+    title: Sample Size Calculation Results
+    type: Table
+    rows: (design)
+    visible: TRUE
+    columns:
+      - name: design
+        title: Design Type
+        type: text
+        content: ($key)
+
+      - name: nGroups
+        title: Number of Groups (k)
+        type: integer
+        visible: (design != "Design 2 (Repeated Measures)")
+
+      - name: nMeasures
+        title: Number of Repeated Measures (r)
+        type: integer
+        visible: (design != "Design 1 (One-way ANOVA)")
+
+      - name: sacrifice
+        title: Animals Sacrificed
+        type: text
+        visible: (design != "Design 1 (One-way ANOVA)")
+
+      - name: minN
+        title: Minimum Sample Size per Group
+        type: integer
+        visible: TRUE
+
+      - name: maxN
+        title: Maximum Sample Size per Group
+        type: integer
+        visible: TRUE
+
+      - name: minTotal
+        title: Minimum Total Sample Size
+        type: integer
+        visible: TRUE
+
+      - name: maxTotal
+        title: Maximum Total Sample Size
+        type: integer
+        visible: TRUE
