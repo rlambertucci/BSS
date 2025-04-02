@@ -1,0 +1,70 @@
+---
+name: correlationComparison
+title: Comparison of Correlations
+jrs: '1.1'
+
+items:
+
+    - name: comparisonTable
+      title: Correlation Comparison Results
+      type: Table
+      rows: 1
+      columns:
+          - name: comparisonType
+            title: Type
+            type: text
+
+          - name: n_group1
+            title: N (Group 1)
+            type: integer
+            visible: (correlation_type:independent)
+
+          - name: n_group2
+            title: N (Group 2)
+            type: integer
+            visible: (correlation_type:independent)
+
+          - name: r_group1
+            title: r (Group 1)
+            type: number
+            format: zto
+            visible: (correlation_type:independent)
+
+          - name: r_group2
+            title: r (Group 2)
+            type: number
+            format: zto
+            visible: (correlation_type:independent)
+
+          - name: n_dep
+            title: N
+            type: integer
+            visible: (correlation_type:dependent)
+
+          - name: r12_dep
+            title: r12
+            type: number
+            format: zto
+            visible: (correlation_type:dependent)
+
+          - name: r13_dep
+            title: r13
+            type: number
+            format: zto
+            visible: (correlation_type:dependent)
+
+          - name: r23_dep
+            title: r23
+            type: number
+            format: zto
+            visible: (correlation_type:dependent)
+
+          - name: statistic
+            title: Statistic
+            type: number
+            format: zto
+
+          - name: p_value
+            title: p
+            type: number
+            format: zto,pvalue
