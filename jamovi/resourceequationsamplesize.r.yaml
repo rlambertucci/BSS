@@ -1,0 +1,20 @@
+name: resourceEquationSampleSize
+title: Resource Equation Sample Size Calculation
+jrs: '1.1'
+
+items:
+  - name: text
+    title: Resource Equation Sample Size Calculation
+    type: Preformatted
+
+  - name: sampleSizeTable
+    title: Sample Size Calculation Results
+    type: Table
+    columns:
+      - name: parameter
+        title: Parameter
+        type: text
+
+      - name: value
+        title: Value
+        type: text

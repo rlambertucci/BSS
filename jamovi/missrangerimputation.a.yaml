@@ -1,0 +1,79 @@
+# .a.yaml
+---
+name: missRangerImputation
+title: MissRanger Imputation
+menuGroup: BSS
+menuSubgroup: Data handling
+menuSubtitle: Missing data analysis and multivariate imputation
+version: '0.0.2' 
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+      title: Input Data
+
+    - name: vars
+      title: Variables to Impute
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      required: true
+      permitted:
+        - numeric
+        - factor
+        - id
+
+    - name: maxiter
+      title: Maximum Iterations
+      type: Integer
+      default: 10
+      min: 1
+      max: 100
+      description: The maximum number of iterations for the imputation algorithm.
+
+    - name: num_trees
+      title: Number of Trees
+      type: Integer
+      default: 100
+      min: 1
+      max: 200
+      description: The number of trees to grow in each forest.
+
+    - name: pmm_k
+      title: Number of Donors for PMM
+      type: Integer
+      default: 5
+      min: 0
+      max: 20
+      description: >
+        The number of candidate donors to consider for predictive mean matching (PMM).
+        Set to 0 to disable PMM.
+
+    - name: seed
+      title: Seed
+      type: String
+      default: ""
+      description: >
+        The seed for the random number generator.  Setting a seed ensures
+        reproducible results.  Use 0 for a random seed (non-reproducible).
+
+    - name: show_pattern_plot
+      title: Missing Pattern Plot
+      type: Bool
+      default: false
+      description: Display a matrix plot showing the patterns of missingness across observations and variables.
+
+    - name: show_correlation_plot
+      title: Missingness Correlation Heatmap
+      type: Bool
+      default: false
+      description: Display a heatmap showing the correlation between missingness in different variables.
+
+    - name: imputedColsOutput        
+      title: Save Imputed Variables
+      type: Output
+      description: Adds the imputed variables as new columns to the dataset.
+...

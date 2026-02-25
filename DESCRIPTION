@@ -1,0 +1,18 @@
+Package: BSS
+Type: Package
+Title: BSS
+Version: 0.1.1
+Date: 2026-25-02
+Author: Rafael Lambertucci
+Maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
+Description: This module offers a varied set of statistical procedures for diverse data analysis needs. Features include: 
+  1) Network Analysis; 
+  2) Missing values analysis and data imputation using the missRanger package; 
+  3) Post-hoc analysis for MANOVA using Descriptive Discriminant Analysis (including effect size calculation); 
+  4) Outlier detection using box-plot and modified z-score with adjustable thresholds; 
+  5) Sample size calculation for finite populations (two different formulas) and for experimental design with animals (Resource Equation Approach); 
+  6) Statistical comparison of correlation coefficients (independent and dependent).
+License: GPL (>= 2)
+Encoding: UTF-8
+LazyData: true
+Imports: jmvcore (>= 0.8.5), R6, ggplot2, gridExtra, missRanger, GGally, VIM, effsize, bootnet, qgraph, reshape2, gtools, igraph, mgm
