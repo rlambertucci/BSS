@@ -1,0 +1,156 @@
+---
+name:  mgm
+title: For mixed data
+menuGroup: BSS
+menuSubgroup: Network analysis
+menuSubtitle: mgm (Extended BIC or Cross-Validation)
+version: '1.0.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+
+    # --- Entradas de variáveis separadas ---
+    - name: varsCont
+      title: Continuous Variables (Gaussian)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: varsCat
+      title: Categorical Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    - name: varsCount
+      title: Count Variables (Poisson)
+      type: Variables
+      suggested:
+        - continuous # Usuário selecionará variáveis de contagem aqui
+      permitted:
+        - numeric
+      default: null
+    # --- Fim das entradas de variáveis ---
+
+    - name: groupVar
+      title: Grouping Variable
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    - name: nodeGroupVar
+      title: Node Groups Variable
+      type: Variable
+      suggested:
+        - nominal
+      permitted:
+        - factor
+        - id
+      default: null
+
+    # --- Critério de Seleção de Lambda ---
+    - name: lambdaSelMethod
+      title: Lambda Selection Method
+      type: List
+      options:
+        - name: EBIC
+          title: Extended BIC (EBIC)
+        - name: CV
+          title: Cross-Validation (CV)
+      default: EBIC
+
+    - name: kFolds # Para CV
+      title: Number of Folds (if CV selected) # Título ajustado
+      type: Integer
+      default: 3
+      min: 2
+      # REMOVIDO: visible: (lambdaSelMethod:CV)
+
+    - name: lambdaGam # Para EBIC
+      title: Gamma for EBIC (if EBIC selected) # Título ajustado
+      type: Number
+      default: 0.5
+      min: 0
+      max: 1
+      # REMOVIDO: visible: (lambdaSelMethod:EBIC)
+
+    # --- Regra de Combinação de Parâmetros ---
+    - name: ruleReg
+      title: Parameter Combination Rule
+      type: List
+      options:
+        - name: AND
+          title: AND-rule
+        - name: OR
+          title: OR-rule
+      default: AND
+
+    # --- Opções de Output ---
+    - name: tableCentrality
+      title: Centrality Table
+      type: Bool
+      default: TRUE
+
+    - name: tableClustering
+      title: Clustering Table
+      type: Bool
+      default: FALSE
+
+    - name: tableWeights
+      title: Weights (Adjacency) Table
+      type: Bool
+      default: FALSE
+
+    # --- Opções de Plot ---
+    - name: plotCentrality
+      title: Centrality Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotClustering
+      title: Clustering Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotNetwork
+      title: Network Plot
+      type: Bool
+      default: TRUE
+
+    - name: layoutAlgorithm
+      title: Layout Algorithm
+      type: List
+      options:
+        - name: spring
+          title: Spring (Fruchterman-Reingold)
+        - name: circle
+          title: Circle
+      default: spring
+
+    - name: showLabels
+      title: Show Labels
+      type: Bool
+      default: TRUE
+
+    - name: plotWidth
+      title: Network Plot Width
+      type: Integer
+      default: 500
+
+    - name: plotHeight
+      title: Network Plot Height
+      type: Integer
+      default: 500
