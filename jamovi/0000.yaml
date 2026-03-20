@@ -1,0 +1,98 @@
+---
+title: BSS
+name: BSS
+version: 0.1.2
+jms: '1.0'
+authors:
+  - Rafael Lambertucci
+maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
+date: '2026-16-03'
+type: R
+description: >-
+  This module provides a variety of statistical procedures for different data 
+  analysis needs. The main features include: 1) network analysis for continuous
+  and mixed data; 2) missing value analysis and data imputation using the 
+  missRanger package; 3) post hoc analysis for MANOVA using descriptive 
+  discriminant analysis (including effect size calculation); 4) outlier 
+  detection using boxplots and the modified z-score with adjustable thresholds 
+  and options for outlier treatment; 5) sample size calculation for finite 
+  populations (using two different formulas) and for animal experimental designs
+  based on the Resource Equation Approach; 6) statistical comparison of 
+  correlation coefficients (independent and dependent).
+analyses:
+  - title: Compare Correlations
+    name: correlationComparison
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Compare Correlations
+    menuSubgroup: Comparisons
+    menuSubtitle: Independent and Dependent
+    category: analyses
+  - title: MissRanger Imputation
+    name: missRangerImputation
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: MissRanger Imputation
+    menuSubgroup: Data handling
+    menuSubtitle: Missing data analysis and multivariate imputation
+    category: analyses
+  - title: Outlier Detection
+    name: outlierDetection
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Outlier Detection
+    menuSubgroup: Data handling
+    menuSubtitle: IQR Method
+    category: analyses
+  - title: Outlier Detection
+    name: ModifiedZ
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Outlier Detection
+    menuSubgroup: Data handling
+    menuSubtitle: Modified Z-Score Method
+    category: analyses
+  - title: For continuous data
+    name: Network
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: For continuous data
+    menuSubgroup: Network analysis
+    menuSubtitle: EBICglasso, Correlation or Partial Correlation
+    category: analyses
+  - title: Descriptive Discriminant Analysis
+    name: DDA
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Descriptive Discriminant Analysis
+    menuSubgroup: Post-hoc test for MANOVA
+    menuSubtitle: Post-hoc test for MANOVA
+    category: analyses
+  - title: Animals design
+    name: resourceEquationSampleSize
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Animals design
+    menuSubgroup: Sample Size Calculation
+    menuSubtitle: Resource Equation Approach
+    category: analyses
+  - title: Finite Population
+    name: finiteSampleSize
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Finite Population
+    menuSubgroup: Sample Size Calculation
+    menuSubtitle: Cochran and Slovin formulas
+    category: analyses
+  - title: For mixed data
+    name: mgm
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: For mixed data
+    menuSubgroup: Network analysis
+    menuSubtitle: mgm (Extended BIC or Cross-Validation)
+    category: analyses
+usesNative: true
+minApp: 1.0.8
+
+...

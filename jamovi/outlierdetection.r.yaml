@@ -1,0 +1,61 @@
+# .r.yaml
+---
+name: outlierDetection
+title: Outlier Detection Results
+jrs: '1.1'
+items:
+    - name: iqrInfo  
+      title: Thresholds 
+      type: Html          
+      visible: True       
+      
+    - name: text
+      title: IQR Outlier Detection Summary
+      type: Preformatted
+      
+    - name: outlierTable
+      title: Outliers Summary
+      type: Table
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+            content: ($key)
+          - name: group_level  
+            title: Group
+            type: text
+          - name: lowerFence
+            title: Lower Fence
+            type: number
+          - name: upperFence
+            title: Upper Fence
+            type: number
+          - name: numOutliers
+            title: Outliers Detected
+            type: integer
+          - name: treatmentApplied
+            title: Treatment Applied
+            type: text
+            visible: (treatment != 'none')
+          - name: modifiedN
+            title: Valid N (After Treatment)
+            type: integer
+            visible: (treatment != 'none')
+    - name: plot
+      title: Boxplot
+      type: Image
+      width: 500
+      height: 400
+      renderFun: .plot
+      visible: (dispBox)
+    - name: treatedData
+      title: Treated Variables
+      type: Output
+      initInRun: true
+      clearWith:
+        - vars
+        - group
+        - iqrMultiplier
+        - treatment
+        - trimPercent
+...
