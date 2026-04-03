@@ -1,0 +1,93 @@
+---
+name: dixonQTest
+title: Outlier Detection Results
+jrs: '1.1'
+items:
+    - name: dixonInfo
+      title: About Dixon's Q Test
+      type: Html
+      visible: True
+
+    - name: dixonTable
+      title: Dixon's Q Test Results
+      type: Table
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+          - name: group_level
+            title: Group
+            type: text
+          - name: n
+            title: N
+            type: integer
+          - name: outlier_value
+            title: Outlier Value
+            type: number
+          - name: outlier_side
+            title: Side
+            type: text
+          - name: q_statistic
+            title: Q Statistic
+            type: number
+            format: zto
+          - name: q_critical
+            title: Q Critical
+            type: number
+            format: zto
+          - name: significant
+            title: Outlier Detected
+            type: text
+          - name: treatmentApplied
+            title: Treatment Applied
+            type: text
+            visible: (treatment != 'none')
+          - name: modifiedN
+            title: Valid N (After Treatment)
+            type: integer
+            visible: (treatment != 'none')
+
+    - name: outlierList
+      title: Identified Outliers
+      type: Table
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+            combineBelow: true
+          - name: group_level
+            title: Group
+            type: text
+            combineBelow: true
+          - name: rowNumber
+            title: Row
+            type: integer
+          - name: outlier_value
+            title: Value
+            type: number
+          - name: outlier_side
+            title: Side
+            type: text
+          - name: q_statistic
+            title: Q Statistic
+            type: number
+            format: zto
+
+    - name: plot
+      title: Boxplot
+      type: Image
+      width: 500
+      height: 400
+      renderFun: .plot
+      visible: (dispBox)
+
+    - name: treatedData
+      title: Treated Variable
+      type: Output
+      initInRun: true
+      clearWith:
+        - var
+        - group
+        - alpha
+        - treatment
+...

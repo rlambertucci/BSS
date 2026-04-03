@@ -1,0 +1,57 @@
+---
+name: dixonQTest
+title: Dixon's Q Test
+menuGroup: BSS
+menuSubgroup: Outlier Detection
+menuSubtitle: Single outlier detection for small datasets (N = 3–30)
+version: '1.0.0'
+jas: '1.2'
+options:
+    - name: data
+      type: Data
+    - name: var
+      title: Variable
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+    - name: group
+      title: Grouping Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+    - name: alpha
+      title: Significance Level
+      type: List
+      options:
+        - name: alpha10
+          title: '90% (α = 0.10)'
+        - name: alpha05
+          title: '95% (α = 0.05)'
+        - name: alpha01
+          title: '99% (α = 0.01)'
+      default: alpha05
+    - name: treatment
+      title: Treatment Method
+      type: List
+      options:
+        - name: none
+          title: None (Detection Only)
+        - name: trim_asym
+          title: Asymmetric Trimming (Identified Outlier)
+        - name: win_valid
+          title: Winsorize (To max/min valid value)
+      default: none
+    - name: dispBox
+      title: Display Boxplot
+      type: Bool
+      default: false
+    - name: treatedData
+      title: Save treated variable to dataset
+      type: Output
+...

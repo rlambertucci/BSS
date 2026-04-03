@@ -1,0 +1,164 @@
+name: miceImputation
+title: MICE Imputation
+jrs: '1.1'
+
+items:
+    # ── Info ───────────────────────────────────────────────────
+    - name: imputationInfo
+      title: About MICE Imputation
+      type: Html
+      visible: true
+
+    # ── Missingness Summary ────────────────────────────────────
+    - name: missingnessTable
+      title: Missingness Summary
+      type: Table
+      columns:
+        - name: variable
+          title: Variable
+          type: text
+        - name: n_missing
+          title: Missing (N)
+          type: integer
+        - name: pct_missing
+          title: Missing (%)
+          type: number
+          format: dp:1
+        - name: n_valid
+          title: Valid (N)
+          type: integer
+        - name: method_used
+          title: Method Applied
+          type: text
+
+    # ── Imputed Values Table ───────────────────────────────────
+    - name: imputedData
+      title: Imputed Values (Pooled)
+      type: Table
+      clearWith:
+        - run_imputation
+        - imputation_method
+        - num_imputations
+        - maxiter
+        - seed
+      columns:
+        - name: variable
+          title: Variable
+          type: text
+          combineBelow: true
+        - name: original
+          title: Original Value
+          type: text
+        - name: imputed
+          title: Pooled Imputed Value
+          type: text
+        - name: rowNumber
+          title: Row
+          type: integer
+
+    # ── Imputation Summary ─────────────────────────────────────
+    - name: text
+      title: Imputation Summary
+      type: Preformatted
+      visible: false
+      clearWith:
+        - run_imputation
+        - imputation_method
+        - num_imputations
+
+    # ── Diagnostic Plots ───────────────────────────────────────
+    - name: patternPlot
+      title: Missing Data Pattern
+      type: Image
+      width: 700
+      height: 500
+      renderFun: .patternPlot
+      visible: (show_pattern_plot)
+      requiresData: true
+      clearWith:
+        - vars
+        - show_pattern_plot
+
+    - name: tracePlot
+      title: Convergence Trace Plot
+      type: Image
+      width: 700
+      height: 500
+      renderFun: .tracePlot
+      visible: (show_trace_plot)
+      requiresData: true
+      clearWith:
+        - vars
+        - run_imputation
+        - imputation_method
+        - num_imputations
+        - maxiter
+        - seed
+        - show_trace_plot
+
+    - name: densityPlot
+      title: Observed vs Imputed Distribution
+      type: Image
+      width: 700
+      height: 500
+      renderFun: .densityPlot
+      visible: (show_density_plot)
+      requiresData: true
+      clearWith:
+        - vars
+        - run_imputation
+        - imputation_method
+        - num_imputations
+        - maxiter
+        - seed
+        - show_density_plot
+
+    - name: stripPlot
+      title: Strip Plot by Variable
+      type: Image
+      width: 700
+      height: 500
+      renderFun: .stripPlot
+      visible: (show_strip_plot)
+      requiresData: true
+      clearWith:
+        - vars
+        - run_imputation
+        - imputation_method
+        - num_imputations
+        - maxiter
+        - seed
+        - show_strip_plot
+
+    - name: correlationPlot
+      title: Missingness Correlation Heatmap
+      type: Image
+      width: 700
+      height: 500
+      renderFun: .correlationPlot
+      visible: (show_correlation_plot)
+      requiresData: true
+      clearWith:
+        - vars
+        - show_correlation_plot
+
+    # ── Save ───────────────────────────────────────────────────
+    - name: imputedColsOutput
+      type: Output
+      title: Imputed Variables (Pooled)
+      initInRun: true
+      clearWith:
+        - data
+        - vars
+        - predictor_vars
+        - imputation_method
+        - num_imputations
+        - maxiter
+        - seed
+        - run_imputation
+        - subject_id_var
+        - time_var
+        - group_var
+        - fixed_covariates
+        - wave_vars
+        - data_format

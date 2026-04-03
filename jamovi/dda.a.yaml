@@ -1,0 +1,71 @@
+name:  DDA
+title: Descriptive Discriminant Analysis
+menuGroup: BSS
+menuSubgroup: Post-hoc test for MANOVA
+version: '1.0.0'
+jas: '1.2'
+
+options:
+- name: data
+  type: Data
+
+- name: dep
+  title: Dependent
+  type: Variable
+  suggested:
+    - nominal
+  permitted:
+    - factor
+
+- name: covs
+  title: Covariates
+  type: Variables
+  suggested:
+    - continuous
+  permitted:
+    - numeric
+
+- name: prop
+  title: 'Proportion of trace'
+  type: Bool
+  default: FALSE
+  
+- name: coef
+  title: Coefficients of discriminants
+  type: Bool
+  default: TRUE
+
+- name: structCoef
+  title: Structure coefficients
+  type: Bool
+  default: TRUE
+
+- name: gc
+  title: 'Group centroids'
+  type: Bool
+  default: TRUE
+
+- name: plot
+  title: 'DDA plot'
+  type: Bool
+  default: FALSE
+
+- name: width
+  type: Integer
+  title: "DDA Plot width"
+  default: 500
+
+- name: height
+  type: Integer
+  title: "DDA Plot height"
+  default: 500
+
+- name: discScores
+  title: Discriminant scores
+  type: Bool
+  default: FALSE
+
+- name: pairwiseES
+  title: 'Pairwise Effect Sizes (d & g)'
+  type: Bool
+  default: FALSE

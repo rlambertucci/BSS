@@ -1,0 +1,68 @@
+---
+name: ModifiedZ
+title: Modified Z-Score Method
+menuGroup: BSS
+menuSubgroup: Outlier Detection
+menuSubtitle: Robust outlier detection using median and MAD
+version: '1.0.0'
+jas: '1.2'
+options:
+    - name: data
+      type: Data
+    - name: vars
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+    - name: group
+      title: Grouping Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+    - name: threshold
+      title: Threshold
+      type: List
+      options:
+        - name: t25
+          title: '2.5 (Leys et al., 2013)'
+        - name: t30
+          title: '3.0 (Wilcox, 2017)'
+        - name: t35
+          title: '3.5 (Iglewicz & Hoaglin, 1993)'
+        - name: t40
+          title: '4.0 (Iglewicz & Hoaglin, 1993)'
+      default: t35
+    - name: treatment
+      title: Treatment Method
+      type: List
+      options:
+        - name: none
+          title: None (Detection Only)
+        - name: trim_asym
+          title: Asymmetric Trimming (Identified Outliers)
+        - name: trim_sym
+          title: Symmetric Trimming (%)
+        - name: win_valid
+          title: Winsorize (To max/min valid value)
+        - name: win_fence
+          title: Winsorize (To threshold limits)
+      default: none
+    - name: trimPercent
+      title: Symmetric Trimming Percentage (%)
+      type: Number
+      default: 5
+      min: 1
+      max: 49
+    - name: dispBox
+      title: Display Boxplot
+      type: Bool
+      default: false
+    - name: treatedData
+      title: Save treated variables to dataset
+      type: Output
+...

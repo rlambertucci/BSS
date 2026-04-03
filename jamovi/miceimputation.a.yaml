@@ -1,0 +1,180 @@
+name: miceImputation
+title: MICE Imputation
+menuGroup: BSS
+menuSubgroup: Missing Data Imputation
+menuSubtitle: Multiple imputation by chained equations (MICE)
+version: '0.0.1'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+      title: Input Data
+
+    # ── Variáveis ──────────────────────────────────────────────
+    - name: vars
+      title: Variables to Impute
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      required: true
+      permitted:
+        - numeric
+        - factor
+        - id
+
+    - name: predictor_vars
+      title: Predictor Variables (optional)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+      default: null
+
+    # ── Diagnostic Plots ───────────────────────────────────────
+    - name: show_pattern_plot
+      title: Missing Data Pattern (md.pattern)
+      type: Bool
+      default: false
+
+    - name: show_trace_plot
+      title: Convergence Trace Plot
+      type: Bool
+      default: false
+
+    - name: show_density_plot
+      title: Observed vs Imputed Distribution
+      type: Bool
+      default: false
+
+    - name: show_strip_plot
+      title: Strip Plot by Variable
+      type: Bool
+      default: false
+
+    - name: show_correlation_plot
+      title: Missingness Correlation Heatmap
+      type: Bool
+      default: false
+
+    # ── Imputation Settings ────────────────────────────────────
+    - name: imputation_method
+      title: Imputation Method
+      type: List
+      options:
+        - title: PMM — Predictive Mean Matching
+          name: pmm
+        - title: Norm — Bayesian Linear Regression
+          name: norm
+        - title: Logreg — Logistic Regression (binary)
+          name: logreg
+        - title: Polyreg — Polytomous Regression
+          name: polyreg
+        - title: 2l.pmm — Multilevel PMM (longitudinal)
+          name: 2l.pmm
+        - title: 2l.continuous — Multilevel Normal (longitudinal)
+          name: 2l.continuous
+      default: pmm
+
+    - name: num_imputations
+      title: Number of Imputations (m)
+      type: Integer
+      default: 5
+      min: 2
+      max: 50
+
+    - name: maxiter
+      title: Maximum Iterations
+      type: Integer
+      default: 10
+      min: 1
+      max: 100
+
+    - name: seed
+      title: Seed (leave empty for random)
+      type: String
+      default: ""
+
+    - name: run_imputation
+      title: Run Imputation
+      type: Bool
+      default: false
+
+    # ── Longitudinal Settings ──────────────────────────────────
+    - name: data_format
+      title: Data Format
+      type: List
+      options:
+        - title: Cross-sectional / Long format
+          name: long
+        - title: Wide format (repeated measures)
+          name: wide
+      default: wide
+
+    - name: subject_id_var
+      title: Subject ID Variable
+      type: Variable
+      suggested:
+        - nominal
+        - id
+      permitted:
+        - numeric
+        - factor
+        - id
+      default: null
+
+    - name: time_var
+      title: Time / Wave Variable
+      type: Variable
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+      default: null
+
+    - name: group_var
+      title: Group / Cluster Variable
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+      default: null
+
+    - name: fixed_covariates
+      title: Fixed Covariates (predictors only, not imputed)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+      default: null
+
+    - name: wave_vars
+      title: Wave Columns (wide format — select all time-point columns)
+      type: Variables
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+      default: null
+
+    # ── Save ───────────────────────────────────────────────────
+    - name: imputedColsOutput
+      title: Save Imputed Variables
+      type: Output

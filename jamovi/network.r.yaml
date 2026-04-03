@@ -1,0 +1,172 @@
+name: Network
+title: Network Analysis
+jrs: '1.1' 
+
+items:
+  - name: instructions
+    title: ' '  
+    type: Preformatted 
+    visible: true 
+
+  - name: summary 
+    title: Network Summary
+    type: Table
+    clearWith: 
+      - vars
+      - estimator
+      - corMethod
+      - groupVar 
+    columns:
+   
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar) 
+      
+      - name: nodes
+        title: 'Nodes'
+        type: integer
+      - name: edges
+        title: 'Edges (Non-zero)'
+        type: text 
+      - name: sparsity
+        title: 'Sparsity'
+        type: number
+        format: zto 
+
+  - name: centrality  
+    title: Centrality Measures
+    type: Table
+    visible: (tableCentrality)
+    refs: 
+      - qgraph
+    clearWith:
+      - vars
+      - estimator
+      - corMethod
+      - groupVar 
+    columns:
+      
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar) 
+      - name: variable 
+        title: 'Variable' 
+        type: text
+        format: string
+      - name: strength
+        title: 'Strength'
+        type: number
+      - name: closeness
+        title: 'Closeness'
+        type: number
+      - name: betweenness
+        title: 'Betweenness'
+        type: number
+      - name: expectedInfluence 
+        title: 'Expected Influence'
+        type: number
+
+  - name: clustering 
+    title: Clustering Measures per Variable
+    type: Table
+    visible: (tableClustering)
+    refs: 
+      - qgraph
+      - igraph 
+    clearWith:
+      - vars
+      - estimator
+      - corMethod
+      - groupVar 
+    columns:
+      
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar) 
+      - name: node 
+        title: 'Variable' 
+        type: text
+        format: string
+      - name: Barrat
+        title: 'Barrat' 
+        type: number
+      - name: Onnela
+        title: 'Onnela'
+        type: number
+      - name: WS 
+        title: 'WS'
+        type: number
+      - name: Zhang 
+        title: 'Zhang'
+        type: number
+      
+  - name: weights 
+    title: Weights (Adjacency Matrix)
+    type: Table
+     
+    clearWith:
+      - vars
+      - estimator
+      - corMethod
+      - groupVar 
+    columns:
+      - name: node 
+        title: ''   
+        type: text
+        format: string 
+      
+ 
+  - name: centralityPlot 
+    title: Centrality Plot
+    type: Image
+    requiresData: true
+    visible: (plotCentrality)
+    renderFun: .plotCentrality 
+    refs: 
+      - qgraph
+      - ggplot2
+    clearWith:
+      - vars
+      - estimator
+      - corMethod
+      - groupVar 
+      - nodeGroupVar
+
+  - name: clusteringPlot 
+    title: Clustering Plot
+    type: Image
+    requiresData: true
+    visible: (plotClustering)
+    renderFun: .plotClustering 
+    refs: 
+      - qgraph
+      - ggplot2
+      - igraph 
+    clearWith:
+      - vars
+      - estimator
+      - corMethod
+      - groupVar 
+      - nodeGroupVar
+      
+  - name: networkPlot 
+    title: Network Plot
+    type: Image
+    requiresData: true
+    visible: (plotNetwork)
+    renderFun: .plotNetwork 
+    refs: 
+      - qgraph
+    clearWith:
+      - vars
+      - estimator
+      - corMethod
+      - layoutAlgorithm
+      - showLabels
+      - plotWidth
+      - plotHeight
+      - groupVar 
+      - nodeGroupVar

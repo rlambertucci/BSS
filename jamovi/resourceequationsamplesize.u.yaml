@@ -1,0 +1,28 @@
+title: Animals design
+name: resourceEquationSampleSize
+jus: '3.0'
+stage: 0
+compilerMode: aggressive
+children:
+  - type: LayoutBox
+    margin: large
+    children:
+      - type: ComboBox
+        name: design
+  - type: LayoutBox
+    margin: large
+    children:
+      - type: TextBox
+        name: nGroups
+        format: number
+  - type: LayoutBox
+    margin: large
+    children:
+      - type: TextBox
+        name: nMeasures
+        format: number
+  - type: LayoutBox
+    margin: large
+    children:
+      - type: CheckBox
+        name: sacrifice
