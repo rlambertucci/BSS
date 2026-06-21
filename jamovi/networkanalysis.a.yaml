@@ -1,0 +1,265 @@
+name:  networkanalysis
+title: Network analysis
+menuGroup: BSS
+menuSubgroup: Associations & Networks
+menuSubtitle: Network analysis for continuous (GGM) and mixed (MGM) data
+version: '1.0.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+
+    - name: mode
+      title: Analysis Mode
+      type: List
+      options:
+        - title: For continuous data
+          name: continuous
+        - title: For mixed data
+          name: mixed
+      default: continuous
+
+    - name: vars_net
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+
+    - name: groupVar_net
+      title: Grouping Variable
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    - name: nodeGroupVar_net
+      title: Node Groups Variable
+      type: Variable
+      suggested:
+        - nominal
+      permitted:
+        - factor
+        - id
+      default: null
+
+    - name: estimator_net
+      title: Estimator
+      type: List
+      options:
+        - name: EBICglasso
+          title: EBICglasso
+        - name: correlation
+          title: Correlation
+        - name: partial_correlation
+          title: Partial Correlation
+      default: EBICglasso
+
+    - name: corMethod_net
+      title: Correlation Method
+      type: List
+      options:
+        - name: auto
+          title: Auto
+        - name: cor
+          title: Correlation Matrix
+        - name: cov
+          title: Covariance Matrix
+      default: auto
+
+    - name: tableCentrality_net
+      title: Centrality Table
+      type: Bool
+      default: TRUE
+
+    - name: tableClustering_net
+      title: Clustering Table
+      type: Bool
+      default: FALSE
+
+    - name: tableWeights_net
+      title: Weights (Adjacency) Table
+      type: Bool
+      default: FALSE
+
+    - name: plotCentrality_net
+      title: Centrality Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotClustering_net
+      title: Clustering Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotNetwork_net
+      title: Network Plot
+      type: Bool
+      default: FALSE
+
+    - name: layoutAlgorithm_net
+      title: Layout Algorithm
+      type: List
+      options:
+        - name: spring
+          title: Spring (Fruchterman-Reingold)
+        - name: circle
+          title: Circle
+      default: spring
+
+    - name: showLabels_net
+      title: Show Labels
+      type: Bool
+      default: TRUE
+
+    - name: plotWidth_net
+      title: Network Plot Width
+      type: Integer
+      default: 500
+
+    - name: plotHeight_net
+      title: Network Plot Height
+      type: Integer
+      default: 500
+
+    - name: varsCont_mixed
+      title: Continuous Variables (Gaussian)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: varsCat_mixed
+      title: Categorical Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    - name: varsCount_mixed
+      title: Count Variables (Poisson)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: groupVar_mixed
+      title: Grouping Variable
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    - name: nodeGroupVar_mixed
+      title: Node Groups Variable
+      type: Variable
+      suggested:
+        - nominal
+      permitted:
+        - factor
+        - id
+      default: null
+
+    - name: lambdaSelMethod_mixed
+      title: Lambda Selection Method
+      type: List
+      options:
+        - name: EBIC
+          title: Extended BIC (EBIC)
+        - name: CV
+          title: Cross-Validation (CV)
+      default: EBIC
+
+    - name: kFolds_mixed
+      title: Number of Folds (if CV selected)
+      type: Integer
+      default: 3
+      min: 2
+
+    - name: lambdaGam_mixed
+      title: Gamma for EBIC (if EBIC selected)
+      type: Number
+      default: 0.5
+      min: 0
+      max: 1
+
+    - name: ruleReg_mixed
+      title: Parameter Combination Rule
+      type: List
+      options:
+        - name: AND
+          title: AND-rule
+        - name: OR
+          title: OR-rule
+      default: AND
+
+    - name: tableCentrality_mixed
+      title: Centrality Table
+      type: Bool
+      default: TRUE
+
+    - name: tableClustering_mixed
+      title: Clustering Table
+      type: Bool
+      default: FALSE
+
+    - name: tableWeights_mixed
+      title: Weights (Adjacency) Table
+      type: Bool
+      default: FALSE
+
+    - name: plotCentrality_mixed
+      title: Centrality Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotClustering_mixed
+      title: Clustering Plot
+      type: Bool
+      default: FALSE
+
+    - name: plotNetwork_mixed
+      title: Network Plot
+      type: Bool
+      default: TRUE
+
+    - name: layoutAlgorithm_mixed
+      title: Layout Algorithm
+      type: List
+      options:
+        - name: spring
+          title: Spring (Fruchterman-Reingold)
+        - name: circle
+          title: Circle
+      default: spring
+
+    - name: showLabels_mixed
+      title: Show Labels
+      type: Bool
+      default: TRUE
+
+    - name: plotWidth_mixed
+      title: Network Plot Width
+      type: Integer
+      default: 500
+
+    - name: plotHeight_mixed
+      title: Network Plot Height
+      type: Integer
+      default: 500

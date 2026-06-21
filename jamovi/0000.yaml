@@ -1,0 +1,112 @@
+---
+title: BSS
+name: BSS
+version: 0.2.0
+jms: '1.0'
+authors:
+  - Rafael Lambertucci
+maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
+date: '2026-20-06'
+type: R
+description: >-
+  The BSS module provides a comprehensive suite of statistical tools organized 
+  according to the main stages of data analysis. It includes: (1) data
+  screening, cleaning and presentation tools, such as outlier detection (Dixon’s
+  Q Test, IQR, and  modified Z-score), missing data imputation (missRanger and
+  MICE), and a highly customizable group comparison plots (bar charts, boxplots,
+  and mean-dispersion graphs) for both cross-sectional and longitudinal designs,
+  including automated publication-ready descriptive tables (APA, ABNT,
+  Vancouver, and Chicago styles). (2) association analyses, including
+  correlation comparison (independent and  dependent) and network modeling for
+  continuous and mixed data;  (3) post-analysis tools for result interpretation,
+  including pairwise effect  size estimation and post hoc analysis for MANOVA
+  using descriptive discriminant  analysis (DDA); and (4) study planning tools,
+  including sample size calculation  for finite populations and animal
+  experimental designs based on the Resource  Equation Approach.
+analyses:
+  - title: Outliers detection and treatment
+    name: outliers
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Outliers detection and treatment
+    menuSubgroup: Data Preparation & Screening
+    menuSubtitle: >-
+      Multi-method outlier detection and treatment (Dixon’s Q Test, IQR, and
+      modified Z-score)
+  - title: Missing data analysis and imputation
+    name: dataimputation
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Missing data analysis and imputation
+    menuSubgroup: Data Preparation & Screening
+    menuSubtitle: MissRanger and Multiple Imputation by Chained Equations (MICE)
+  - title: Data Transformation
+    name: dataTransform
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Data Transformation
+    menuSubgroup: Data Preparation & Screening
+    menuSubtitle: Power transformations for normality (Box-Cox, Yeo-Johnson, Johnson)
+  - title: Network analysis
+    name: networkanalysis
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Network analysis
+    menuSubgroup: Associations & Networks
+    menuSubtitle: Network analysis for continuous (GGM) and mixed (MGM) data
+  - title: Compare Correlations
+    name: correlationComparison
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Compare Correlations
+    menuSubgroup: Associations & Networks
+    menuSubtitle: Independent and Dependent
+    category: analyses
+  - title: Effect Size Calculation
+    name: effectSize
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Effect Size Calculation
+    menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
+    menuSubtitle: Pairwise effect size calculation (independent and dependent samples)
+  - title: Post hoc analysis for MANOVA (DDA)
+    name: DDA
+    ns: BSS
+    menuGroup: BSS
+    menuTitle: Post hoc analysis for MANOVA (DDA)
+    menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
+    menuSubtitle: Descriptive Discriminant Analysis + Effect size
+    category: analyses
+  - title: Aligned Rank Transform (ART)
+    name: art
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Aligned Rank Transform (ART)
+    menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
+    menuSubtitle: Nonparametric Factorial and Mixed ANOVAs/ANCOVAs
+  - title: Sample size calculation
+    name: samplesize
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Sample size calculation
+    menuSubgroup: Study Design & Presentation
+    menuSubtitle: Sample size calculation for finite population and animal design
+  - title: Data Presentation
+    name: DataPresentation
+    ns: BSS
+    category: analyses
+    menuGroup: BSS
+    menuTitle: Data Presentation
+    menuSubgroup: Study Design & Presentation
+    menuSubtitle: Plots and Table (cross-sectional and longitudinal studies)
+usesNative: true
+minApp: 1.0.8
+
+...

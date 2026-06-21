@@ -1,0 +1,343 @@
+---
+name:  dataimputation
+title: Missing data analysis and imputation
+menuGroup: BSS
+menuSubgroup: Data Preparation & Screening
+menuSubtitle: MissRanger and Multiple Imputation by Chained Equations (MICE) 
+version: '1.0.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+
+    - name: mode
+      title: Analysis Mode
+      type: List
+      options:
+        - title: MICE (Cross-sectional)
+          name: mice_cs
+        - title: MICE (Longitudinal)
+          name: mice_long
+        - title: missRanger (Random Forest)
+          name: missranger
+      default: mice_cs
+
+    - name: vars_mice_cs
+      title: Variables to Impute (Cross-sectional)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+        - id
+
+    - name: predictor_vars_mice_cs
+      title: Predictor Variables (optional)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: imputation_method_mice_cs
+      title: Imputation Method
+      type: List
+      options:
+        - title: PMM — Predictive Mean Matching
+          name: pmm
+        - title: Norm — Bayesian Linear Regression
+          name: norm
+        - title: Logreg — Logistic Regression (binary)
+          name: logreg
+        - title: Polyreg — Polytomous Regression
+          name: polyreg
+      default: pmm
+
+    - name: num_imputations_mice_cs
+      title: Number of Imputations (m)
+      type: Integer
+      default: 5
+      min: 2
+      max: 50
+
+    - name: maxiter_mice_cs
+      title: Maximum Iterations
+      type: Integer
+      default: 10
+      min: 1
+      max: 100
+
+    - name: seed_mice_cs
+      title: Seed (leave empty for random)
+      type: String
+      default: ""
+
+    - name: run_imputation_mice_cs
+      title: Run Imputation
+      type: Bool
+      default: false
+
+    - name: show_pattern_plot_mice_cs
+      title: Missing Data Pattern
+      type: Bool
+      default: false
+
+    - name: show_correlation_plot_mice_cs
+      title: Missingness Correlation Heatmap
+      type: Bool
+      default: false
+
+    - name: show_trace_plot_mice_cs
+      title: Convergence Trace Plot
+      type: Bool
+      default: false
+
+    - name: show_density_plot_mice_cs
+      title: Observed vs Imputed Distribution
+      type: Bool
+      default: false
+
+    - name: show_strip_plot_mice_cs
+      title: Strip Plot by Variable
+      type: Bool
+      default: false
+
+    - name: imputedColsOutput_mice_cs
+      title: Save Imputed Variables (Pooled)
+      type: Output
+
+    - name: vars_mice_long
+      title: Variables to Impute (Longitudinal)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+        - id
+
+    - name: predictor_vars_mice_long
+      title: Predictor Variables (optional)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: data_format_mice_long
+      title: Data Format
+      type: List
+      options:
+        - title: Cross-sectional / Long format
+          name: long
+        - title: Wide format (repeated measures)
+          name: wide
+      default: wide
+
+    - name: subject_id_var_mice_long
+      title: Subject ID Variable
+      type: Variable
+      suggested:
+        - nominal
+        - id
+      permitted:
+        - factor
+        - numeric
+        - id
+
+    - name: time_var_mice_long
+      title: Time / Wave Variable
+      type: Variable
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: group_var_mice_long
+      title: Group / Cluster Variable
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: fixed_covariates_mice_long
+      title: Fixed Covariates (predictors only)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: wave_vars_mice_long
+      title: Wave Columns (wide format)
+      type: Variables
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: imputation_method_mice_long
+      title: Imputation Method
+      type: List
+      options:
+        - title: 2l.pmm — Multilevel PMM (longitudinal)
+          name: 2l.pmm
+        - title: 2l.continuous — Multilevel Normal (longitudinal)
+          name: 2l.continuous
+      default: 2l.pmm
+
+    - name: num_imputations_mice_long
+      title: Number of Imputations (m)
+      type: Integer
+      default: 5
+      min: 2
+      max: 50
+
+    - name: maxiter_mice_long
+      title: Maximum Iterations
+      type: Integer
+      default: 10
+      min: 1
+      max: 100
+
+    - name: seed_mice_long
+      title: Seed (leave empty for random)
+      type: String
+      default: ""
+
+    - name: run_imputation_mice_long
+      title: Run Imputation
+      type: Bool
+      default: false
+
+    - name: show_pattern_plot_mice_long
+      title: Missing Data Pattern
+      type: Bool
+      default: false
+
+    - name: show_correlation_plot_mice_long
+      title: Missingness Correlation Heatmap
+      type: Bool
+      default: false
+
+    - name: show_trace_plot_mice_long
+      title: Convergence Trace Plot
+      type: Bool
+      default: false
+
+    - name: show_density_plot_mice_long
+      title: Observed vs Imputed Distribution
+      type: Bool
+      default: false
+
+    - name: show_strip_plot_mice_long
+      title: Strip Plot by Variable
+      type: Bool
+      default: false
+
+    - name: imputedColsOutput_mice_long
+      title: Save Imputed Variables (Pooled)
+      type: Output
+
+    - name: vars_mr
+      title: Variables to Impute (Random Forest)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+        - id
+
+    - name: predictor_vars_mr
+      title: Predictor Variables (optional)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: use_multiple_imputation_mr
+      title: Use Multiple Imputation
+      type: Bool
+      default: false
+
+    - name: num_imputations_mr
+      title: Number of Imputations (Mean/Mode)
+      type: Integer
+      default: 5
+      min: 2
+      max: 50
+
+    - name: maxiter_mr
+      title: Maximum Iterations
+      type: Integer
+      default: 10
+      min: 1
+      max: 100
+
+    - name: num_trees_mr
+      title: Number of Trees
+      type: Integer
+      default: 100
+      min: 1
+      max: 200
+
+    - name: pmm_k_mr
+      title: Number of Donors for PMM
+      type: Integer
+      default: 5
+      min: 0
+      max: 20
+
+    - name: seed_mr
+      title: Seed (leave empty for random)
+      type: String
+      default: ""
+
+    - name: run_imputation_mr
+      title: Run Imputation
+      type: Bool
+      default: false
+
+    - name: show_pattern_plot_mr
+      title: Missing Pattern Plot
+      type: Bool
+      default: false
+
+    - name: show_correlation_plot_mr
+      title: Missingness Correlation Heatmap
+      type: Bool
+      default: false
+
+    - name: imputedColsOutput_mr
+      title: Save Imputed Variables
+      type: Output
+...

@@ -1,0 +1,139 @@
+name: art
+title: Aligned Rank Transform (ART)
+menuGroup: BSS
+menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
+menuSubtitle: Nonparametric Factorial and Mixed ANOVAs/ANCOVAs
+version: '1.0.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+      title: Input Data
+
+    - name: mode
+      title: Analysis Mode
+      type: List
+      options:
+        - title: Cross-sectional (Independent)
+          name: cross_sectional
+        - title: Longitudinal (Repeated/Mixed)
+          name: longitudinal
+      default: cross_sectional
+
+    - name: dep_var_cs
+      title: Dependent Variable (DV)
+      type: Variable
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+
+    - name: fixed_factors_cs
+      title: Fixed Factors (Categorical IVs)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+
+    - name: long_format
+      title: Data Format
+      type: List
+      options:
+        - title: Wide format (one column per wave)
+          name: wide
+        - title: Long format (time column + value column)
+          name: long
+      default: wide
+
+    - name: dep_var_long
+      title: Dependent Variable (DV - Long format only)
+      type: Variable
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+
+    - name: fixed_factors_long
+      title: Between-Subject Factors (optional)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+
+    - name: subject_id_var
+      title: Subject ID Variable
+      type: Variable
+      suggested:
+        - nominal
+        - id
+      permitted:
+        - factor
+        - numeric
+        - id
+
+    - name: time_var
+      title: Time / Wave Factor (Long format)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+
+    - name: wave_vars
+      title: Wave Columns (Wide format)
+      type: Variables
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+
+    - name: run_posthoc
+      title: Run Pairwise Post-Hoc Tests (art.con)
+      type: Bool
+      default: false
+
+    - name: posthoc_correction
+      title: P-value Correction (Post-Hoc)
+      type: List
+      options:
+        - title: Holm (Sequential Bonferroni)
+          name: holm
+        - title: Bonferroni
+          name: bonferroni
+        - title: Tukey
+          name: tukey
+        - title: None
+          name: none
+      default: holm
+
+    - name: calc_es
+      title: Calculate Pairwise Effect Size
+      type: Bool
+      default: false
+
+    - name: es_method
+      title: Effect Size Method
+      type: List
+      options:
+        - title: Cohen's d (from z/t-ratios)
+          name: cohens_d
+        - title: Hedge's g
+          name: hedges_g
+      default: cohens_d
+
+    - name: run_analysis
+      title: Run ART Analysis
+      type: Bool
+      default: false

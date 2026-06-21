@@ -1,0 +1,204 @@
+---
+name: outliers
+title: Outliers detection and treatment
+jus: '3.0'
+compilerMode: tame
+children:
+  - type: ModeSelector
+    name: mode
+    stretchFactor: 1
+    children:
+
+      - type: Content
+        name: dixon
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variable
+                children:
+                  - type: VariablesListBox
+                    name: var_dixon
+                    maxItemCount: 1
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Grouping Variables
+                children:
+                  - type: VariablesListBox
+                    name: group_dixon
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Detection Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: alpha_dixon
+                    label: Significance Level
+                  - type: CheckBox
+                    name: dispBox_dixon
+                    label: Display Boxplot
+
+          - type: CollapseBox
+            label: Treatment
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: treatment_dixon
+                    label: Treatment Method
+
+          - type: CollapseBox
+            label: Save
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Output
+                    name: treatedData_dixon
+
+      - type: Content
+        name: modz
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables
+                children:
+                  - type: VariablesListBox
+                    name: vars_modz
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Grouping Variables
+                children:
+                  - type: VariablesListBox
+                    name: group_modz
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Detection Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: threshold_modz
+                    label: Threshold
+                  - type: CheckBox
+                    name: dispBox_modz
+                    label: Display Boxplot
+
+          - type: CollapseBox
+            label: Treatment Options
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: treatment_modz
+                    label: Treatment Method
+                  - type: TextBox
+                    name: trimPercent_modz
+                    label: Symmetric Trimming Percentage (%)
+                    format: number
+                    enable: (treatment_modz == 'trim_sym')
+
+          - type: CollapseBox
+            label: Save
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Output
+                    name: treatedData_modz
+
+      - type: Content
+        name: iqr
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables
+                children:
+                  - type: VariablesListBox
+                    name: vars_iqr
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Grouping Variables
+                children:
+                  - type: VariablesListBox
+                    name: group_iqr
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Detection Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: iqrMultiplier_iqr
+                    label: IQR Multiplier Range
+                  - type: CheckBox
+                    name: dispBox_iqr
+                    label: Display Boxplot
+
+          - type: CollapseBox
+            label: Treatment Options
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: treatment_iqr
+                    label: Treatment Method
+                  - type: TextBox
+                    name: trimPercent_iqr
+                    label: Symmetric Trimming Percentage (%)
+                    format: number
+                    enable: (treatment_iqr == 'trim_sym')
+
+          - type: CollapseBox
+            label: Save
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Output
+                    name: treatedData_iqr

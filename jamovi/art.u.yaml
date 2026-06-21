@@ -1,0 +1,120 @@
+---
+name: art
+title: Aligned Rank Transform (ART)
+jus: '3.0'
+compilerMode: tame
+
+children:
+  - type: ModeSelector
+    name: mode
+    stretchFactor: 1
+    children:
+
+      - type: Content
+        name: cross_sectional
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Dependent Variable (DV)
+                children:
+                  - type: VariablesListBox
+                    name: dep_var_cs
+                    isTarget: true
+                    maxItemCount: 1
+              - type: TargetLayoutBox
+                label: "Fixed Factors (Categorical IVs)"
+                children:
+                  - type: VariablesListBox
+                    name: fixed_factors_cs
+                    isTarget: true
+
+      - type: Content
+        name: longitudinal
+        children:
+          - type: LayoutBox
+            margin: large
+            children:
+              - type: Label
+                label: "Use for Repeated Measures ANOVA, Mixed Design ANOVA, or ANCOVA."
+              - type: ComboBox
+                name: long_format
+                label: Data Format
+
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Dependent Variable (for Long format)
+                children:
+                  - type: VariablesListBox
+                    name: dep_var_long
+                    isTarget: true
+                    maxItemCount: 1
+                    enable: (long_format == 'long')
+              
+              - type: TargetLayoutBox
+                label: Between-Subject Factors (optional)
+                children:
+                  - type: VariablesListBox
+                    name: fixed_factors_long
+                    isTarget: true
+              
+              - type: TargetLayoutBox
+                label: Subject ID Variable (Random Factor)
+                children:
+                  - type: VariablesListBox
+                    name: subject_id_var
+                    isTarget: true
+                    maxItemCount: 1
+              
+              - type: TargetLayoutBox
+                label: "Time / Wave Factor (for Long format)"
+                children:
+                  - type: VariablesListBox
+                    name: time_var
+                    isTarget: true
+                    maxItemCount: 1
+                    enable: (long_format == 'long')
+              
+              - type: TargetLayoutBox
+                label: "Wave Columns (for Wide format)"
+                children:
+                  - type: VariablesListBox
+                    name: wave_vars
+                    isTarget: true
+                    enable: (long_format == 'wide')
+
+  - type: CollapseBox
+    label: Post-Hoc & Effect Size
+    collapsed: false
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        children:
+          - type: CheckBox
+            name: run_posthoc
+            label: Run Pairwise Post-Hoc Tests
+          - type: ComboBox
+            name: posthoc_correction
+            label: P-value Correction
+            enable: (run_posthoc)
+          - type: CheckBox
+            name: calc_es
+            label: Calculate Pairwise Effect Size
+            enable: (run_posthoc)
+          - type: ComboBox
+            name: es_method
+            label: Effect Size Method
+            enable: (run_posthoc && calc_es)
+
+  - type: LayoutBox
+    margin: large
+    children:
+      - type: CheckBox
+        name: run_analysis
+        label: "Run ART Analysis"

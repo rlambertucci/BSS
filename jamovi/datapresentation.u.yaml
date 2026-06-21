@@ -1,0 +1,374 @@
+name: DataPresentation
+title: Data Presentation
+jus: '3.0'
+compilerMode: tame
+
+children:
+  - type: ModeSelector
+    name: analysisType
+    children:
+      - type: Content
+        name: cross_sectional
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Dependent Variables
+                children:
+                  - type: VariablesListBox
+                    name: deps
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: "Grouping Variables (Cross-Sectional)"
+                children:
+                  - type: VariablesListBox
+                    name: group
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: "Covariate (Optional)"
+                children:
+                  - type: VariablesListBox
+                    name: cov
+                    maxItemCount: 1
+                    isTarget: true
+
+      - type: Content
+        name: longitudinal
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Repeated Measures Variables (Wide Format)
+                children:
+                  - type: VariablesListBox
+                    name: rm_vars
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: "Between-Subjects Factor(s) (Optional)"
+                children:
+                  - type: VariablesListBox
+                    name: group_long
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: "Covariate (Optional)"
+                children:
+                  - type: VariablesListBox
+                    name: cov_long
+                    maxItemCount: 1
+                    isTarget: true
+  - type: CollapseBox
+    label: Plot Options
+    collapsed: false
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: ComboBox
+            name: plotType
+            label: Plot Type
+
+          - type: ComboBox
+            name: intStyle
+            label: Interaction Style
+
+          - type: CheckBox
+            name: showLines
+            label: Connect Means with Line (Longitudinal)
+            enable: (analysisType == 'longitudinal')
+
+          - type: ComboBox
+            name: errorType
+            label: Dispersion Measure
+            enable: (plotType != 'boxplot')
+
+          - type: TextBox
+            name: ciWidth
+            label: Confidence Interval Width (%)
+            suffix: '%'
+            format: number
+            enable: (plotType != 'boxplot' && errorType == 'ci')
+
+          - type: CheckBox
+            name: showPoints
+            label: Show Individual Data Points
+
+  - type: CollapseBox
+    label: Table Options
+    collapsed: false
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: CheckBox
+            name: showTable
+            label: Show Descriptive Table
+
+          - type: ComboBox
+            name: tableFormat
+            label: Table Format
+            enable: (showTable)
+
+          - type: TextBox
+            name: tableTitle
+            format: string
+            stretchFactor: 1
+            enable: (showTable)
+
+          - type: TextBox
+            name: tableNote
+            format: string
+            stretchFactor: 1
+            enable: (showTable)
+
+  - type: CollapseBox
+    label: Plot Theme
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: ComboBox
+            name: themePlot
+            label: Plot Theme
+
+  - type: CollapseBox
+    label: Colors
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: ComboBox
+            name: colorPalette
+            label: Color Palette
+
+
+
+          - type: ComboBox
+            name: color1
+            label: Color 1
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color2
+            label: Color 2
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color3
+            label: Color 3
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color4
+            label: Color 4
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color5
+            label: Color 5
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color6
+            label: Color 6
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color7
+            label: Color 7
+            enable: (colorPalette == 'manual')
+
+          - type: ComboBox
+            name: color8
+            label: Color 8
+            enable: (colorPalette == 'manual')
+
+  - type: CollapseBox
+    label: Labels & Titles
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: TextBox
+            name: titleText
+            label: Plot Title
+            format: string
+
+          - type: TextBox
+            name: subtitleText
+            label: Plot Subtitle
+            format: string
+
+          - type: TextBox
+            name: xLabel
+            label: X Axis Label
+            format: string
+
+          - type: TextBox
+            name: yLabel
+            label: Y Axis Label
+            format: string
+
+  - type: CollapseBox
+    label: Axis Options
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: TextBox
+            name: xAngle
+            label: X Axis Label Angle (0–90)
+            suffix: '°'
+            format: number
+
+          - type: ComboBox
+            name: legendPosition
+            label: Legend Position
+
+          - type: Label
+            label: "──────────────"
+
+          - type: CheckBox
+            name: removeGap
+            label: Remove Y-Axis Bottom Gap
+
+          - type: CheckBox
+            name: customYAxis
+            label: Custom Y-Axis Scale
+
+          - type: LayoutBox
+            margin: large
+            children:
+              - type: TextBox
+                name: yMin
+                label: Minimum
+                format: number
+                enable: (customYAxis)
+
+              - type: TextBox
+                name: yMax
+                label: Maximum
+                format: number
+                enable: (customYAxis)
+
+              - type: TextBox
+                name: yStep
+                label: Step (Breaks)
+                format: number
+                enable: (customYAxis)
+
+  - type: CollapseBox
+    label: Font Sizes
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: TextBox
+            name: fontSizeTitle
+            label: Title
+            suffix: pt
+            format: number
+
+          - type: TextBox
+            name: fontSizeSubtitle
+            label: Subtitle
+            suffix: pt
+            format: number
+
+          - type: TextBox
+            name: fontSizeAxisTitle
+            label: Axis Titles
+            suffix: pt
+            format: number
+
+          - type: TextBox
+            name: fontSizeAxis
+            label: Axis Text
+            suffix: pt
+            format: number
+
+          - type: TextBox
+            name: fontSizeLegend
+            label: Legend
+            suffix: pt
+            format: number
+
+  - type: CollapseBox
+    label: Line Widths
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: TextBox
+            name: lineWidth
+            label: Border Width
+            suffix: px
+            format: number
+
+          - type: TextBox
+            name: errorLineWidth
+            label: Error Bar
+            suffix: px
+            format: number
+
+          - type: TextBox
+            name: axisLineWidth
+            label: Axis Lines
+            suffix: px
+            format: number
+
+  - type: CollapseBox
+    label: Bar & Point Options
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: TextBox
+            name: barWidth
+            label: Bar Width
+            format: number
+
+          - type: TextBox
+            name: barAlpha
+            label: Bar Transparency (alpha)
+            format: number
+
+          - type: TextBox
+            name: pointSize
+            label: Point Size
+            format: number
+            enable: (showPoints)
+
+          - type: TextBox
+            name: pointAlpha
+            label: Point Transparency (alpha)
+            format: number
+            enable: (showPoints)

@@ -1,0 +1,233 @@
+name: effectSize
+title: Effect Size
+jrs: '1.1'
+items:
+    - name: analysisInfo
+      title: About Effect Size Analysis
+      type: Html
+      visible: true
+
+    - name: ameBenchmark
+      title: AME Interpretation Benchmark
+      type: Html
+      visible: (use_glm)
+
+    - name: effectSizeTable
+      title: Within-Subjects Effect Sizes (Time Effects)
+      type: Table
+      visible: (run_analysis)
+      refs:
+        - effectsize
+        - emmeans
+      clearWith:
+        - mode
+        - dep_vars_cs
+        - indep_vars_cs
+        - dep_vars_long
+        - indep_vars_long
+        - include_interactions
+        - es_method
+        - reference_group
+        - use_glm
+        - es_glm
+        - ci_method
+        - n_bootstrap
+        - ci_level
+        - run_analysis
+        - long_format
+        - time_var
+        - wave_vars
+        - subject_id_var
+        - es_method_long
+        - reference_group_long
+        - cov
+        - cov_long
+      columns:
+        - name: dv
+          title: DV
+          type: text
+          combineBelow: true
+        - name: iv
+          title: IV
+          type: text
+          combineBelow: true
+        - name: comparison
+          title: Comparison
+          type: text
+        - name: method
+          title: Method
+          type: text
+        - name: es_value
+          title: Effect Size
+          type: number
+          format: dp:3
+        - name: ci_lower
+          title: CI Lower
+          type: number
+          format: dp:3
+        - name: ci_upper
+          title: CI Upper
+          type: number
+          format: dp:3
+        - name: interpretation
+          title: Interpretation
+          type: text
+        - name: n_obs
+          title: N
+          type: integer
+
+    - name: effectSizeTableLongBetween
+      title: Between-Subjects Effect Sizes (Group Differences)
+      type: Table
+      visible: (run_analysis && mode == 'longitudinal')
+      refs:
+        - effectsize
+        - emmeans
+      clearWith:
+        - mode
+        - dep_vars_long
+        - indep_vars_long
+        - include_interactions
+        - es_method
+        - ci_method
+        - n_bootstrap
+        - ci_level
+        - run_analysis
+        - long_format
+        - wave_vars
+        - time_var
+        - cov
+        - cov_long
+      columns:
+        - name: dv
+          title: Time Point
+          type: text
+          combineBelow: true
+        - name: iv
+          title: Grouping Variable
+          type: text
+          combineBelow: true
+        - name: comparison
+          title: Comparison
+          type: text
+        - name: method
+          title: Method
+          type: text
+        - name: es_value
+          title: Effect Size
+          type: number
+          format: dp:3
+        - name: ci_lower
+          title: CI Lower
+          type: number
+          format: dp:3
+        - name: ci_upper
+          title: CI Upper
+          type: number
+          format: dp:3
+        - name: interpretation
+          title: Interpretation
+          type: text
+        - name: n_obs
+          title: N
+          type: integer
+
+    - name: clesTable
+      title: Common Language Effect Size (CLES) - Independent Samples
+      type: Table
+      visible: (run_analysis && mode == 'cross_sectional' && show_cles)
+      refs:
+        - effectsize
+        - emmeans
+      clearWith:
+        - mode
+        - dep_vars_cs
+        - indep_vars_cs
+        - include_interactions
+        - es_method
+        - reference_group
+        - use_glm
+        - es_glm
+        - ci_method
+        - n_bootstrap
+        - ci_level
+        - run_analysis
+        - show_cles
+        - cov
+        - cov_long
+      columns:
+        - name: dv
+          title: DV
+          type: text
+          combineBelow: true
+        - name: iv
+          title: IV
+          type: text
+          combineBelow: true
+        - name: comparison
+          title: Comparison
+          type: text
+        - name: cles
+          title: CLES
+          type: number
+          format: dp:3
+
+    - name: clesLongTable
+      title: Common Language Effect Size (CLES) - Paired Samples
+      type: Table
+      visible: (run_analysis && mode == 'longitudinal' && show_cles_long)
+      refs:
+        - effectsize
+        - emmeans
+      clearWith:
+        - mode
+        - run_analysis
+        - dep_vars_long
+        - indep_vars_long
+        - long_format
+        - time_var
+        - wave_vars
+        - subject_id_var
+        - es_method_long
+        - reference_group_long
+        - show_cles_long
+        - cov
+        - cov_long
+      columns:
+        - name: dv
+          title: DV
+          type: text
+          combineBelow: true
+        - name: comparison
+          title: Comparison
+          type: text
+        - name: cles
+          title: CLES (paired)
+          type: number
+          format: dp:3
+
+    - name: text
+      title: Analysis Summary
+      type: Preformatted
+      visible: false
+      clearWith:
+        - mode
+        - dep_vars_cs
+        - indep_vars_cs
+        - dep_vars_long
+        - indep_vars_long
+        - include_interactions
+        - es_method
+        - reference_group
+        - use_glm
+        - es_glm
+        - ci_method
+        - n_bootstrap
+        - ci_level
+        - run_analysis
+        - long_format
+        - time_var
+        - wave_vars
+        - subject_id_var
+        - es_method_long
+        - reference_group_long

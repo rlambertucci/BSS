@@ -1,0 +1,228 @@
+---
+name: outliers
+title: Outlier Detection and Treatment Results
+jrs: '1.1'
+items:
+    - name: dixonInfo
+      title: About Dixon's Q Test
+      type: Html
+      visible: (mode == 'dixon')
+
+    - name: dixonTable
+      title: Dixon's Q Test Results
+      type: Table
+      visible: (mode == 'dixon')
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+          - name: group_level
+            title: Group
+            type: text
+          - name: n
+            title: N
+            type: integer
+          - name: outlier_value
+            title: Outlier Value
+            type: number
+          - name: outlier_side
+            title: Side
+            type: text
+          - name: q_statistic
+            title: Q Statistic
+            type: number
+            format: zto
+          - name: q_critical
+            title: Q Critical
+            type: number
+            format: zto
+          - name: significant
+            title: Outlier Detected
+            type: text
+          - name: treatmentApplied
+            title: Treatment Applied
+            type: text
+            visible: (treatment_dixon != 'none')
+          - name: modifiedN
+            title: Valid N (After Treatment)
+            type: integer
+            visible: (treatment_dixon != 'none')
+
+    - name: dixonOutlierList
+      title: Identified Outliers (Dixon's Q Test)
+      type: Table
+      visible: (mode == 'dixon')
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+            combineBelow: true
+          - name: group_level
+            title: Group
+            type: text
+            combineBelow: true
+          - name: rowNumber
+            title: Row
+            type: integer
+          - name: outlier_value
+            title: Value
+            type: number
+          - name: outlier_side
+            title: Side
+            type: text
+          - name: q_statistic
+            title: Q Statistic
+            type: number
+            format: zto
+
+    - name: dixonPlot
+      title: Dixon's Q Test Boxplot
+      type: Image
+      width: 500
+      height: 400
+      renderFun: .plot
+      visible: (mode == 'dixon' && dispBox_dixon)
+      refs:
+        - ggplot2
+
+    - name: treatedData_dixon
+      title: Treated Variable (Dixon)
+      type: Output
+      initInRun: true
+      clearWith:
+        - var_dixon
+        - group_dixon
+        - alpha_dixon
+        - treatment_dixon
+    - name: modzInfo
+      title: About Modified Z-Score Method
+      type: Html
+      visible: (mode == 'modz')
+
+    - name: modzTable
+      title: Modified Z-Score Outliers Summary
+      type: Table
+      visible: (mode == 'modz')
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+            content: ($key)
+          - name: group_level
+            title: Group
+            type: text
+          - name: lowerThreshold
+            title: Lower Threshold
+            type: number
+          - name: upperThreshold
+            title: Upper Threshold
+            type: number
+          - name: numOutliers
+            title: Outliers Detected
+            type: integer
+          - name: treatmentApplied
+            title: Treatment Applied
+            type: text
+            visible: (treatment_modz != 'none')
+          - name: modifiedN
+            title: Valid N (After Treatment)
+            type: integer
+            visible: (treatment_modz != 'none')
+
+    - name: modzOutlierList
+      title: Identified Outliers (Modified Z-Score)
+      type: Table
+      visible: (mode == 'modz')
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+            combineBelow: true
+          - name: group_level
+            title: Group
+            type: text
+            combineBelow: true
+          - name: rowNumber
+            title: Row
+            type: integer
+          - name: modifiedZ
+            title: Modified Z-Score
+            type: number
+
+    - name: modzPlot
+      title: Modified Z-Score Boxplot
+      type: Image
+      width: 500
+      height: 400
+      renderFun: .plot
+      visible: (mode == 'modz' && dispBox_modz)
+      refs:
+        - ggplot2
+        - gridExtra
+
+    - name: treatedData_modz
+      title: Treated Variables (Modified Z)
+      type: Output
+      initInRun: true
+      clearWith:
+        - vars_modz
+        - group_modz
+        - threshold_modz
+        - treatment_modz
+        - trimPercent_modz
+    - name: iqrInfo
+      title: About IQR Method
+      type: Html
+      visible: (mode == 'iqr')
+
+    - name: iqrTable
+      title: IQR Outliers Summary
+      type: Table
+      visible: (mode == 'iqr')
+      columns:
+          - name: variable
+            title: Variable
+            type: text
+            content: ($key)
+          - name: group_level
+            title: Group
+            type: text
+          - name: lowerFence
+            title: Lower Fence
+            type: number
+          - name: upperFence
+            title: Upper Fence
+            type: number
+          - name: numOutliers
+            title: Outliers Detected
+            type: integer
+          - name: treatmentApplied
+            title: Treatment Applied
+            type: text
+            visible: (treatment_iqr != 'none')
+          - name: modifiedN
+            title: Valid N (After Treatment)
+            type: integer
+            visible: (treatment_iqr != 'none')
+
+    - name: iqrPlot
+      title: IQR Method Boxplot
+      type: Image
+      width: 500
+      height: 400
+      renderFun: .plot
+      visible: (mode == 'iqr' && dispBox_iqr)
+      refs:
+        - ggplot2
+        - gridExtra
+
+    - name: treatedData_iqr
+      title: Treated Variables (IQR)
+      type: Output
+      initInRun: true
+      clearWith:
+        - vars_iqr
+        - group_iqr
+        - iqrMultiplier_iqr
+        - treatment_iqr
+        - trimPercent_iqr

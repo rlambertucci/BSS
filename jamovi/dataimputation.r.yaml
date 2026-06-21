@@ -1,0 +1,466 @@
+---
+name: dataimputation
+title: Missing data analysis and imputation
+jrs: '1.1'
+
+items:
+  - name: imputationInfo_mice_cs
+    title: About MICE Cross-sectional Imputation
+    type: Html
+    visible: (mode == 'mice_cs')
+
+  - name: missingnessTable_mice_cs
+    title: Missingness Summary (Cross-sectional)
+    type: Table
+    visible: (mode == 'mice_cs')
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+      - name: n_missing
+        title: Missing (N)
+        type: integer
+      - name: pct_missing
+        title: Missing (%)
+        type: number
+        format: dp:1
+      - name: n_valid
+        title: Valid (N)
+        type: integer
+      - name: method_used
+        title: Method Applied
+        type: text
+
+  - name: imputedData_mice_cs
+    title: Imputed Values (Pooled)
+    type: Table
+    visible: (mode == 'mice_cs' && run_imputation_mice_cs)
+    refs:
+      - mice
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - run_imputation_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+        combineBelow: true
+      - name: original
+        title: Original Value
+        type: text
+      - name: imputed
+        title: Pooled Imputed Value
+        type: text
+      - name: rowNumber
+        title: Row
+        type: integer
+
+  - name: patternPlot_mice_cs
+    title: Missing Data Pattern (md.pattern)
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderPatternPlotMiceCS
+    visible: (mode == 'mice_cs' && show_pattern_plot_mice_cs)
+    requiresData: true
+    refs:
+      - VIM
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+
+  - name: correlationPlot_mice_cs
+    title: Missingness Correlation Heatmap
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderCorrelationPlotMiceCS
+    visible: (mode == 'mice_cs' && show_correlation_plot_mice_cs)
+    requiresData: true
+    refs:
+      - GGally
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+
+  - name: tracePlot_mice_cs
+    title: Convergence Trace Plot
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderTracePlotMiceCS
+    visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_trace_plot_mice_cs)
+    requiresData: true
+    refs:
+      - mice
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - run_imputation_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+
+  - name: densityPlot_mice_cs
+    title: Observed vs Imputed Distribution
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderDensityPlotMiceCS
+    visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_density_plot_mice_cs)
+    requiresData: true
+    refs:
+      - mice
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - run_imputation_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+
+  - name: stripPlot_mice_cs
+    title: Strip Plot by Variable
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderStripPlotMiceCS
+    visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_strip_plot_mice_cs)
+    requiresData: true
+    refs:
+      - mice
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - run_imputation_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+
+  - name: imputedColsOutput_mice_cs
+    type: Output
+    title: Imputed Variables (MICE Cross-sectional)
+    initInRun: true
+    clearWith:
+      - data
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+      - run_imputation_mice_cs
+
+  - name: imputationInfo_mice_long
+    title: About MICE Longitudinal Imputation
+    type: Html
+    visible: (mode == 'mice_long')
+
+  - name: missingnessTable_mice_long
+    title: Missingness Summary (Longitudinal)
+    type: Table
+    visible: (mode == 'mice_long')
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - wave_vars_mice_long
+      - data_format_mice_long
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+      - name: n_missing
+        title: Missing (N)
+        type: integer
+      - name: pct_missing
+        title: Missing (%)
+        type: number
+        format: dp:1
+      - name: n_valid
+        title: Valid (N)
+        type: integer
+      - name: method_used
+        title: Method Applied
+        type: text
+
+  - name: imputedData_mice_long
+    title: Imputed Values (Pooled)
+    type: Table
+    visible: (mode == 'mice_long' && run_imputation_mice_long)
+    refs:
+      - mice
+      - miceadds
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - run_imputation_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - data_format_mice_long
+      - wave_vars_mice_long
+      - subject_id_var_mice_long
+      - time_var_mice_long
+      - group_var_mice_long
+      - fixed_covariates_mice_long
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+        combineBelow: true
+      - name: original
+        title: Original Value
+        type: text
+      - name: imputed
+        title: Pooled Imputed Value
+        type: text
+      - name: rowNumber
+        title: Row
+        type: integer
+
+  - name: patternPlot_mice_long
+    title: Missing Data Pattern (md.pattern)
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderPatternPlotMiceLong
+    visible: (mode == 'mice_long' && show_pattern_plot_mice_long)
+    requiresData: true
+    refs:
+      - VIM
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - wave_vars_mice_long
+      - data_format_mice_long
+
+  - name: correlationPlot_mice_long
+    title: Missingness Correlation Heatmap
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderCorrelationPlotMiceLong
+    visible: (mode == 'mice_long' && show_correlation_plot_mice_long)
+    requiresData: true
+    refs:
+      - GGally
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - wave_vars_mice_long
+      - data_format_mice_long
+
+  - name: tracePlot_mice_long
+    title: Convergence Trace Plot
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderTracePlotMiceLong
+    visible: (mode == 'mice_long' && run_imputation_mice_long && show_trace_plot_mice_long)
+    requiresData: true
+    refs:
+      - mice
+      - miceadds
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - run_imputation_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - data_format_mice_long
+      - wave_vars_mice_long
+      - subject_id_var_mice_long
+      - time_var_mice_long
+      - group_var_mice_long
+      - fixed_covariates_mice_long
+
+  - name: densityPlot_mice_long
+    title: Observed vs Imputed Distribution
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderDensityPlotMiceLong
+    visible: (mode == 'mice_long' && run_imputation_mice_long && show_density_plot_mice_long)
+    requiresData: true
+    refs:
+      - mice
+      - miceadds
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - run_imputation_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - data_format_mice_long
+      - wave_vars_mice_long
+      - subject_id_var_mice_long
+      - time_var_mice_long
+      - group_var_mice_long
+      - fixed_covariates_mice_long
+
+  - name: stripPlot_mice_long
+    title: Strip Plot by Variable
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderStripPlotMiceLong
+    visible: (mode == 'mice_long' && run_imputation_mice_long && show_strip_plot_mice_long)
+    requiresData: true
+    refs:
+      - mice
+      - miceadds
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - run_imputation_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - data_format_mice_long
+      - wave_vars_mice_long
+      - subject_id_var_mice_long
+      - time_var_mice_long
+      - group_var_mice_long
+      - fixed_covariates_mice_long
+
+  - name: imputedColsOutput_mice_long
+    type: Output
+    title: Imputed Variables (MICE Longitudinal)
+    initInRun: true
+    clearWith:
+      - data
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - run_imputation_mice_long
+      - data_format_mice_long
+      - wave_vars_mice_long
+      - subject_id_var_mice_long
+      - time_var_mice_long
+      - group_var_mice_long
+      - fixed_covariates_mice_long
+
+  - name: imputationInfo_mr
+    title: About missRanger Imputation
+    type: Html
+    visible: (mode == 'missranger')
+
+  - name: missingnessTable_mr
+    title: Missingness Summary (missRanger)
+    type: Table
+    visible: (mode == 'missranger')
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+      - name: n_missing
+        title: Missing (N)
+        type: integer
+      - name: pct_missing
+        title: Missing (%)
+        type: number
+        format: dp:1
+      - name: n_valid
+        title: Valid (N)
+        type: integer
+      - name: method_used
+        title: Method Applied
+        type: text
+
+  - name: imputedData_mr
+    title: Imputed Values (missRanger)
+    type: Table
+    visible: (mode == 'missranger' && run_imputation_mr)
+    refs:
+      - missRanger
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+      - run_imputation_mr
+      - use_multiple_imputation_mr
+      - num_imputations_mr
+      - maxiter_mr
+      - num_trees_mr
+      - pmm_k_mr
+      - seed_mr
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+        combineBelow: true
+      - name: original
+        title: Original Value
+        type: text
+      - name: imputed
+        title: Imputed Value
+        type: text
+      - name: rowNumber
+        title: Row
+        type: integer
+
+  - name: patternPlot_mr
+    title: Missing Data Pattern (md.pattern)
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderPatternPlotMR
+    visible: (mode == 'missranger' && show_pattern_plot_mr)
+    requiresData: true
+    refs:
+      - VIM
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+
+  - name: correlationPlot_mr
+    title: Missingness Correlation Heatmap
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderCorrelationPlotMR
+    visible: (mode == 'missranger' && show_correlation_plot_mr)
+    requiresData: true
+    refs:
+      - GGally
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+
+  - name: imputedColsOutput_mr
+    type: Output
+    title: Imputed Variables (missRanger)
+    initInRun: true
+    clearWith:
+      - data
+      - vars_mr
+      - predictor_vars_mr
+      - use_multiple_imputation_mr
+      - num_imputations_mr
+      - maxiter_mr
+      - num_trees_mr
+      - pmm_k_mr
+      - seed_mr
+      - run_imputation_mr

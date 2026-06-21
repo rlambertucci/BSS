@@ -1,0 +1,70 @@
+name:  samplesize
+title: Sample size calculation
+menuGroup: BSS
+menuSubgroup: Study Design & Presentation
+menuSubtitle: Sample size calculation for finite population and animal design
+version: '1.0.0'
+jas: '1.2'
+
+options:
+  - name: mode
+    title: Mode
+    type: List
+    options:
+      - name: finite
+        title: For finite population
+      - name: animals
+        title: For animals design
+    default: finite
+
+  - name: method_finite
+    title: Method
+    type: List
+    options:
+      - Cochran
+      - Slovin
+    default: Slovin
+
+  - name: population_size_finite
+    title: Population Size (N)
+    type: Integer
+    default: 1000
+
+  - name: confidence_level_finite
+    title: Confidence Level (%)
+    type: Number
+    default: 95
+
+  - name: margin_error_finite
+    title: Margin of Error (%)
+    type: Number
+    default: 5
+
+  - name: population_proportion_finite
+    title: Population Proportion (p)
+    type: Number
+    default: 0.5
+
+  - name: design_animals
+    title: Design Type
+    type: List
+    options:
+      - Design 1 (One-way ANOVA)
+      - Design 2 (Repeated Measures)
+      - Design 3 (Mixed ANOVA)
+    default: Design 1 (One-way ANOVA)
+
+  - name: nGroups_animals
+    title: Number of Groups (k) (Designs 1 and 3)
+    type: Integer
+    default: 2
+
+  - name: nMeasures_animals
+    title: Number of Repeated Measures (r) (Designs 2 and 3)
+    type: Integer
+    default: 0
+
+  - name: sacrifice_animals
+    title: Animals Sacrificed at Each Measure (Designs 2 and 3)
+    type: Bool
+    default: false

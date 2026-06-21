@@ -1,0 +1,217 @@
+---
+title: Network analysis
+name: networkanalysis
+jus: '3.0'
+compilerMode: tame
+children:
+  - type: ModeSelector
+    name: mode
+    stretchFactor: 1
+    children:
+      - type: Content
+        name: continuous
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables
+                children:
+                  - type: VariablesListBox
+                    name: vars_net
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Grouping Variable
+                children:
+                  - type: VariablesListBox
+                    name: groupVar_net
+                    maxItemCount: 1
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Node Groups Variable
+                children:
+                  - type: VariablesListBox
+                    name: nodeGroupVar_net
+                    maxItemCount: 1
+                    isTarget: true
+
+          - type: LayoutBox
+            margin: large
+            stretchFactor: 1
+            children:
+              - type: ComboBox
+                name: estimator_net
+              - type: ComboBox
+                name: corMethod_net
+
+          - type: CollapseBox
+            label: Tables
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: tableCentrality_net
+                  - type: CheckBox
+                    name: tableClustering_net
+                  - type: CheckBox
+                    name: tableWeights_net
+
+          - type: CollapseBox
+            label: Plots
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: plotCentrality_net
+                  - type: CheckBox
+                    name: plotClustering_net
+                  - type: CheckBox
+                    name: plotNetwork_net
+
+          - type: CollapseBox
+            label: Network Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: layoutAlgorithm_net
+                  - type: CheckBox
+                    name: showLabels_net
+                  - type: TextBox
+                    name: plotWidth_net
+                    label: Network Plot Width
+                    format: number
+                  - type: TextBox
+                    name: plotHeight_net
+                    label: Network Plot Height
+                    format: number
+
+      - type: Content
+        name: mixed
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Continuous Variables (Gaussian)
+                children:
+                  - type: VariablesListBox
+                    name: varsCont_mixed
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Categorical Variables
+                children:
+                  - type: VariablesListBox
+                    name: varsCat_mixed
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Count Variables (Poisson)
+                children:
+                  - type: VariablesListBox
+                    name: varsCount_mixed
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Grouping Variable
+                children:
+                  - type: VariablesListBox
+                    name: groupVar_mixed
+                    maxItemCount: 1
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Node Groups Variable
+                children:
+                  - type: VariablesListBox
+                    name: nodeGroupVar_mixed
+                    maxItemCount: 1
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Estimation Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: lambdaSelMethod_mixed
+                  - type: TextBox
+                    name: kFolds_mixed
+                    label: Number of Folds (if CV selected)
+                    format: number
+                  - type: TextBox
+                    name: lambdaGam_mixed
+                    label: Gamma for EBIC (if EBIC selected)
+                    format: number
+                  - type: ComboBox
+                    name: ruleReg_mixed
+
+          - type: CollapseBox
+            label: Tables
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: tableCentrality_mixed
+                  - type: CheckBox
+                    name: tableClustering_mixed
+                  - type: CheckBox
+                    name: tableWeights_mixed
+
+          - type: CollapseBox
+            label: Plots
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: plotCentrality_mixed
+                  - type: CheckBox
+                    name: plotClustering_mixed
+                  - type: CheckBox
+                    name: plotNetwork_mixed
+
+          - type: CollapseBox
+            label: Network Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: layoutAlgorithm_mixed
+                  - type: CheckBox
+                    name: showLabels_mixed
+                  - type: TextBox
+                    name: plotWidth_mixed
+                    label: Network Plot Width
+                    format: number
+                  - type: TextBox
+                    name: plotHeight_mixed
+                    label: Network Plot Height
+                    format: number
+...

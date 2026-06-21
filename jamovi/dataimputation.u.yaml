@@ -1,0 +1,313 @@
+---
+name: dataimputation
+title: Missing data analysis and imputation
+jus: '3.0'
+compilerMode: tame
+children:
+  - type: ModeSelector
+    name: mode
+    stretchFactor: 1
+    children:
+
+      - type: Content
+        name: mice_cs
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables to Impute (Cross-sectional)
+                children:
+                  - type: VariablesListBox
+                    name: vars_mice_cs
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Predictor Variables (optional)
+                children:
+                  - type: VariablesListBox
+                    name: predictor_vars_mice_cs
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Imputation Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: imputation_method_mice_cs
+                    label: Imputation Method
+                  - type: TextBox
+                    name: num_imputations_mice_cs
+                    label: Number of Imputations (m)
+                    format: number
+                  - type: TextBox
+                    name: maxiter_mice_cs
+                    label: Maximum Iterations
+                    format: number
+                  - type: TextBox
+                    name: seed_mice_cs
+                    label: Seed (leave empty for random)
+                    format: string
+                  - type: CheckBox
+                    name: run_imputation_mice_cs
+                    label: Run Imputation
+
+          - type: CollapseBox
+            label: Diagnostic Plots
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: show_pattern_plot_mice_cs
+                  - type: CheckBox
+                    name: show_correlation_plot_mice_cs
+                  - type: CheckBox
+                    name: show_trace_plot_mice_cs
+                    enable: (run_imputation_mice_cs)
+                  - type: CheckBox
+                    name: show_density_plot_mice_cs
+                    enable: (run_imputation_mice_cs)
+                  - type: CheckBox
+                    name: show_strip_plot_mice_cs
+                    enable: (run_imputation_mice_cs)
+
+          - type: CollapseBox
+            label: Save to Worksheet
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Label
+                    label: Saves imputed values directly into new worksheet columns.
+                  - type: Output
+                    name: imputedColsOutput_mice_cs
+
+      - type: Content
+        name: mice_long
+        children:
+          - type: LayoutBox
+            margin: large
+            children:
+              - type: ComboBox
+                name: data_format_mice_long
+                label: Data Format
+
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables to Impute (for Long format)
+                children:
+                  - type: VariablesListBox
+                    name: vars_mice_long
+                    isTarget: true
+                    enable: (data_format_mice_long == 'long')
+              
+              - type: TargetLayoutBox
+                label: Predictor Variables (optional)
+                children:
+                  - type: VariablesListBox
+                    name: predictor_vars_mice_long
+                    isTarget: true
+              
+              - type: TargetLayoutBox
+                label: Subject ID Variable (multilevel grouping)
+                children:
+                  - type: VariablesListBox
+                    name: subject_id_var_mice_long
+                    isTarget: true
+                    maxItemCount: 1
+              
+              - type: TargetLayoutBox
+                label: Time / Wave Variable (for Long format)
+                children:
+                  - type: VariablesListBox
+                    name: time_var_mice_long
+                    isTarget: true
+                    maxItemCount: 1
+                    enable: (data_format_mice_long == 'long')
+              
+              - type: TargetLayoutBox
+                label: Group / Cluster Variable (optional)
+                children:
+                  - type: VariablesListBox
+                    name: group_var_mice_long
+                    isTarget: true
+                    maxItemCount: 1
+              
+              - type: TargetLayoutBox
+                label: Fixed Covariates (predictors only, not imputed)
+                children:
+                  - type: VariablesListBox
+                    name: fixed_covariates_mice_long
+                    isTarget: true
+              
+              - type: TargetLayoutBox
+                label: Wave Columns (for Wide format)
+                children:
+                  - type: VariablesListBox
+                    name: wave_vars_mice_long
+                    isTarget: true
+                    enable: (data_format_mice_long == 'wide')
+
+          - type: CollapseBox
+            label: Imputation Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: imputation_method_mice_long
+                    label: Imputation Method
+                  - type: TextBox
+                    name: num_imputations_mice_long
+                    label: Number of Imputations (m)
+                    format: number
+                  - type: TextBox
+                    name: maxiter_mice_long
+                    label: Maximum Iterations
+                    format: number
+                  - type: TextBox
+                    name: seed_mice_long
+                    label: Seed (leave empty for random)
+                    format: string
+                  - type: CheckBox
+                    name: run_imputation_mice_long
+                    label: Run Imputation
+
+          - type: CollapseBox
+            label: Diagnostic Plots
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: show_pattern_plot_mice_long
+                  - type: CheckBox
+                    name: show_correlation_plot_mice_long
+                  - type: CheckBox
+                    name: show_trace_plot_mice_long
+                    enable: (run_imputation_mice_long)
+                  - type: CheckBox
+                    name: show_density_plot_mice_long
+                    enable: (run_imputation_mice_long)
+                  - type: CheckBox
+                    name: show_strip_plot_mice_long
+                    enable: (run_imputation_mice_long)
+
+          - type: CollapseBox
+            label: Save to Worksheet
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Label
+                    label: Saves imputed values directly into new worksheet columns.
+                  - type: Output
+                    name: imputedColsOutput_mice_long
+
+      - type: Content
+        name: missranger
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables to Impute
+                children:
+                  - type: VariablesListBox
+                    name: vars_mr
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Predictor Variables (optional)
+                children:
+                  - type: VariablesListBox
+                    name: predictor_vars_mr
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Imputation Settings
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: use_multiple_imputation_mr
+                  - type: TextBox
+                    name: num_imputations_mr
+                    label: Number of Imputations
+                    format: number
+                    enable: (use_multiple_imputation_mr)
+                  - type: TextBox
+                    name: maxiter_mr
+                    label: Maximum Iterations
+                    format: number
+                  - type: TextBox
+                    name: num_trees_mr
+                    label: Number of Trees
+                    format: number
+                  - type: TextBox
+                    name: pmm_k_mr
+                    label: Number of Donors (PMM)
+                    format: number
+                  - type: TextBox
+                    name: seed_mr
+                    label: Seed (leave empty for random)
+                    format: string
+                  - type: CheckBox
+                    name: run_imputation_mr
+                    label: Run Imputation
+
+          - type: CollapseBox
+            label: Diagnostic Plots
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: show_pattern_plot_mr
+                  - type: CheckBox
+                    name: show_correlation_plot_mr
+
+          - type: CollapseBox
+            label: Save to Worksheet
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Label
+                    label: Saves imputed values directly into new worksheet columns.
+                  - type: Output
+                    name: imputedColsOutput_mr

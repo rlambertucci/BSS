@@ -1,0 +1,219 @@
+name: effectSize
+title: Effect Size Calculation
+menuGroup: BSS
+menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
+menuSubtitle: Pairwise effect size calculation (independent and dependent samples)
+version: '0.0.1'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+      title: Input Data
+
+    - name: mode
+      title: Analysis Mode
+      type: List
+      options:
+        - title: Cross-sectional
+          name: cross_sectional
+        - title: Longitudinal
+          name: longitudinal
+      default: cross_sectional
+
+    - name: dep_vars_cs
+      title: Dependent Variables (DVs)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: indep_vars_cs
+      title: Independent Variables (IVs)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: cov
+      title: Covariate
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: dep_vars_long
+      title: Dependent Variables (DVs - Long format only)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: indep_vars_long
+      title: Independent Variables (IVs - optional)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: cov_long
+      title: Covariate
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: subject_id_var
+      title: Subject ID Variable
+      type: Variable
+      suggested:
+        - nominal
+        - id
+      permitted:
+        - numeric
+        - factor
+        - id
+
+    - name: time_var
+      title: Time / Wave Variable (long format)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: wave_vars
+      title: Wave Columns (wide format)
+      type: Variables
+      suggested:
+        - continuous
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+    - name: long_format
+      title: Data Format
+      type: List
+      options:
+        - title: Wide format (one column per wave)
+          name: wide
+        - title: Long format (time column + value column)
+          name: long
+      default: wide
+
+    - name: include_interactions
+      title: Calculate interactions between IVs
+      type: Bool
+      default: false
+
+    - name: run_analysis
+      title: Run Analysis
+      type: Bool
+      default: false
+
+    - name: es_method
+      title: Effect Size Method
+      type: List
+      options:
+        - title: Cohen's d
+          name: cohens_d
+        - title: Hedge's g
+          name: hedges_g
+        - title: Glass' Delta
+          name: glass_delta
+        - title: Rank Biserial Correlation
+          name: rank_biserial
+      default: cohens_d
+      
+    - name: show_cles
+      title: Calculate CLES (Common Language Effect Size)
+      type: Bool
+      default: false
+
+    - name: reference_group
+      title: Reference Group (Glass' Delta)
+      type: String
+      default: ''
+
+    - name: es_method_long
+      title: Effect Size Method (Longitudinal)
+      type: List
+      options:
+        - title: Cohen's dz
+          name: cohens_dz
+        - title: Hedge's gz
+          name: hedges_gz
+        - title: Glass' Delta z
+          name: glass_dz
+        - title: Rank Biserial Correlation (paired)
+          name: rank_biserial_paired
+      default: cohens_dz
+      
+    - name: show_cles_long
+      title: Calculate CLES (paired)
+      type: Bool
+      default: false
+
+    - name: reference_group_long
+      title: Reference Wave (Glass' Delta z)
+      type: String
+      default: ''
+
+    - name: use_glm
+      title: Use GzLM — Average Marginal Effect (AME)
+      type: Bool
+      default: false
+
+    - name: es_glm
+      title: GzLM Distribution
+      type: List
+      options:
+        - title: Gaussian distribution
+          name: glm_gaussian
+        - title: Gamma distribution
+          name: glm_gamma
+        - title: Inverse Gaussian distribution
+          name: glm_inv_gaussian
+      default: glm_gaussian
+
+    - name: ci_method
+      title: Confidence Interval Method
+      type: List
+      options:
+        - title: Analytical (formula-based)
+          name: analytical
+        - title: Bootstrap (non-parametric)
+          name: bootstrap
+      default: analytical
+
+    - name: n_bootstrap
+      title: Number of Bootstrap Samples
+      type: Integer
+      default: 1000
+      min: 100
+      max: 10000
+
+    - name: ci_level
+      title: Confidence Level
+      type: List
+      options:
+        - title: 95%
+          name: ci_95
+        - title: 90%
+          name: ci_90
+        - title: 99%
+          name: ci_99
+      default: ci_95

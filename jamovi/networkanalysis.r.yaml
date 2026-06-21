@@ -1,0 +1,389 @@
+name: networkanalysis
+title: Network Analysis
+jrs: '1.1'
+
+items:
+  - name: instructions_net
+    title: ' '
+    type: Preformatted
+    visible: (mode == 'continuous')
+
+  - name: summary_net
+    title: Network Summary
+    type: Table
+    visible: (mode == 'continuous')
+    refs:
+      - bootnet
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_net)
+      - name: nodes
+        title: 'Nodes'
+        type: integer
+      - name: edges
+        title: 'Edges (Non-zero)'
+        type: text
+      - name: sparsity
+        title: 'Sparsity'
+        type: number
+        format: zto
+
+  - name: centrality_net
+    title: Centrality Measures
+    type: Table
+    visible: (mode == 'continuous' && tableCentrality_net)
+    refs:
+      - bootnet
+      - qgraph
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_net)
+      - name: variable
+        title: 'Variable'
+        type: text
+        format: string
+      - name: strength
+        title: 'Strength'
+        type: number
+      - name: closeness
+        title: 'Closeness'
+        type: number
+      - name: betweenness
+        title: 'Betweenness'
+        type: number
+      - name: expectedInfluence
+        title: 'Expected Influence'
+        type: number
+
+  - name: clustering_net
+    title: Clustering Measures per Variable
+    type: Table
+    visible: (mode == 'continuous' && tableClustering_net)
+    refs:
+      - bootnet
+      - qgraph
+      - igraph
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_net)
+      - name: node
+        title: 'Variable'
+        type: text
+        format: string
+      - name: Barrat
+        title: 'Barrat'
+        type: number
+      - name: Onnela
+        title: 'Onnela'
+        type: number
+      - name: WS
+        title: 'WS'
+        type: number
+      - name: Zhang
+        title: 'Zhang'
+        type: number
+
+  - name: weights_net
+    title: Weights (Adjacency Matrix)
+    type: Table
+    visible: (mode == 'continuous' && tableWeights_net)
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+    columns:
+      - name: node
+        title: ''
+        type: text
+        format: string
+
+  - name: centralityPlot_net
+    title: Centrality Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'continuous' && plotCentrality_net)
+    renderFun: .plotCentrality_net
+    refs:
+      - bootnet
+      - qgraph
+      - ggplot2
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - nodeGroupVar_net
+
+  - name: clusteringPlot_net
+    title: Clustering Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'continuous' && plotClustering_net)
+    renderFun: .plotClustering_net
+    refs:
+      - bootnet
+      - qgraph
+      - ggplot2
+      - igraph
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - nodeGroupVar_net
+
+  - name: networkPlot_net
+    title: Network Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'continuous' && plotNetwork_net)
+    renderFun: .plotNetwork_net
+    refs:
+      - bootnet
+      - qgraph
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - layoutAlgorithm_net
+      - showLabels_net
+      - plotWidth_net
+      - plotHeight_net
+      - groupVar_net
+      - nodeGroupVar_net
+  - name: instructions_mixed
+    title: ' '
+    type: Preformatted
+    visible: (mode == 'mixed')
+
+  - name: summary_mixed
+    title: Network Summary
+    type: Table
+    visible: (mode == 'mixed')
+    refs:
+      - mgm
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_mixed)
+      - name: nodes
+        title: 'Nodes'
+        type: integer
+      - name: edges
+        title: 'Edges (Non-zero)'
+        type: text
+      - name: sparsity
+        title: 'Sparsity'
+        type: number
+        format: zto
+
+  - name: centrality_mixed
+    title: Centrality Measures
+    type: Table
+    visible: (mode == 'mixed' && tableCentrality_mixed)
+    refs:
+      - mgm
+      - qgraph
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_mixed)
+      - name: variable
+        title: 'Variable'
+        type: text
+        format: string
+      - name: strength
+        title: 'Strength'
+        type: number
+      - name: closeness
+        title: 'Closeness'
+        type: number
+      - name: betweenness
+        title: 'Betweenness'
+        type: number
+      - name: expectedInfluence
+        title: 'Expected Influence'
+        type: number
+
+  - name: clustering_mixed
+    title: Clustering Measures per Variable
+    type: Table
+    visible: (mode == 'mixed' && tableClustering_mixed)
+    refs:
+      - mgm
+      - qgraph
+      - igraph
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_mixed)
+      - name: node
+        title: 'Variable'
+        type: text
+        format: string
+      - name: Barrat
+        title: 'Barrat'
+        type: number
+      - name: Onnela
+        title: 'Onnela'
+        type: number
+      - name: WS
+        title: 'WS'
+        type: number
+      - name: Zhang
+        title: 'Zhang'
+        type: number
+
+  - name: weights_mixed
+    title: Weights (Adjacency Matrix)
+    type: Table
+    visible: (mode == 'mixed' && tableWeights_mixed)
+    refs:
+      - mgm
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_mixed)
+      - name: rowname
+        title: ''
+        type: text
+        format: string
+
+  - name: centralityPlot_mixed
+    title: Centrality Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'mixed' && plotCentrality_mixed)
+    renderFun: .plotCentrality_mixed
+    refs:
+      - mgm
+      - qgraph
+      - ggplot2
+      - reshape2
+      - gtools
+      - dplyr
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+
+  - name: clusteringPlot_mixed
+    title: Clustering Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'mixed' && plotClustering_mixed)
+    renderFun: .plotClustering_mixed
+    refs:
+      - mgm
+      - qgraph
+      - igraph
+      - ggplot2
+      - reshape2
+      - gtools
+      - dplyr
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+
+  - name: networkPlot_mixed
+    title: Network Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'mixed' && plotNetwork_mixed)
+    renderFun: .plotNetwork_mixed
+    refs:
+      - mgm
+      - qgraph
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+      - layoutAlgorithm_mixed
+      - showLabels_mixed
+      - plotWidth_mixed
+      - plotHeight_mixed

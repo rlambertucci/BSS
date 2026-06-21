@@ -1,0 +1,152 @@
+name: art
+title: Aligned Rank Transform (ART)
+jrs: '1.1'
+items:
+    - name: analysisInfo
+      title: About ART Analysis
+      type: Html
+      visible: true
+
+    - name: anovaTable
+      title: Nonparametric ANOVA Results (Aligned Rank Transform)
+      type: Table
+      visible: (run_analysis)
+      refs:
+        - ARTool
+      clearWith:
+        - mode
+        - dep_var_cs
+        - fixed_factors_cs
+        - dep_var_long
+        - fixed_factors_long
+        - long_format
+        - subject_id_var
+        - time_var
+        - wave_vars
+        - run_analysis
+      columns:
+        - name: factor
+          title: Term
+          type: text
+        - name: df
+          title: df
+          type: number
+          format: dp:0
+        - name: df_res
+          title: df.res
+          type: number
+          format: dp:2
+        - name: f_value
+          title: F
+          type: number
+          format: dp:3
+        - name: p_value
+          title: p
+          type: number
+          format: pvalue
+        - name: part_eta_sq
+          title: Partial η²
+          type: number
+          format: dp:3
+
+    - name: posthocTable
+      title: Pairwise Post-Hoc Tests (art.con)
+      type: Table
+      visible: (run_analysis && run_posthoc)
+      refs:
+        - ARTool
+        - emmeans
+      clearWith:
+        - mode
+        - dep_var_cs
+        - fixed_factors_cs
+        - dep_var_long
+        - fixed_factors_long
+        - long_format
+        - subject_id_var
+        - time_var
+        - wave_vars
+        - run_posthoc
+        - posthoc_correction
+        - run_analysis
+      columns:
+        - name: factor
+          title: Factor / Interaction
+          type: text
+          combineBelow: true
+        - name: contrast
+          title: Contrast
+          type: text
+        - name: estimate
+          title: Estimate
+          type: number
+          format: dp:3
+        - name: se
+          title: SE
+          type: number
+          format: dp:3
+        - name: df
+          title: df
+          type: number
+          format: dp:2
+        - name: t_ratio
+          title: t
+          type: number
+          format: dp:3
+        - name: p_value
+          title: p
+          type: number
+          format: pvalue
+
+    - name: effectSizeTable
+      title: Pairwise Effect Sizes
+      type: Table
+      visible: (run_analysis && run_posthoc && calc_es)
+      refs:
+        - ARTool
+        - emmeans
+      clearWith:
+        - mode
+        - dep_var_cs
+        - fixed_factors_cs
+        - dep_var_long
+        - fixed_factors_long
+        - long_format
+        - subject_id_var
+        - time_var
+        - wave_vars
+        - run_posthoc
+        - calc_es
+        - es_method
+        - run_analysis
+      columns:
+        - name: factor
+          title: Factor / Interaction
+          type: text
+          combineBelow: true
+        - name: contrast
+          title: Contrast
+          type: text
+        - name: method
+          title: Method
+          type: text
+        - name: es_value
+          title: Effect Size
+          type: number
+          format: dp:3
+
+    - name: text
+      title: Analysis Summary
+      type: Preformatted
+      visible: false
+      clearWith:
+        - mode
+        - dep_var_cs
+        - fixed_factors_cs
+        - dep_var_long
+        - fixed_factors_long
+        - long_format
+        - subject_id_var
+        - time_var
+        - wave_vars
+        - run_analysis

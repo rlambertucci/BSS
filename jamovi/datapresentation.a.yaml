@@ -1,0 +1,420 @@
+name: DataPresentation
+title: Data Presentation
+menuGroup: BSS
+menuSubgroup: Study Design & Presentation
+menuSubtitle: Plots and Table (cross-sectional and longitudinal studies)
+version: '1.2.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+      title: Input Data
+    - name: analysisType
+      title: Analysis Design
+      type: List
+      options:
+        - name: cross_sectional
+          title: Independent Groups
+        - name: longitudinal
+          title: Repeated Measures
+      default: cross_sectional
+    - name: deps
+      title: Dependent Variables
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: group
+      title: Grouping Variables (Cross-Sectional)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+    - name: rm_vars
+      title: Repeated Measures Variables (Wide Format)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: group_long
+      title: Between-Subjects Factor(s)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+
+    - name: cov
+      title: Covariate
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: cov_long
+      title: Covariate
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+    - name: plotType
+      title: Plot Type
+      type: List
+      options:
+        - name: bar
+          title: Bar Chart
+        - name: boxplot
+          title: Box Plot
+        - name: meandp
+          title: Mean & Dispersion
+      default: bar
+
+    - name: intStyle
+      title: Interaction Style
+      type: List
+      options:
+        - name: legend
+          title: 1st on X-axis, 2nd as Legend
+        - name: x_axis
+          title: Combined Labels on X-axis
+      default: legend
+
+    - name: showLines
+      title: Connect Means with Line (Longitudinal)
+      type: Bool
+      default: true
+
+    - name: errorType
+      title: Dispersion Measure
+      type: List
+      options:
+        - name: sd
+          title: Standard Deviation (SD)
+        - name: se
+          title: Standard Error (SE)
+        - name: ci
+          title: Confidence Interval (CI)
+      default: sd
+
+    - name: ciWidth
+      title: Confidence Interval Width (%)
+      type: Number
+      min: 50
+      max: 99.9
+      default: 95
+
+    - name: showPoints
+      title: Show Individual Data Points
+      type: Bool
+      default: false
+    - name: showTable
+      title: Show Descriptive Table
+      type: Bool
+      default: true
+
+    - name: tableFormat
+      title: Table Format
+      type: List
+      options:
+        - name: apa
+          title: APA (7th edition)
+        - name: abnt
+          title: ABNT (NBR 14724)
+        - name: vancouver
+          title: Vancouver
+        - name: chicago
+          title: Chicago
+      default: apa
+
+    - name: tableTitle
+      title: Table Title
+      type: String
+      default: 'Table 1. Descriptive statistics by group'
+
+    - name: tableNote
+      title: Table Note (footer)
+      type: String
+      default: 'Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
+    - name: themePlot
+      title: Plot Theme
+      type: List
+      options:
+        - name: classic
+          title: Classic
+        - name: minimal
+          title: Minimal
+        - name: bw
+          title: Black & White
+        - name: gray
+          title: Gray
+        - name: light
+          title: Light
+      default: classic
+    - name: colorPalette
+      title: Color Palette
+      type: List
+      options:
+        - name: set1
+          title: Set 1 (qualitative)
+        - name: set2
+          title: Set 2 (qualitative)
+        - name: set3
+          title: Set 3 (qualitative)
+        - name: pastel1
+          title: Pastel 1
+        - name: pastel2
+          title: Pastel 2
+        - name: dark2
+          title: Dark 2
+        - name: viridis
+          title: Viridis
+        - name: plasma
+          title: Plasma
+        - name: manual
+          title: Manual (use fields below)
+      default: set1
+
+    - name: color1
+      title: Color 1
+      type: List
+      options: &colorOptions
+        - name: none
+          title: None (Use Palette)
+        - name: '#E41A1C'
+          title: Red
+        - name: '#377EB8'
+          title: Blue
+        - name: '#4DAF4A'
+          title: Green
+        - name: '#984EA3'
+          title: Purple
+        - name: '#FF7F00'
+          title: Orange
+        - name: '#FFFF33'
+          title: Yellow
+        - name: '#A65628'
+          title: Brown
+        - name: '#F781BF'
+          title: Pink
+        - name: '#999999'
+          title: Gray
+        - name: '#000000'
+          title: Black
+        - name: '#FFFFFF'
+          title: White
+        - name: '#1B9E77'
+          title: Teal
+        - name: '#D95F02'
+          title: Dark Orange
+        - name: '#7570B3'
+          title: Slate Blue
+        - name: '#E7298A'
+          title: Magenta
+        - name: '#66A61E'
+          title: Lime Green
+        - name: '#E6AB02'
+          title: Gold
+        - name: '#A6761D'
+          title: Bronze
+        - name: '#666666'
+          title: Dark Gray
+      default: none
+
+    - name: color2
+      title: Color 2
+      type: List
+      options: *colorOptions
+      default: none
+
+    - name: color3
+      title: Color 3
+      type: List
+      options: *colorOptions
+      default: none
+
+    - name: color4
+      title: Color 4
+      type: List
+      options: *colorOptions
+      default: none
+
+    - name: color5
+      title: Color 5
+      type: List
+      options: *colorOptions
+      default: none
+
+    - name: color6
+      title: Color 6
+      type: List
+      options: *colorOptions
+      default: none
+
+    - name: color7
+      title: Color 7
+      type: List
+      options: *colorOptions
+      default: none
+
+    - name: color8
+      title: Color 8
+      type: List
+      options: *colorOptions
+      default: none
+    - name: titleText
+      title: Plot Title
+      type: String
+      default: ''
+
+    - name: subtitleText
+      title: Plot Subtitle
+      type: String
+      default: ''
+
+    - name: xLabel
+      title: X Axis Label
+      type: String
+      default: ''
+
+    - name: yLabel
+      title: Y Axis Label
+      type: String
+      default: ''
+    - name: xAngle
+      title: X Axis Label Angle
+      type: Number
+      min: 0
+      max: 90
+      default: 0
+
+    - name: legendPosition
+      title: Legend Position
+      type: List
+      options:
+        - name: right
+          title: Right
+        - name: left
+          title: Left
+        - name: top
+          title: Top
+        - name: bottom
+          title: Bottom
+        - name: none
+          title: None (hide)
+      default: right
+
+    - name: removeGap
+      title: Remove Y-Axis Bottom Gap
+      type: Bool
+      default: false
+
+    - name: customYAxis
+      title: Custom Y-Axis Scale
+      type: Bool
+      default: false
+
+    - name: yMin
+      title: Y Minimum
+      type: Number
+      default: 0
+
+    - name: yMax
+      title: Y Maximum
+      type: Number
+      default: 100
+
+    - name: yStep
+      title: Y Step (Breaks)
+      type: Number
+      default: 10
+    - name: fontSizeTitle
+      title: Title Font Size
+      type: Number
+      min: 6
+      max: 32
+      default: 14
+
+    - name: fontSizeSubtitle
+      title: Subtitle Font Size
+      type: Number
+      min: 6
+      max: 32
+      default: 12
+
+    - name: fontSizeAxis
+      title: Axis Text Font Size
+      type: Number
+      min: 6
+      max: 32
+      default: 11
+
+    - name: fontSizeAxisTitle
+      title: Axis Title Font Size
+      type: Number
+      min: 6
+      max: 32
+      default: 12
+
+    - name: fontSizeLegend
+      title: Legend Font Size
+      type: Number
+      min: 6
+      max: 32
+      default: 10
+    - name: lineWidth
+      title: Border Width
+      type: Number
+      min: 0
+      max: 5
+      default: 0.8
+
+    - name: errorLineWidth
+      title: Error Bar Width
+      type: Number
+      min: 0
+      max: 5
+      default: 0.8
+
+    - name: axisLineWidth
+      title: Axis Line Width
+      type: Number
+      min: 0
+      max: 5
+      default: 0.8
+    - name: barWidth
+      title: Bar Width
+      type: Number
+      min: 0.1
+      max: 1.0
+      default: 0.7
+
+    - name: barAlpha
+      title: Bar Transparency
+      type: Number
+      min: 0
+      max: 1
+      default: 1.0
+
+    - name: pointSize
+      title: Point Size
+      type: Number
+      min: 0.5
+      max: 10
+      default: 2.0
+
+    - name: pointAlpha
+      title: Point Transparency
+      type: Number
+      min: 0
+      max: 1
+      default: 0.5

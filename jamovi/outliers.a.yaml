@@ -1,0 +1,198 @@
+---
+name: outliers
+title: Outliers detection and treatment
+menuGroup: BSS
+menuSubgroup: Data Preparation & Screening
+menuSubtitle: Multi-method outlier detection and treatment (Dixon’s Q Test, IQR, and modified Z-score)
+version: '1.0.0'
+jas: '1.2'
+
+options:
+    - name: data
+      type: Data
+
+    - name: mode
+      title: Outlier Detection Method
+      type: List
+      options:
+        - title: Dixon's Q Test
+          name: dixon
+        - title: Modified Z-Score
+          name: modz
+        - title: IQR (Interquartile Range)
+          name: iqr
+      default: iqr
+
+    - name: var_dixon
+      title: Variable
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: group_dixon
+      title: Grouping Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+
+    - name: alpha_dixon
+      title: Significance Level
+      type: List
+      options:
+        - name: alpha10
+          title: '90% (α = 0.10)'
+        - name: alpha05
+          title: '95% (α = 0.05)'
+        - name: alpha01
+          title: '99% (α = 0.01)'
+      default: alpha05
+
+    - name: treatment_dixon
+      title: Treatment Method
+      type: List
+      options:
+        - name: none
+          title: None (Detection Only)
+        - name: trim_asym
+          title: Asymmetric Trimming (Identified Outlier)
+        - name: win_valid
+          title: Winsorize (To max/min valid value)
+      default: none
+
+    - name: dispBox_dixon
+      title: Display Boxplot
+      type: Bool
+      default: false
+
+    - name: treatedData_dixon
+      title: Save treated variable to dataset
+      type: Output
+
+    - name: vars_modz
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: group_modz
+      title: Grouping Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+
+    - name: threshold_modz
+      title: Threshold
+      type: List
+      options:
+        - name: t25
+          title: '2.5 (Leys et al., 2013)'
+        - name: t30
+          title: '3.0 (Wilcox, 2017)'
+        - name: t35
+          title: '3.5 (Iglewicz & Hoaglin, 1993)'
+        - name: t40
+          title: '4.0 (Iglewicz & Hoaglin, 1993)'
+      default: t35
+
+    - name: treatment_modz
+      title: Treatment Method
+      type: List
+      options:
+        - name: none
+          title: None (Detection Only)
+        - name: trim_asym
+          title: Asymmetric Trimming (Identified Outliers)
+        - name: trim_sym
+          title: Symmetric Trimming (%)
+        - name: win_valid
+          title: Winsorize (To max/min valid value)
+        - name: win_fence
+          title: Winsorize (To threshold limits)
+      default: none
+
+    - name: trimPercent_modz
+      title: Symmetric Trimming Percentage (%)
+      type: Number
+      default: 5
+      min: 1
+      max: 49
+
+    - name: dispBox_modz
+      title: Display Boxplot
+      type: Bool
+      default: false
+
+    - name: treatedData_modz
+      title: Save treated variables to dataset
+      type: Output
+
+    - name: vars_iqr
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: group_iqr
+      title: Grouping Variables
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+
+    - name: iqrMultiplier_iqr
+      title: IQR Multiplier Range
+      type: List
+      options:
+        - name: iqr15
+          title: '1.5 x IQR (Classic)'
+        - name: iqr22
+          title: '2.2 x IQR'
+        - name: iqr30
+          title: '3.0 x IQR (Extreme)'
+      default: iqr15
+
+    - name: treatment_iqr
+      title: Treatment Method
+      type: List
+      options:
+        - name: none
+          title: None (Detection Only)
+        - name: trim_asym
+          title: Asymmetric Trimming (Identified Outliers)
+        - name: trim_sym
+          title: Symmetric Trimming (%)
+        - name: win_valid
+          title: Winsorize (To max/min valid value)
+        - name: win_fence
+          title: Winsorize (To fence limits)
+      default: none
+
+    - name: trimPercent_iqr
+      title: Symmetric Trimming Percentage (%)
+      type: Number
+      default: 5
+      min: 1
+      max: 49
+
+    - name: dispBox_iqr
+      title: Display Boxplot
+      type: Bool
+      default: true
+
+    - name: treatedData_iqr
+      title: Save treated variables to dataset
+      type: Output

@@ -1,0 +1,58 @@
+name: samplesize
+title: Sample size calculation
+jrs: '1.1'
+
+items:
+  - name: text_finite
+    title: Finite Population Sample Size Calculation
+    type: Preformatted
+    visible: (mode == 'finite')
+
+  - name: sampleSizeTable_finite
+    title: Sample Size Calculation Results
+    type: Table
+    rows: 1
+    visible: (mode == 'finite')
+    columns:
+      - name: method
+        title: Method
+        type: text
+
+      - name: population_size
+        title: Population Size (N)
+        type: integer
+
+      - name: confidence_level
+        title: Confidence Level (%)
+        type: number
+
+      - name: margin_error
+        title: Margin of Error (%)
+        type: number
+
+      - name: population_proportion
+        title: Population Proportion (p)
+        type: number
+        visible: (method_finite == "Cochran")
+
+      - name: sample_size
+        title: Sample Size (n)
+        type: integer
+
+  - name: text_animals
+    title: Resource Equation Sample Size Calculation
+    type: Preformatted
+    visible: (mode == 'animals')
+
+  - name: sampleSizeTable_animals
+    title: Sample Size Calculation Results (Resource Equation)
+    type: Table
+    visible: (mode == 'animals')
+    columns:
+      - name: parameter
+        title: Parameter
+        type: text
+
+      - name: value
+        title: Value
+        type: text

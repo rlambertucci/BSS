@@ -1,0 +1,123 @@
+name: dataTransform
+title: Data Transformation
+jrs: '1.1'
+
+items:
+    - name: transformInfo
+      title: About Data Transformation
+      type: Html
+      visible: true
+
+    - name: lambdaTable
+      title: Lambda (λ) Summary
+      type: Table
+      visible: (show_lambda_table)
+      refs:
+        - bestNormalize
+        - SuppDists
+      clearWith:
+        - vars
+        - method
+        - auto_shift
+      columns:
+        - name: variable
+          title: Variable
+          type: text
+          combineBelow: true
+        - name: method
+          title: Method
+          type: text
+        - name: parameter
+          title: Parameter
+          type: text
+        - name: value
+          title: Value
+          type: number
+          format: dp:4
+        - name: shift_applied
+          title: Shift Applied
+          type: text
+        - name: shift_value
+          title: Shift Value
+          type: number
+          format: dp:4
+
+    - name: normalityTable
+      title: Shapiro-Wilk Normality Test
+      type: Table
+      visible: (show_normality_table)
+      clearWith:
+        - vars
+        - method
+        - auto_shift
+        - alpha_sw
+      columns:
+        - name: variable
+          title: Variable
+          type: text
+          combineBelow: true
+        - name: moment
+          title: Moment
+          type: text
+        - name: W
+          title: W
+          type: number
+          format: dp:4
+        - name: p
+          title: p-value
+          type: number
+          format: dp:4
+        - name: result
+          title: Normality
+          type: text
+
+    - name: qqPlots
+      title: Q-Q Plot
+      type: Array
+      items: (vars)
+      visible: (show_qq_plot)
+      refs:
+        - ggplot2
+        - gridExtra
+      clearWith:
+        - vars
+        - method
+        - auto_shift
+      template:
+        title: $key
+        type: Image
+        width: 650
+        height: 400
+        renderFun: .qqPlot
+        requiresData: true
+
+    - name: histPlots
+      title: Histogram
+      type: Array
+      items: (vars)
+      visible: (show_hist_plot)
+      refs:
+        - ggplot2
+        - gridExtra
+      clearWith:
+        - vars
+        - method
+        - auto_shift
+      template:
+        title: $key
+        type: Image
+        width: 650
+        height: 400
+        renderFun: .histPlot
+        requiresData: true
+
+    - name: transformedVarsOutput
+      type: Output
+      title: Transformed Variables
+      initInRun: true
+      clearWith:
+        - data
+        - vars
+        - method
+        - auto_shift
+        - suffix

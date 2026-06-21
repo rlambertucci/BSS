@@ -1,0 +1,83 @@
+name: dataTransform
+title: Data Transformation
+jus: '3.0'
+compilerMode: tame
+children:
+  - type: VariableSupplier
+    name: variablesupplier
+    persistentItems: false
+    stretchFactor: 1
+    children:
+      - type: TargetLayoutBox
+        label: Variables to Transform
+        children:
+          - type: VariablesListBox
+            name: vars
+            isTarget: true
+
+  - type: CollapseBox
+    label: Transformation Settings
+    collapsed: false
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: ComboBox
+            name: method
+            label: Transformation Method
+          - type: CheckBox
+            name: auto_shift
+            label: Automatic Shift for Non-Positive Values
+            enable: (method == 'boxcox')
+          - type: Label
+            label: >
+              Adds a constant to make all values positive before transformation (required for Box-Cox)
+            enable: (method == 'boxcox')
+          - type: CheckBox
+            name: show_lambda_table
+            label: Lambda (λ) Summary Table
+
+  - type: CollapseBox
+    label: Normality & Diagnostics
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: CheckBox
+            name: show_normality_table
+            label: Shapiro-Wilk Test (before & after transformation)
+          - type: TextBox
+            name: alpha_sw
+            label: Significance Level (α)
+            format: number
+            enable: (show_normality_table)
+          - type: CheckBox
+            name: show_qq_plot
+            label: Q-Q Plot (before & after transformation)
+          - type: CheckBox
+            name: show_hist_plot
+            label: Histogram (before & after transformation)
+
+  - type: CollapseBox
+    label: Save
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: TextBox
+            name: suffix
+            label: Suffix for Transformed Variable Name
+            format: string
+          - type: Label
+            label: >
+              Saves one transformed column per variable using the specified suffix (e.g., weight_transfrmd).
+          - type: Output
+            name: transformedVarsOutput

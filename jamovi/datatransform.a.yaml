@@ -1,0 +1,75 @@
+name: dataTransform
+title: Data Transformation
+menuGroup: BSS
+menuSubgroup: Data Preparation & Screening
+menuSubtitle: Power transformations for normality (Box-Cox, Yeo-Johnson, Johnson)
+version: '0.0.1'
+jas: '1.2'
+
+options:
+
+    - name: data
+      type: Data
+      title: Input Data
+
+    - name: vars
+      title: Variables to Transform
+      type: Variables
+      suggested:
+        - continuous
+      required: true
+      permitted:
+        - numeric
+
+    - name: method
+      title: Transformation Method
+      type: List
+      options:
+        - title: Box-Cox
+          name: boxcox
+        - title: Yeo-Johnson
+          name: yeojohnson
+        - title: Johnson
+          name: johnson
+      default: yeojohnson
+
+    - name: auto_shift
+      title: Automatic Shift for Non-Positive Values
+      type: Bool
+      default: true
+
+    - name: suffix
+      title: Suffix for Transformed Variable Name
+      type: String
+      default: '_transfrmd'
+
+    - name: show_lambda_table
+      title: Lambda (λ) Summary Table
+      type: Bool
+      default: true
+
+    - name: show_normality_table
+      title: Shapiro-Wilk Normality Test (before & after)
+      type: Bool
+      default: true
+
+    - name: alpha_sw
+      title: Significance Level (α) for Shapiro-Wilk
+      type: Number
+      default: 0.05
+      min: 0.01
+      max: 0.10
+
+    - name: show_qq_plot
+      title: Q-Q Plot (before & after)
+      type: Bool
+      default: true
+
+    - name: show_hist_plot
+      title: Histogram (before & after)
+      type: Bool
+      default: true
+
+    - name: transformedVarsOutput
+      title: Save Transformed Variables to Spreadsheet
+      type: Output

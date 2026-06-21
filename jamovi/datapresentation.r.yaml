@@ -1,0 +1,144 @@
+name: DataPresentation
+title: Data Presentation
+jrs: '1.1'
+
+items:
+    - name: messages
+      title: Analysis Status
+      type: Preformatted
+      visible: false
+
+    - name: descriptiveTable
+      title: Descriptive Statistics
+      type: Table
+      visible: (showTable)
+      refs:
+        - dplyr
+        - tidyr
+        - emmeans
+      clearWith:
+        - analysisType
+        - deps
+        - group
+        - rm_vars
+        - group_long
+        - cov
+        - cov_long
+        - showTable
+        - tableFormat
+        - tableTitle
+        - tableNote
+        - ciWidth
+        - intStyle
+      columns:
+        - name: variable
+          title: Variable
+          type: text
+          combineBelow: true
+
+        - name: n
+          title: N
+          type: integer
+
+        - name: mean
+          title: M
+          type: number
+          format: dp:2
+
+        - name: sd
+          title: SD
+          type: number
+          format: dp:2
+
+        - name: se
+          title: SE
+          type: number
+          format: dp:2
+
+        - name: ci_lower
+          title: CI Lower
+          type: number
+          format: dp:2
+
+        - name: ci_upper
+          title: CI Upper
+          type: number
+          format: dp:2
+
+        - name: median
+          title: Mdn
+          type: number
+          format: dp:2
+
+        - name: min
+          title: Min
+          type: number
+          format: dp:2
+
+        - name: max
+          title: Max
+          type: number
+          format: dp:2
+
+    - name: plots
+      title: Group Comparison Plot
+      type: Array
+      description: One plot per dependent variable
+      refs:
+        - ggplot2
+        - dplyr
+        - tidyr
+      clearWith:
+        - analysisType
+        - deps
+        - group
+        - rm_vars
+        - group_long
+        - cov
+        - cov_long
+        - plotType
+        - intStyle
+        - showLines
+        - errorType
+        - ciWidth
+        - showPoints
+        - themePlot
+        - colorPalette
+        - color1
+        - color2
+        - color3
+        - color4
+        - color5
+        - color6
+        - color7
+        - color8
+        - titleText
+        - subtitleText
+        - xLabel
+        - yLabel
+        - xAngle
+        - legendPosition
+        - removeGap
+        - customYAxis
+        - yMin
+        - yMax
+        - yStep
+        - fontSizeTitle
+        - fontSizeSubtitle
+        - fontSizeAxis
+        - fontSizeAxisTitle
+        - fontSizeLegend
+        - lineWidth
+        - errorLineWidth
+        - axisLineWidth
+        - barWidth
+        - barAlpha
+        - pointSize
+        - pointAlpha
+      template:
+        title: $key
+        type: Image
+        width: 600
+        height: 500
+        requiresData: true
+        renderFun: .plotGroup
