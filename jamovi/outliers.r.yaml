@@ -9,6 +9,9 @@ items:
       visible: (mode == 'dixon')
 
     - name: dixonTable
+      refs:
+        - Dixon1950
+        - Rorabacher1991
       title: Dixon's Q Test Results
       type: Table
       visible: (mode == 'dixon')
@@ -100,6 +103,10 @@ items:
       visible: (mode == 'modz')
 
     - name: modzTable
+      refs:
+        - Iglewicz1993
+        - Leys2013
+        - Wilcox2017
       title: Modified Z-Score Outliers Summary
       type: Table
       visible: (mode == 'modz')
@@ -176,6 +183,9 @@ items:
       visible: (mode == 'iqr')
 
     - name: iqrTable
+      refs:
+        - Tukey1977
+        - Hoaglin1987
       title: IQR Outliers Summary
       type: Table
       visible: (mode == 'iqr')

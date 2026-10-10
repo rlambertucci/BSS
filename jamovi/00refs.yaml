@@ -270,3 +270,72 @@ Arifin2017:
   issue: 5
   pages: "101-105"
   doi: "10.21315/mjms2017.24.5.11"
+
+Dixon1950:
+  type: article
+  author: "Dixon, W. J."
+  year: 1950
+  title: "Analysis of extreme values"
+  journal: "Annals of Mathematical Statistics"
+  volume: 21
+  issue: 4
+  pages: "488-506"
+  doi: "10.1214/aoms/1177729747"
+
+Rorabacher1991:
+  type: article
+  author: "Rorabacher, D. B."
+  year: 1991
+  title: "Statistical treatment for rejection of deviant values: critical values of Dixon's Q parameter"
+  journal: "Analytical Chemistry"
+  volume: 63
+  issue: 2
+  pages: "139-146"
+  doi: "10.1021/ac00002a010"
+
+Iglewicz1993:
+  type: book
+  author: "Iglewicz, B., & Hoaglin, D. C."
+  year: 1993
+  title: "How to Detect and Handle Outliers"
+  publisher: "ASQC Quality Press"
+  address: "Milwaukee, WI"
+
+Leys2013:
+  type: article
+  author: "Leys, C., Ley, C., Klein, O., Bernard, P., & Licata, L."
+  year: 2013
+  title: "Detecting outliers: Do not use standard deviation and mean, use absolute deviation around the median"
+  journal: "Journal of Experimental Social Psychology"
+  volume: 49
+  issue: 4
+  pages: "764-766"
+  doi: "10.1016/j.jesp.2013.03.013"
+
+Wilcox2017:
+  type: book
+  author: "Wilcox, R. R."
+  year: 2017
+  title: "Introduction to Robust Estimation and Hypothesis Testing"
+  edition: "4th"
+  publisher: "Academic Press"
+  address: "Amsterdam"
+
+Tukey1977:
+  type: book
+  author: "Tukey, J. W."
+  year: 1977
+  title: "Exploratory Data Analysis"
+  publisher: "Addison-Wesley"
+  address: "Reading, Mass."
+
+Hoaglin1987:
+  type: article
+  author: "Hoaglin, D. C., & Iglewicz, B."
+  year: 1987
+  title: "Fine-tuning some outlier diagnostics"
+  journal: "Journal of the American Statistical Association"
+  volume: 82
+  issue: 400
+  pages: "1147-1149"
+  doi: "10.1080/01621459.1987.10478551"

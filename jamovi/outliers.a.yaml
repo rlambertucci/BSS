@@ -196,3 +196,12 @@ options:
     - name: treatedData_iqr
       title: Save treated variables to dataset
       type: Output
+
+refs:
+    - Dixon1950
+    - Rorabacher1991
+    - Iglewicz1993
+    - Leys2013
+    - Wilcox2017
+    - Tukey1977
+    - Hoaglin1987

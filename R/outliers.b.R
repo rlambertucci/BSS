@@ -3,10 +3,24 @@ outliersClass <- R6::R6Class(
   inherit = outliersBase,
   private = list(
     
+    .to_numeric_vec = function(x) {
+      if (is.null(x)) return(NULL)
+      if (is.numeric(x)) return(as.numeric(x))
+      if (is.factor(x)) {
+        num_try <- suppressWarnings(as.numeric(as.character(x)))
+        if (!all(is.na(num_try)) || all(is.na(x))) return(num_try)
+        return(as.numeric(x))
+      }
+      if (is.character(x)) {
+        return(suppressWarnings(as.numeric(x)))
+      }
+      suppressWarnings(as.numeric(x))
+    },
+    
     .init = function() {
       
       info_html_dixon <- paste0(
-        '<div style="font-size: 0.9em; line-height: 1.5;">',
+        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
         '<ul>',
         '<li><b>Dixon\'s Q Test</b> &rarr; A statistical test for detecting a single outlier in a ',
         'small dataset. The Q statistic is the ratio of the gap between the suspect value and its ',
@@ -17,7 +31,7 @@ outliersClass <- R6::R6Class(
         '<li><b>Critical values</b> &rarr; Based on Dixon (1950) and Rorabacher (1991) tables, ',
         'varying by sample size and significance level.</li>',
         '</ul>',
-        '<p style="font-style: italic; padding-top: 10px;">',
+        '<p style=\"font-style: italic; padding-top: 10px;\">',
         'Note: Dixon\'s Q Test assumes normality and is sensitive to sample size. ',
         'It should only be applied to datasets with N between 3 and 30.',
         '</p>',
@@ -30,14 +44,14 @@ outliersClass <- R6::R6Class(
       )
       
       info_html_modz <- paste0(
-        '<div style="font-size: 0.9em; line-height: 1.5;">',
+        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
         '<ul>',
         '<li><b>2.5</b> &rarr; High sensitivity; recommended for small samples or experimental designs where outliers significantly bias central tendency and dispersion estimates. <i>Leys et al. (2013).</i></li>',
         '<li><b>3.0</b> &rarr; Conservative approach; ideal for rigorous experimental environments where data stability is paramount and variability must be strictly accounted for. <i>Wilcox (2017).</i></li>',
         '<li><b>3.5</b> &rarr; Academic standard; the most widely accepted criterion in robust statistics for general outlier identification. <i>Iglewicz & Hoaglin (1993).</i></li>',
         '<li><b>4.0</b> &rarr; Low sensitivity; suitable for large datasets where naturally occurring extreme values are expected and should be preserved to maintain heterogeneity. <i>Iglewicz & Hoaglin (1993).</i></li>',
         '</ul>',
-        '<p style="font-style: italic; padding-top: 10px;">',
+        '<p style=\"font-style: italic; padding-top: 10px;\">',
         'Modified Z-Score: M<sub>i</sub> = 0.6745 &times; (x<sub>i</sub> - median) / MAD. ',
         'Values with |M<sub>i</sub>| greater than the threshold are considered outliers.',
         '</p>',
@@ -50,13 +64,13 @@ outliersClass <- R6::R6Class(
       )
       
       info_html_iqr <- paste0(
-        '<div style="font-size: 0.9em; line-height: 1.5;">', 
+        '<div style=\"font-size: 0.9em; line-height: 1.5;\">', 
         '<ul>',
         '<li><b>1.5 IQR</b> &rarr; Standard criterion; ideal for general outlier detection and common boxplot visualization. <i>Tukey, J. W. (1977).</i></li>',
         '<li><b>2.2 IQR</b> &rarr; Balanced approach; recommended for a more conservative detection while preserving more data variance. <i>Hoaglin & Iglewicz (1987).</i></li>',
         '<li><b>3.0 IQR</b> &rarr; Extreme criterion; identifies only blatant anomalies, highly effective for removing extreme outliers. <i>Tukey, J. W. (1977).</i></li>',
         '</ul>',
-        '<p style="font-style: italic; padding-top: 10px;">Note: Lower multipliers are more aggressive in identifying outliers, while higher multipliers are more tolerant.</p>',
+        '<p style=\"font-style: italic; padding-top: 10px;\">Note: Lower multipliers are more aggressive in identifying outliers, while higher multipliers are more tolerant.</p>',
         '</div>'
       )
       self$results$iqrInfo$setContent(info_html_iqr)
@@ -80,14 +94,14 @@ outliersClass <- R6::R6Class(
     .runDixon = function() {
       if (is.null(self$options$var_dixon)) return()
       
-      try(self$results$dixonTable$deleteRows(), silent = TRUE)
-      try(self$results$dixonOutlierList$deleteRows(), silent = TRUE)
+      if (self$results$dixonTable$rowCount > 0) try(self$results$dixonTable$deleteRows(), silent = TRUE)
+      if (self$results$dixonOutlierList$rowCount > 0) try(self$results$dixonOutlierList$deleteRows(), silent = TRUE)
       
-      var        <- self$options$var_dixon
-      has_group  <- !is.null(self$options$group_dixon) && length(self$options$group_dixon) > 0
-      group_vars <- self$options$group_dixon
+      var            <- self$options$var_dixon
+      has_group      <- !is.null(self$options$group_dixon) && length(self$options$group_dixon) > 0
+      group_vars     <- self$options$group_dixon
       treatment_type <- self$options$treatment_dixon
-      alpha_key  <- self$options$alpha_dixon
+      alpha_key      <- self$options$alpha_dixon
       
       q_critical_table <- list(
         alpha10 = c(
@@ -142,30 +156,33 @@ outliersClass <- R6::R6Class(
         }
       }
       
+      df_work <- self$data
+      df_work$.row_id <- seq_len(nrow(df_work))
+      
       if (has_group) {
         if (length(group_vars) == 1) {
-          combined_group <- as.factor(self$data[[group_vars]])
+          combined_group <- as.factor(df_work[[group_vars]])
         } else {
-          group_cols     <- lapply(group_vars, function(g) self$data[[g]])
+          group_cols     <- lapply(group_vars, function(g) df_work[[g]])
           combined_group <- interaction(group_cols, sep = "_", drop = TRUE)
         }
-        data_grouped <- split(self$data, combined_group)
+        data_grouped <- split(df_work, combined_group)
       } else {
-        data_grouped <- list("All Data" = self$data)
+        data_grouped <- list("All Data" = df_work)
       }
       
-      full_treated_data <- as.numeric(self$data[[var]])
+      full_treated_data <- private$.to_numeric_vec(self$data[[var]])
       all_plot_data     <- list()
       row_counter       <- 1
       outlier_counter   <- 1
       
       for (group_name in names(data_grouped)) {
         data_group <- data_grouped[[group_name]]
-        data_var   <- as.numeric(data_group[[var]])
+        data_var   <- private$.to_numeric_vec(data_group[[var]])
         data_var_clean <- data_var[!is.na(data_var)]
         n <- length(data_var_clean)
         
-        original_row_numbers <- as.numeric(rownames(data_group))
+        original_row_numbers <- data_group$.row_id
         
         if (n < 3) {
           self$results$dixonTable$addRow(
@@ -246,10 +263,10 @@ outliersClass <- R6::R6Class(
         applied_treatment_text <- "None"
         
         if (is_outlier && treatment_type != "none") {
-          outlier_idx_in_group <- which(data_var == outlier_val)[1]
+          outlier_idx_in_group <- which(!is.na(data_var) & data_var == outlier_val)[1]
           
           if (treatment_type == "trim_asym") {
-            treated_values[outlier_idx_in_group] <- NA
+            treated_values[outlier_idx_in_group] <- NA_real_
             modified_n <- n - 1
             applied_treatment_text <- "Asymmetric Trimming"
           } else if (treatment_type == "win_valid") {
@@ -260,7 +277,7 @@ outliersClass <- R6::R6Class(
             } else {
               treated_values[outlier_idx_in_group] <- max(valid_data, na.rm = TRUE)
             }
-            applied_treatment_text = "Winsorized (Valid values)"
+            applied_treatment_text <- "Winsorized (Valid values)"
           }
           
           full_treated_data[original_row_numbers] <- treated_values
@@ -286,7 +303,7 @@ outliersClass <- R6::R6Class(
         row_counter <- row_counter + 1
         
         if (is_outlier) {
-          outlier_idx_in_group <- which(data_var == outlier_val)[1]
+          outlier_idx_in_group <- which(!is.na(data_var) & data_var == outlier_val)[1]
           outlier_row_in_full  <- original_row_numbers[outlier_idx_in_group]
           
           self$results$dixonOutlierList$addRow(
@@ -294,7 +311,7 @@ outliersClass <- R6::R6Class(
             values = list(
               variable      = var,
               group_level   = group_name,
-              rowNumber     = outlier_row_in_full,
+              rowNumber     = as.integer(outlier_row_in_full),
               outlier_value = outlier_val,
               outlier_side  = outlier_side,
               q_statistic   = round(q_stat, 4)
@@ -314,7 +331,6 @@ outliersClass <- R6::R6Class(
           )
           all_plot_data[[group_name]] <- plot_df
         }
-        
       }
       
       if (treatment_type != "none" && self$results$treatedData_dixon$isNotFilled()) {
@@ -351,11 +367,11 @@ outliersClass <- R6::R6Class(
       if (is.null(self$options$vars_modz) || length(self$options$vars_modz) == 0)
         return()
       
-      try(self$results$modzTable$deleteRows(), silent = TRUE)
-      try(self$results$modzOutlierList$deleteRows(), silent = TRUE)
+      table       <- self$results$modzTable
+      outlierList <- self$results$modzOutlierList
+      if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
+      if (outlierList$rowCount > 0) try(outlierList$deleteRows(), silent = TRUE)
       
-      table         <- self$results$modzTable
-      outlierList   <- self$results$modzOutlierList
       all_plot_data <- list()
       has_group     <- !is.null(self$options$group_modz) && length(self$options$group_modz) > 0
       group_vars    <- self$options$group_modz
@@ -371,6 +387,8 @@ outliersClass <- R6::R6Class(
       outlier_counter <- 1
       
       all_treated_vectors <- list()
+      df_work <- self$data
+      df_work$.row_id <- seq_len(nrow(df_work))
       
       for (var in self$options$vars_modz) {
         if (!var %in% names(self$data)) next
@@ -378,35 +396,35 @@ outliersClass <- R6::R6Class(
         tryCatch({
           if (has_group) {
             if (length(group_vars) == 1) {
-              combined_group <- as.factor(self$data[[group_vars]])
+              combined_group <- as.factor(df_work[[group_vars]])
             } else {
-              group_cols     <- lapply(group_vars, function(g) self$data[[g]])
+              group_cols     <- lapply(group_vars, function(g) df_work[[g]])
               combined_group <- interaction(group_cols, sep = "_", drop = TRUE)
             }
-            data_grouped <- split(self$data, combined_group)
+            data_grouped <- split(df_work, combined_group)
           } else {
-            data_grouped <- list("All Data" = self$data)
+            data_grouped <- list("All Data" = df_work)
           }
           
-          full_treated_data <- rep(NA_real_, nrow(self$data))
-          full_treated_data[seq_along(self$data[[var]])] <- self$data[[var]]
+          full_treated_data <- private$.to_numeric_vec(self$data[[var]])
           
           for (group_name in names(data_grouped)) {
             data_group    <- data_grouped[[group_name]]
-            data_var_full <- data_group[[var]]
+            data_var_full <- private$.to_numeric_vec(data_group[[var]])
             
             non_na_indices_in_group <- which(!is.na(data_var_full))
-            data_var <- as.numeric(data_var_full[non_na_indices_in_group])
+            data_var <- data_var_full[non_na_indices_in_group]
             
             if (length(data_var) == 0) next
             
-            original_row_numbers_group <- as.numeric(rownames(data_group))
+            original_row_numbers_group <- data_group$.row_id
             
             med <- stats::median(data_var, na.rm = TRUE)
             mad <- stats::mad(data_var, na.rm = TRUE)
             
-            if (mad == 0) mad <- stats::mean(abs(data_var - med), na.rm = TRUE)
-            if (mad == 0) mad <- 1
+            # Fix BSS-CODE-009: use base::mean when mad == 0
+            if (is.na(mad) || mad == 0) mad <- mean(abs(data_var - med), na.rm = TRUE)
+            if (is.na(mad) || mad == 0) mad <- 1
             
             modified_z <- 0.6745 * (data_var - med) / mad
             
@@ -428,7 +446,7 @@ outliersClass <- R6::R6Class(
             
             if (treatment_type != "none") {
               if (treatment_type == "trim_asym") {
-                treated_values[outliers_indices_in_group] <- NA
+                treated_values[outliers_indices_in_group] <- NA_real_
                 modified_n <- modified_n - length(outliers_indices_in_group)
                 applied_treatment_text <- "Asymmetric Trimming"
               } else if (treatment_type == "trim_sym") {
@@ -436,7 +454,7 @@ outliersClass <- R6::R6Class(
                 lower_quantile <- stats::quantile(data_var, trim_prop, na.rm = TRUE)
                 upper_quantile <- stats::quantile(data_var, 1 - trim_prop, na.rm = TRUE)
                 trim_indices   <- which(!is.na(treated_values) & (treated_values < lower_quantile | treated_values > upper_quantile))
-                treated_values[trim_indices] <- NA
+                treated_values[trim_indices] <- NA_real_
                 modified_n <- length(which(!is.na(treated_values)))
                 applied_treatment_text <- paste0("Symmetric Trimming (", self$options$trimPercent_modz, "%)")
               } else if (treatment_type == "win_valid") {
@@ -486,7 +504,7 @@ outliersClass <- R6::R6Class(
                   values = list(
                     variable    = var,
                     group_level = group_name,
-                    rowNumber   = row_num,
+                    rowNumber   = as.integer(row_num),
                     modifiedZ   = round(z_score, 4)
                   )
                 )
@@ -561,9 +579,9 @@ outliersClass <- R6::R6Class(
       if (is.null(self$options$vars_iqr) || length(self$options$vars_iqr) == 0)
         return()
       
-      try(self$results$iqrTable$deleteRows(), silent = TRUE)
+      table <- self$results$iqrTable
+      if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
       
-      table         <- self$results$iqrTable
       all_plot_data <- list()
       has_group     <- !is.null(self$options$group_iqr) && length(self$options$group_iqr) > 0
       group_vars    <- self$options$group_iqr
@@ -578,6 +596,8 @@ outliersClass <- R6::R6Class(
       row_counter    <- 1
       
       all_treated_vectors <- list()
+      df_work <- self$data
+      df_work$.row_id <- seq_len(nrow(df_work))
       
       for (var in self$options$vars_iqr) {
         if (!var %in% names(self$data)) next
@@ -585,33 +605,32 @@ outliersClass <- R6::R6Class(
         tryCatch({
           if (has_group) {
             if (length(group_vars) == 1) {
-              combined_group <- as.factor(self$data[[group_vars]])
+              combined_group <- as.factor(df_work[[group_vars]])
             } else {
-              group_cols     <- lapply(group_vars, function(g) self$data[[g]])
+              group_cols     <- lapply(group_vars, function(g) df_work[[g]])
               combined_group <- interaction(group_cols, sep = "_", drop = TRUE)
             }
-            data_grouped <- split(self$data, combined_group)
+            data_grouped <- split(df_work, combined_group)
           } else {
-            data_grouped <- list("All Data" = self$data)
+            data_grouped <- list("All Data" = df_work)
           }
           
-          full_treated_data <- rep(NA_real_, nrow(self$data))
-          full_treated_data[seq_along(self$data[[var]])] <- self$data[[var]]
+          full_treated_data <- private$.to_numeric_vec(self$data[[var]])
           
           for (group_name in names(data_grouped)) {
             data_group    <- data_grouped[[group_name]]
-            data_var_full <- data_group[[var]]
+            data_var_full <- private$.to_numeric_vec(data_group[[var]])
             
             non_na_indices_in_group <- which(!is.na(data_var_full))
-            data_var <- as.numeric(data_var_full[non_na_indices_in_group])
+            data_var <- data_var_full[non_na_indices_in_group]
             
             if (length(data_var) == 0) next
             
-            original_row_numbers_group <- as.numeric(rownames(data_group))
+            original_row_numbers_group <- data_group$.row_id
             
-            iqr_value <- stats::IQR(data_var, na.rm = TRUE)
             q1 <- stats::quantile(data_var, 0.25, na.rm = TRUE)
             q3 <- stats::quantile(data_var, 0.75, na.rm = TRUE)
+            iqr_value <- q3 - q1
             
             lower_fence <- q1 - (iqr_mult * iqr_value)
             upper_fence <- q3 + (iqr_mult * iqr_value)
@@ -631,7 +650,7 @@ outliersClass <- R6::R6Class(
             
             if (treatment_type != "none") {
               if (treatment_type == "trim_asym") {
-                treated_values[outliers_indices_in_group] <- NA
+                treated_values[outliers_indices_in_group] <- NA_real_
                 modified_n <- modified_n - length(outliers_indices_in_group)
                 applied_treatment_text <- "Asymmetric Trimming"
               } else if (treatment_type == "trim_sym") {
@@ -639,7 +658,7 @@ outliersClass <- R6::R6Class(
                 lower_quantile <- stats::quantile(data_var, trim_prop, na.rm = TRUE)
                 upper_quantile <- stats::quantile(data_var, 1 - trim_prop, na.rm = TRUE)
                 trim_indices   <- which(!is.na(treated_values) & (treated_values < lower_quantile | treated_values > upper_quantile))
-                treated_values[trim_indices] <- NA
+                treated_values[trim_indices] <- NA_real_
                 modified_n <- length(which(!is.na(treated_values)))
                 applied_treatment_text <- paste0("Symmetric Trimming (", self$options$trimPercent_iqr, "%)")
               } else if (treatment_type == "win_valid") {
