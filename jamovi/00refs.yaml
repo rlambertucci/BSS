@@ -1,0 +1,93 @@
+qgraph:
+  type: article
+  author: "Epskamp, S., Cramer, A. O. J., Waldorp, L. J., Schmittmann, V. D., & Borsboom, D."
+  year: 2012
+  title: "qgraph: Network Visualizations of Relationships in Psychometric Data"
+  journal: "Journal of Statistical Software"
+  volume: 48
+  issue: 4
+  pages: "1-18"
+  doi: "10.18637/jss.v048.i04"
+
+bootnet:
+  type: article
+  author: "Epskamp, S., Borsboom, D., & Fried, E. I."
+  year: 2018
+  title: "Estimating psychological networks and their accuracy: A tutorial paper"
+  journal: "Behavior Research Methods"
+  volume: 50
+  issue: 1
+  pages: "195-212"
+  doi: "10.3758/s13428-017-0862-1"
+
+mgm:
+  type: article
+  author: "Haslbeck, J. M. B., & Waldorp, L. J."
+  year: 2020
+  title: "mgm: Estimating Time-Varying Mixed Graphical Models in High-Dimensional Data"
+  journal: "Journal of Statistical Software"
+  volume: 93
+  issue: 8
+  pages: "1-46"
+  doi: "10.18637/jss.v093.i08"
+
+EBICglasso:
+  type: inproceedings
+  author: "Foygel, R., & Drton, M."
+  year: 2010
+  title: "Extended Bayesian Information Criteria for Gaussian Graphical Models"
+  booktitle: "Advances in Neural Information Processing Systems (NeurIPS 2010)"
+  volume: 23
+  pages: "604-612"
+
+ExpectedInfluence:
+  type: article
+  author: "Robinaugh, D. J., Millner, A. J., & McNally, R. J."
+  year: 2016
+  title: "Identifying highly influential nodes in the complicated grief network"
+  journal: "Journal of Abnormal Psychology"
+  volume: 125
+  issue: 6
+  pages: "747-757"
+  doi: "10.1037/abn0000181"
+
+ggplot2:
+  type: book
+  author: "Wickham, H."
+  year: 2016
+  title: "ggplot2: Elegant Graphics for Data Analysis"
+  publisher: "Springer-Verlag New York"
+  url: "https://ggplot2.tidyverse.org"
+
+igraph:
+  type: article
+  author: "Csardi, G., & Nepusz, T."
+  year: 2006
+  title: "The igraph software package for complex network research"
+  journal: "InterJournal, Complex Systems"
+  volume: 1695
+  pages: "1-9"
+
+reshape2:
+  type: article
+  author: "Wickham, H."
+  year: 2007
+  title: "Reshaping Data with the reshape Package"
+  journal: "Journal of Statistical Software"
+  volume: 21
+  issue: 12
+  pages: "1-20"
+
+dplyr:
+  type: software
+  author: "Wickham, H., François, R., Henry, L., Müller, K., & Vaughan, D."
+  year: 2023
+  title: "dplyr: A Grammar of Data Manipulation"
+  url: "https://dplyr.tidyverse.org"
+
+gtools:
+  type: software
+  author: "Warnes, G. R., Bolker, B., & Lumley, T."
+  year: 2022
+  title: "gtools: Various R Programming Tools"
+  url: "https://CRAN.R-project.org/package=gtools"

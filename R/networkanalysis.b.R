@@ -1,4 +1,4 @@
-networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
+networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
   "networkanalysisClass",
   inherit = networkanalysisBase,
   private = list(
@@ -8,7 +8,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
     },
     
     .init = function() {
-      message("networkanalysisClass$.init() called")
       
       if (isTRUE(self$options$plotNetwork_net)) {
         width <- self$options$plotWidth_net
@@ -83,13 +82,12 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
       }
       if (is.null(self$options$varsCont_mixed) && is.null(self$options$varsCat_mixed) && is.null(self$options$varsCount_mixed)) {
         if (!is.null(self$results$instructions_mixed)) {
-          self$results$instructions_mixed$setContent("Welcome to Mixed Data Network Analysis (mgm)!\n\nPlease select at least two variables (Continuous, Categorical, or Count) to begin.")
+          self$results$instructions_mixed$setContent("Welcome to Mixed Data Network Analysis (mgm)!\n\nPlease select at least 3 variables in total (Continuous, Categorical, or Count) to begin.")
         }
       }
     },
     
     .run = function() {
-      message("networkanalysisClass$.run() called")
       mode <- self$options$mode
       if (mode == "continuous") {
         private$.runContinuous()
@@ -99,7 +97,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
     },
     
     .runContinuous = function() {
-      message("networkanalysisClass$.runContinuous() called")
       
       if (length(self$options$vars_net) < 3) {
         instructions <- self$results$instructions_net
@@ -189,6 +186,12 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
               indices <- which(node_group_mapping == g)
               qgraph_groups[[g]] <- indices
             }
+          } else if (!is.null(nodeGroupVarName)) {
+            na_note <- if (is.null(na_note)) {
+              "Note: Node grouping variable must contain text formatted as 'VariableName = GroupName'."
+            } else {
+              paste(na_note, "Node grouping variable must contain text formatted as 'VariableName = GroupName'.")
+            }
           }
         }, error = function(e) {
           qgraph_groups <- NULL
@@ -212,7 +215,22 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
         args <- list(data = currentData, default = bootnet_default, corMethod = bootnet_corMethod, missing = "pairwise")
         networkGraph <- NULL; nodeLabels <- vars
         tryCatch({
-          networkResults <- do.call(bootnet::estimateNetwork, args)
+          networkResults <- tryCatch({
+            do.call(bootnet::estimateNetwork, args)
+          }, error = function(e_est) {
+            if (grepl("matrix is not positive definite", e_est$message, ignore.case = TRUE)) {
+              cormat <- qgraph::cor_auto(currentData, missing = "pairwise", npd = "nearPD", verbose = FALSE)
+              args_npd <- list(data = cormat, default = bootnet_default, missing = "pairwise")
+              na_note <<- if (is.null(na_note)) {
+                "Note: Correlation matrix smoothed to nearest positive-definite matrix (nearPD)."
+              } else {
+                paste(na_note, "Correlation matrix smoothed to nearest positive-definite matrix (nearPD).")
+              }
+              do.call(bootnet::estimateNetwork, args_npd)
+            } else {
+              stop(e_est$message)
+            }
+          })
           if (!is.null(networkResults) && "graph" %in% names(networkResults)) {
             networkGraph <- networkResults$graph
             if(nrow(networkGraph) != length(nodeLabels) || ncol(networkGraph) != length(nodeLabels)) { stop("Estimated graph dimensions mismatch.") }
@@ -532,11 +550,10 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
     },
     
     .runMixed = function() {
-      message("networkanalysisClass$.runMixed() called")
       
       if (length(self$options$varsCont_mixed) == 0 && length(self$options$varsCat_mixed) == 0 && length(self$options$varsCount_mixed) == 0) {
         instructions <- self$results$instructions_mixed
-        instructions$setContent("Welcome to Mixed Data Network Analysis (mgm)!\n\nPlease select at least two variables (Continuous, Categorical, or Count) to begin.")
+        instructions$setContent("Welcome to Mixed Data Network Analysis (mgm)!\n\nPlease select at least 3 variables in total (Continuous, Categorical, or Count) to begin.")
         instructions$setVisible(TRUE)
         try(self$results$summary_mixed$setVisible(FALSE), silent=TRUE); try(self$results$weights_mixed$setVisible(FALSE), silent=TRUE)
         try(self$results$centrality_mixed$setVisible(FALSE), silent=TRUE); try(self$results$clustering_mixed$setVisible(FALSE), silent=TRUE)
@@ -561,8 +578,8 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
       nodeGroupVarName <- self$options$nodeGroupVar_mixed
       
       allVarNames <- c(varsContNames, varsCatNames, varsCountNames)
-      if (length(allVarNames) < 2) {
-        jmvcore::reject("Please select at least 2 variables in total.", code = "not_enough_variables"); return()
+      if (length(allVarNames) < 3) {
+        jmvcore::reject("Please select at least 3 variables in total for Mixed Network estimation (mgm).", code = "not_enough_variables"); return()
       }
       
       lambdaSelMethod <- self$options$lambdaSelMethod_mixed
@@ -676,6 +693,12 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
               indices <- which(node_group_mapping == g)
               qgraph_groups[[g]] <- indices
             }
+          } else if (!is.null(nodeGroupVarName)) {
+            na_note_global <- if (is.null(na_note_global)) {
+              "Note: Node grouping variable must contain text formatted as 'VariableName = GroupName'."
+            } else {
+              paste(na_note_global, "Node grouping variable must contain text formatted as 'VariableName = GroupName'.")
+            }
           }
         }, error = function(e) {
           qgraph_groups <- NULL
@@ -702,9 +725,22 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
         
         mgmFit <- NULL; adjMatrix <- NULL
         tryCatch({
-          mgm_args <- list(data = as.matrix(currentDataGroup_for_estimation), type = varTypes, level = varLevels, 
-                           lambdaSel = lambdaSelMethod, ruleReg = ruleReg, 
-                           binarySign = FALSE, pbar = FALSE, warnings = TRUE)
+        # Prepare numeric matrix for mgm (factors converted to 0-based integers)
+        mat_for_mgm <- matrix(0, nrow = nrow(currentDataGroup_for_estimation), ncol = length(allVarNames))
+        colnames(mat_for_mgm) <- allVarNames
+        for (v_idx in seq_along(allVarNames)) {
+          v_name <- allVarNames[v_idx]
+          if (v_name %in% varsCatNames) {
+            fac_col <- currentDataGroup_for_estimation[[v_name]]
+            if (!is.factor(fac_col)) fac_col <- as.factor(fac_col)
+            mat_for_mgm[, v_idx] <- as.integer(fac_col) - 1L
+          } else {
+            mat_for_mgm[, v_idx] <- as.numeric(currentDataGroup_for_estimation[[v_name]])
+          }
+        }
+        mgm_args <- list(data = mat_for_mgm, type = varTypes, level = varLevels, 
+                         lambdaSel = lambdaSelMethod, ruleReg = ruleReg, 
+                         binarySign = FALSE, pbar = FALSE, warnings = TRUE)
           if (lambdaSelMethod == "CV") {
             mgm_args$k <- kFolds; mgm_args$lambdaGam <- NULL
           } else if (lambdaSelMethod == "EBIC") {
@@ -723,7 +759,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
             stop("mgm estimation did not return a valid 'pairwise$wadj' or 'pairwise$signs' object.")
           }
           
-          adjMatrix <- mgmFit$pairwise$wadj * mgmFit$pairwise$signs
+          adjMatrix <- mgmFit$pairwise$wadj
           if(is.null(adjMatrix) || !is.matrix(adjMatrix) || nrow(adjMatrix) != length(allVarNames) || ncol(adjMatrix) != length(allVarNames)) {
             stop("Adjacency matrix (wadj * signs) is invalid or has wrong dimensions.")
           }
@@ -759,7 +795,12 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
               strength_vals <- cent_obj_qgraph$OutDegree
             }
           }
-          temp_ei <- rowSums(adjMatrix, na.rm = TRUE)
+          signedAdjMatrix <- adjMatrix
+          if (!is.null(mgmFit$pairwise$signs)) {
+            has_signs <- is.finite(mgmFit$pairwise$signs)
+            signedAdjMatrix[has_signs] <- adjMatrix[has_signs] * mgmFit$pairwise$signs[has_signs]
+          }
+          temp_ei <- rowSums(signedAdjMatrix, na.rm = TRUE)
           if (length(temp_ei) == num_vars) {
             ei_vals_final <- temp_ei
           }
@@ -999,7 +1040,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore')) R6::R6Class(
         
         plotStateNetwork <- list(
           graphs = graphs_for_layout, 
-          edgeColors = lapply(networkResultsList[successful_groups], function(fit) if(!is.null(fit) && !is.null(fit$pairwise) && !is.null(fit$pairwise$edgecolor)) fit$pairwise$edgecolor else NULL), 
+          edgeColors = lapply(networkResultsList[successful_groups], function(fit) if(!is.null(fit) && !is.null(fit$pairwise) && !is.null(fit$pairwise$edgecolor_cb)) fit$pairwise$edgecolor_cb else if(!is.null(fit) && !is.null(fit$pairwise)) fit$pairwise$edgecolor else NULL),
           layout = commonLayout, 
           labels = if(isTRUE(self$options$showLabels_mixed)) allVarNames else FALSE, 
           groupNames = successful_groups, 
