@@ -179,3 +179,35 @@ Cohen1988:
   title: "Statistical Power Analysis for the Behavioral Sciences"
   edition: "2nd"
   publisher: "Lawrence Erlbaum Associates"
+
+ARTool:
+  type: manual
+  author: "Kay, M., Elkin, L. A., Higgins, J. J., & Wobbrock, J. O."
+  year: 2021
+  title: "ARTool: Aligned Rank Transform for Nonparametric Factorial ANOVAs"
+  url: "https://CRAN.R-project.org/package=ARTool"
+
+emmeans:
+  type: manual
+  author: "Lenth, R. V."
+  year: 2024
+  title: "emmeans: Estimated Marginal Means, aka Least-Squares Means"
+  url: "https://CRAN.R-project.org/package=emmeans"
+
+Wobbrock2011:
+  type: inproceedings
+  author: "Wobbrock, J. O., Findlater, L., Gergle, D., & Higgins, J. J."
+  year: 2011
+  title: "The Aligned Rank Transform for Nonparametric Factorial Analyses Using Only ANOVA Procedures"
+  booktitle: "Proceedings of the ACM Conference on Human Factors in Computing Systems (CHI '11)"
+  pages: "143-146"
+  doi: "10.1145/1978942.1978963"
+
+Elkin2021:
+  type: inproceedings
+  author: "Elkin, L. A., Kay, M., Higgins, J. J., & Wobbrock, J. O."
+  year: 2021
+  title: "An Aligned Rank Transform Procedure for Multifactor Contrast Tests"
+  booktitle: "Proceedings of the 34th Annual ACM Symposium on User Interface Software and Technology (UIST '21)"
+  pages: "754-768"
+  doi: "10.1145/3472749.3474784"

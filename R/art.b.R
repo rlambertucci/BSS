@@ -19,6 +19,24 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       return(NA_real_)
     },
     
+    .to_numeric_vec = function(x) {
+      if (is.numeric(x)) return(x)
+      if (is.factor(x)) {
+        num_val <- suppressWarnings(as.numeric(as.character(x)))
+        if (!all(is.na(num_val))) return(num_val)
+        return(as.numeric(x))
+      }
+      suppressWarnings(as.numeric(x))
+    },
+    
+    .unmangle_term = function(term_str, reverse_map) {
+      parts <- strsplit(term_str, ":")[[1]]
+      unmangled_parts <- sapply(parts, function(p) {
+        if (p %in% names(reverse_map)) reverse_map[[p]] else p
+      })
+      paste(unmangled_parts, collapse = ":")
+    },
+    
     .is_contrast_paired = function(contrast_str, term, between_vars, within_vars) {
       if (length(within_vars) == 0) {
         return(FALSE)
@@ -128,6 +146,9 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       reshape_failed <- FALSE
       if (mode == "longitudinal" && long_format == "wide") {
         process_data <- process_data[!is.na(process_data[[subject_id_var]]), ]
+        for (wv in wave_vars) {
+          process_data[[wv]] <- private$.to_numeric_vec(process_data[[wv]])
+        }
         tryCatch({
           process_data <- stats::reshape(
             process_data,
@@ -152,6 +173,8 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         return()
       }
       
+      process_data[[dep_var]] <- private$.to_numeric_vec(process_data[[dep_var]])
+      
       predictors <- character()
       if (private$.is_defined(fixed_factors)) {
         predictors <- c(predictors, fixed_factors)
@@ -166,24 +189,6 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         return()
       }
       
-      for (p in predictors) {
-        process_data[[p]] <- as.factor(process_data[[p]])
-      }
-      
-      if (private$.is_defined(subject_id_var)) {
-        process_data[[subject_id_var]] <- as.factor(process_data[[subject_id_var]])
-      }
-      
-      main_effects <- paste(predictors, collapse = " * ")
-      if (mode == "longitudinal" && private$.is_defined(subject_id_var)) {
-        random_effect <- paste0(" + (1|", subject_id_var, ")")
-      } else {
-        random_effect <- ""
-      }
-      
-      formula_str <- paste0("`", dep_var, "` ~ ", main_effects, random_effect)
-      art_formula <- as.formula(formula_str)
-      
       vars_in_model <- c(dep_var, predictors, subject_id_var)
       vars_in_model <- unique(vars_in_model[private$.is_defined(vars_in_model)])
       process_data <- na.omit(process_data[, vars_in_model, drop = FALSE])
@@ -193,6 +198,37 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         self$results$text$setVisible(TRUE)
         return()
       }
+      
+      process_data <- droplevels(process_data)
+      
+      safe_name_map <- setNames(make.names(vars_in_model), vars_in_model)
+      reverse_name_map <- setNames(names(safe_name_map), unname(safe_name_map))
+      
+      for (orig_col in names(safe_name_map)) {
+        names(process_data)[names(process_data) == orig_col] <- safe_name_map[[orig_col]]
+      }
+      
+      dep_var_safe <- safe_name_map[[dep_var]]
+      predictors_safe <- unname(safe_name_map[predictors])
+      subject_id_safe <- if (private$.is_defined(subject_id_var)) safe_name_map[[subject_id_var]] else NULL
+      
+      for (p in predictors_safe) {
+        process_data[[p]] <- as.factor(process_data[[p]])
+      }
+      
+      if (!is.null(subject_id_safe)) {
+        process_data[[subject_id_safe]] <- as.factor(process_data[[subject_id_safe]])
+      }
+      
+      main_effects <- paste(predictors_safe, collapse = " * ")
+      if (mode == "longitudinal" && !is.null(subject_id_safe)) {
+        random_effect <- paste0(" + (1|", subject_id_safe, ")")
+      } else {
+        random_effect <- ""
+      }
+      
+      formula_str <- paste0(dep_var_safe, " ~ ", main_effects, random_effect)
+      art_formula <- as.formula(formula_str)
       
       model_error <- NULL
       model <- tryCatch({
@@ -223,6 +259,8 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       anova_table <- self$results$anovaTable
+      if (anova_table$rowCount > 0) anova_table$deleteRows()
+      
       anova_table$setNote(
         "citation",
         "Note. Computations powered by the R package ARTool (Wobbrock et al., 2011). Citation: Wobbrock, J. O., Findlater, L., Gergle, D., and Higgins, J. J. (2011). The Aligned Rank Transform for Nonparametric Factorial Analyses Using Only ANOVA Procedures. In Proceedings of the ACM Conference on Human Factors in Computing Systems (CHI '11), pp. 143-146. https://doi.org/10.1145/1978942.1978963"
@@ -234,7 +272,8 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       for (i in 1:num_rows_anova) {
-        term <- anova_res$Term[i]
+        term_internal <- anova_res$Term[i]
+        term_display <- private$.unmangle_term(term_internal, reverse_name_map)
         df_num <- private$.safe_extract(anova_res, i, c("Df", "df"))
         df_res <- private$.safe_extract(anova_res, i, c("Df.res", "Res.Df", "Denom"))
         f_val <- private$.safe_extract(anova_res, i, c("F", "F value", "F-value"))
@@ -246,7 +285,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
         
         anova_table$addRow(rowKey = i, values = list(
-          factor = term,
+          factor = term_display,
           df = df_num,
           df_res = df_res,
           f_value = f_val,
@@ -257,12 +296,16 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       if (isTRUE(run_posthoc)) {
         posthoc_table <- self$results$posthocTable
+        if (posthoc_table$rowCount > 0) posthoc_table$deleteRows()
+        
         posthoc_table$setNote(
           "citation",
           "Note. Pairwise contrast comparisons computed using the ART-C procedure (Elkin et al., 2021) via the R package ARTool, with p-value adjustments powered by the emmeans package (Lenth, 2024). Citations: (1) Elkin, L. A. et al. (2021). An Aligned Rank Transform Procedure for Multifactor Contrast Tests. In Proceedings of the ACM Symposium on User Interface Software and Technology (UIST '21), pp. 754-768. (2) Lenth, R. V. (2024). emmeans: Estimated Marginal Means, aka Least-Squares Means."
         )
         
         es_table <- self$results$effectSizeTable
+        if (es_table$rowCount > 0) es_table$deleteRows()
+        
         es_table$setNote(
           "citation",
           "Note. Pairwise effect sizes (Cohen's d or Hedges' g) approximated from t-ratios and degrees of freedom: d = 2 * t / sqrt(df) for unpaired contrasts, and d = t / sqrt(df) for paired/within-subjects contrasts. Hedges' g includes correction: g = d * (1 - 3 / (4 * df - 1))."
@@ -272,10 +315,11 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         row_ph <- 1
         row_es <- 1
         
-        between_vars <- fixed_factors
-        within_vars <- if (mode == "longitudinal") time_var else character()
+        between_vars_safe <- unname(safe_name_map[fixed_factors])
+        within_vars_safe <- if (mode == "longitudinal") unname(safe_name_map[time_var]) else character()
         
         for (term in terms_to_test) {
+          term_display <- private$.unmangle_term(term, reverse_name_map)
           ph_res <- tryCatch({
             ARTool::art.con(model, term, adjust = posthoc_correction)
           }, error = function(e) {
@@ -298,7 +342,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             p_v <- private$.safe_extract(ph_df, j, c("p.value", "Pr(>|t|)", "Pr(>|z|)"))
             
             posthoc_table$addRow(rowKey = row_ph, values = list(
-              factor = term,
+              factor = term_display,
               contrast = comp,
               estimate = est,
               se = se,
@@ -310,15 +354,15 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             
             if (isTRUE(calc_es)) {
               es_final <- NA_real_
-              m_label <- if (es_method == "hedges_g") "Hedge's g" else "Cohen's d"
+              m_label <- if (es_method == "hedges_g") "Hedges' g" else "Cohen's d"
               
               if (!is.na(t_r) && !is.na(df) && df > 0 && is.finite(df)) {
-                is_paired <- private$.is_contrast_paired(comp, term, between_vars, within_vars)
+                is_paired <- private$.is_contrast_paired(comp, term, between_vars_safe, within_vars_safe)
                 scale_factor <- if (is_paired) 1 else 2
                 d_val <- (scale_factor * t_r) / sqrt(df)
                 
                 if (es_method == "hedges_g") {
-                  j_corr <- 1 - (3 / (4 * df - 1))
+                  j_corr <- if (df > 1) (1 - 3 / (4 * df - 1)) else 1
                   es_final <- d_val * j_corr
                 } else {
                   es_final <- d_val
@@ -326,7 +370,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               }
               
               es_table$addRow(rowKey = row_es, values = list(
-                factor = term,
+                factor = term_display,
                 contrast = comp,
                 method = m_label,
                 es_value = es_final
@@ -337,7 +381,11 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
-      self$results$text$setContent(paste("ART Analysis completed successfully.\nFormula used:", formula_str))
+      display_formula <- paste0("`", dep_var, "` ~ ", paste(paste0("`", predictors, "`"), collapse = " * "))
+      if (mode == "longitudinal" && private$.is_defined(subject_id_var)) {
+        display_formula <- paste0(display_formula, " + (1|`", subject_id_var, "`)")
+      }
+      self$results$text$setContent(paste("ART Analysis completed successfully.\nFormula used:", display_formula))
       self$results$text$setVisible(TRUE)
     }
   )

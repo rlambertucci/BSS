@@ -129,7 +129,7 @@ options:
       options:
         - title: Cohen's d (from z/t-ratios)
           name: cohens_d
-        - title: Hedge's g
+        - title: Hedges' g
           name: hedges_g
       default: cohens_d
 
@@ -137,3 +137,9 @@ options:
       title: Run ART Analysis
       type: Bool
       default: false
+
+refs:
+    - ARTool
+    - emmeans
+    - Wobbrock2011
+    - Elkin2021
