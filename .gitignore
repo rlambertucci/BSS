@@ -1,0 +1,19 @@
+# History & Workspace files
+.Rhistory
+.RData
+.Ruserdata
+
+# RStudio / IDE files
+.Rproj.user/
+
+# jamovi build & package files
+build/
+*.jmo
+*.tar.gz
+
+# Environment / Agent skills
+.gemini/
+.agents/
+
+# Temporary / scratch scripts
+Modulos R.R
