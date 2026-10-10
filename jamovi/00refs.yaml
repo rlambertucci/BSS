@@ -339,3 +339,45 @@ Hoaglin1987:
   issue: 400
   pages: "1147-1149"
   doi: "10.1080/01621459.1987.10478551"
+
+Fisher1921:
+  type: article
+  author: "Fisher, R. A."
+  year: 1921
+  title: "On the probable error of a coefficient of correlation deduced from a small sample"
+  journal: "Metron"
+  volume: 1
+  pages: "3-32"
+
+Steiger1980:
+  type: article
+  author: "Steiger, J. H."
+  year: 1980
+  title: "Tests for comparing elements of a correlation matrix"
+  journal: "Psychological Bulletin"
+  volume: 87
+  issue: 2
+  pages: "244-251"
+  doi: "10.1037/0033-2909.87.2.244"
+
+Williams1959:
+  type: article
+  author: "Williams, E. J."
+  year: 1959
+  title: "The comparison of regression variables"
+  journal: "Journal of the Royal Statistical Society: Series B"
+  volume: 21
+  issue: 2
+  pages: "396-399"
+  doi: "10.1111/j.2517-6161.1959.tb00346.x"
+
+Zou2007:
+  type: article
+  author: "Zou, G. Y."
+  year: 2007
+  title: "Toward using confidence intervals to compare correlations"
+  journal: "Psychological Methods"
+  volume: 12
+  issue: 4
+  pages: "399-413"
+  doi: "10.1037/1082-989X.12.4.399"
