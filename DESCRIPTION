@@ -17,4 +17,4 @@ Description: This module provides a variety of statistical procedures for differ
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
-Imports: jmvcore (>= 0.8.5), R6, ggplot2, gridExtra, missRanger, GGally, VIM, effsize, effectsize, bootnet, qgraph, reshape2, gtools, igraph, mgm, mice, lattice, miceadds, bestNormalize, SuppDists, stats, dplyr, tidyr, ARTool, emmeans
+Imports: jmvcore (>= 0.8.5), R6, ggplot2, gridExtra, missRanger, GGally, VIM, effsize, effectsize, bootnet, qgraph, reshape2, gtools, igraph, mgm, mice, lattice, miceadds, bestNormalize, SuppDists, stats, dplyr, tidyr, ARTool, emmeans, MASS

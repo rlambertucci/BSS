@@ -134,3 +134,48 @@ GGally:
   year: 2021
   title: "GGally: Extension to 'ggplot2'"
   url: "https://CRAN.R-project.org/package=GGally"
+
+MASS:
+  type: book
+  author: "Venables, W. N., & Ripley, B. D."
+  year: 2002
+  title: "Modern Applied Statistics with S"
+  edition: "4th"
+  publisher: "Springer"
+  address: "New York"
+  doi: "10.1007/978-0-387-21706-2"
+
+effsize:
+  type: manual
+  author: "Torchiano, M."
+  year: 2020
+  title: "effsize: Efficient Effect Size Computation"
+  url: "https://CRAN.R-project.org/package=effsize"
+
+Huberty2006:
+  type: book
+  author: "Huberty, C. J., & Olejnik, S."
+  year: 2006
+  title: "Applied MANOVA and Discriminant Analysis"
+  edition: "2nd"
+  publisher: "John Wiley & Sons"
+  doi: "10.1002/047178947X"
+
+Courville2001:
+  type: article
+  author: "Courville, T., & Thompson, B."
+  year: 2001
+  title: "Use of structure coefficients in normal-theory and bootstrap multiple regression: The revisit"
+  journal: "Educational and Psychological Measurement"
+  volume: 61
+  issue: 2
+  pages: "229-248"
+  doi: "10.1177/00131640121971211"
+
+Cohen1988:
+  type: book
+  author: "Cohen, J."
+  year: 1988
+  title: "Statistical Power Analysis for the Behavioral Sciences"
+  edition: "2nd"
+  publisher: "Lawrence Erlbaum Associates"

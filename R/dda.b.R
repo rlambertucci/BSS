@@ -49,12 +49,40 @@ DDAClass <- if (requireNamespace('jmvcore'))
         if (is.null(self$options$dep) || length(self$options$covs) < 1) {
           return()
         }
-        dep <- self$options$dep; covs <- self$options$covs; data <- self$data; data <- jmvcore::naOmit(data)
-        if (nrow(data) == 0) { jmvcore::reject("No valid data remaining after handling missing values.", code="no_valid_data"); return() }
-        for (cov in covs) data[[cov]] <- jmvcore::toNumeric(data[[cov]])
-        data[[dep]] <- as.factor(data[[dep]]); group_levels <- levels(data[[dep]]); n_groups <- length(group_levels)
+        dep  <- self$options$dep
+        covs <- self$options$covs
         
-        if (n_groups < 2) { jmvcore::reject("The dependent variable must have at least two groups.", code="not_enough_levels_initial"); return() }
+        all_analysis_vars <- unique(c(dep, covs))
+        all_analysis_vars <- intersect(all_analysis_vars, names(self$data))
+        if (length(all_analysis_vars) < 2) return()
+        
+        data <- self$data[, all_analysis_vars, drop = FALSE]
+        data <- jmvcore::naOmit(data)
+        if (nrow(data) == 0) {
+          jmvcore::reject("No valid data remaining after handling missing values.", code = "no_valid_data")
+          return()
+        }
+        
+        for (cov in covs) data[[cov]] <- jmvcore::toNumeric(data[[cov]])
+        
+        cov_vars <- sapply(data[, covs, drop = FALSE], function(col) stats::var(col, na.rm = TRUE))
+        zero_var_covs <- names(cov_vars)[is.na(cov_vars) | cov_vars == 0]
+        if (length(zero_var_covs) > 0) {
+          jmvcore::reject(
+            paste0("Covariate '", zero_var_covs[1], "' has zero variance (constant values)."),
+            code = "zero_variance_covariates"
+          )
+          return()
+        }
+        
+        data[[dep]] <- droplevels(as.factor(data[[dep]]))
+        group_levels <- levels(data[[dep]])
+        n_groups <- length(group_levels)
+        
+        if (n_groups < 2) {
+          jmvcore::reject("The dependent variable must have at least two groups with valid data.", code = "not_enough_levels_initial")
+          return()
+        }
         
         formula <- jmvcore::constructFormula(dep, covs)
         formula <- stats::as.formula(formula)
@@ -86,7 +114,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
             dims <- colnames(coef_scaling_df)
             
             current_table_cols <- private$.getColumnNames(table)
-            cols_to_remove <- setdiff(current_table_cols, dims)
+            cols_to_remove <- setdiff(current_table_cols, c("name", dims))
             for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
             existing_cols <- private$.getColumnNames(table)
             for (dim_name in dims) { if (!dim_name %in% existing_cols) { try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE) } }
@@ -262,8 +290,10 @@ DDAClass <- if (requireNamespace('jmvcore'))
                 if(length(scores_g1) < 2 || length(scores_g2) < 2) { footnotes[[rowKey]] <- list(col = "cohenD", message = "Insufficient data (n<2)...")
                 } else {
                   tryCatch({
-                    row_values$cohenD <- effsize::cohen.d(scores_g1, scores_g2, pooled = TRUE, paired = FALSE, na.rm = TRUE, hedges.correction = FALSE)$estimate
-                    row_values$hedgesG <- effsize::cohen.d(scores_g1, scores_g2, pooled = TRUE, paired = FALSE, na.rm = TRUE, hedges.correction = TRUE)$estimate
+                    cd_est <- effsize::cohen.d(scores_g1, scores_g2, pooled = TRUE, paired = FALSE, na.rm = TRUE, hedges.correction = FALSE)$estimate
+                    hg_est <- effsize::cohen.d(scores_g1, scores_g2, pooled = TRUE, paired = FALSE, na.rm = TRUE, hedges.correction = TRUE)$estimate
+                    row_values$cohenD <- if (is.finite(cd_est)) cd_est else NA_real_
+                    row_values$hedgesG <- if (is.finite(hg_est)) hg_est else NA_real_
                   }, error = function(e) { err_msg <- gsub("[\r\n]", " ", e$message); footnotes[[rowKey]] <- list(col = "cohenD", message = paste("Calc error:", err_msg)) })
                 }
                 rows_to_add[[rowKey]] <- row_values
@@ -305,6 +335,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
         if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 package required for plot.", call. = FALSE)
         ld1_col <- ld_colnames[1]; centroid_cols <- colnames(centroids); plot <- NULL
         tryCatch({
+          n_plot_groups <- length(unique(plotData$Group))
           if (n_lds == 1) {
             if (!ld1_col %in% colnames(plotData) || !ld1_col %in% centroid_cols) return(FALSE)
             plot <- ggplot2::ggplot(plotData, ggplot2::aes(x = .data[[ld1_col]], y = 0, color = Group)) +
@@ -312,8 +343,10 @@ DDAClass <- if (requireNamespace('jmvcore'))
               ggplot2::geom_point(alpha = 0.6, size = 3.5, na.rm=TRUE) +
               ggplot2::geom_point(data = centroids, ggplot2::aes(x = .data[[ld1_col]], y = 0, color = Group), size = 6, shape = 17, na.rm=TRUE) +
               ggplot2::labs(title = "Descriptive Discriminant Analysis Plot", x = ld1_col, y = "") +
-              ggplot2::scale_color_brewer(palette = "Set2") +
               ggplot2::theme(axis.text.y=ggplot2::element_blank(), axis.ticks.y=ggplot2::element_blank())
+            if (n_plot_groups <= 8) {
+              plot <- plot + ggplot2::scale_color_brewer(palette = "Set2")
+            }
           } else {
             ld2_col <- ld_colnames[2]
             if (!ld1_col %in% colnames(plotData) || !ld2_col %in% colnames(plotData) || !ld1_col %in% centroid_cols || !ld2_col %in% centroid_cols) return(FALSE)
@@ -322,8 +355,10 @@ DDAClass <- if (requireNamespace('jmvcore'))
               ggplot2::geom_point(alpha = 0.6, size = 3.5, na.rm=TRUE) +
               tryCatch(ggplot2::stat_ellipse(type = "norm", level = 0.95, na.rm = TRUE), error = function(e) NULL) +
               ggplot2::geom_point(data = centroids, ggplot2::aes(x = .data[[ld1_col]], y = .data[[ld2_col]], color = Group), size = 6, shape = 17, na.rm=TRUE) +
-              ggplot2::labs(title = "Descriptive Discriminant Analysis Plot", x = ld1_col, y = ld2_col) +
-              ggplot2::scale_color_brewer(palette = "Set2")
+              ggplot2::labs(title = "Descriptive Discriminant Analysis Plot", x = ld1_col, y = ld2_col)
+            if (n_plot_groups <= 8) {
+              plot <- plot + ggplot2::scale_color_brewer(palette = "Set2")
+            }
           }
         }, error = function(e) { jmvcore::reject(paste("Error generating plot:", e$message), code="plot_error"); return(FALSE) })
         if (!is.null(plot)) { print(plot); return(TRUE) } else { return(FALSE) }
