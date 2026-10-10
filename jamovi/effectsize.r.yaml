@@ -19,6 +19,7 @@ items:
       refs:
         - effectsize
         - emmeans
+        - Cohen1988
       clearWith:
         - mode
         - dep_vars_cs
@@ -83,6 +84,7 @@ items:
       refs:
         - effectsize
         - emmeans
+        - Cohen1988
       clearWith:
         - mode
         - dep_vars_long
@@ -139,6 +141,7 @@ items:
       refs:
         - effectsize
         - emmeans
+        - Cohen1988
       clearWith:
         - mode
         - dep_vars_cs
@@ -179,6 +182,7 @@ items:
       refs:
         - effectsize
         - emmeans
+        - Cohen1988
       clearWith:
         - mode
         - run_analysis

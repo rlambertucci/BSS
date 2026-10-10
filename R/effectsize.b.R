@@ -6,6 +6,20 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       !is.null(x) && length(x) > 0 && all(nzchar(x))
     },
     
+    .to_numeric_vec = function(x) {
+      if (is.null(x)) return(NULL)
+      if (is.numeric(x)) return(as.numeric(x))
+      if (is.factor(x)) {
+        num_try <- suppressWarnings(as.numeric(as.character(x)))
+        if (!all(is.na(num_try)) || all(is.na(x))) return(num_try)
+        return(as.numeric(x))
+      }
+      if (is.character(x)) {
+        return(suppressWarnings(as.numeric(x)))
+      }
+      suppressWarnings(as.numeric(x))
+    },
+    
     .init = function() {
       info_html <- paste0(
         '<div style="font-size:0.9em; line-height:1.6; padding:4px;">',
@@ -19,7 +33,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         '<hr style="margin:8px 0;"/>',
         '<p><b>&#9654; Interpretation Benchmarks</b> (Cohen, 1988)</p>',
         '<ul style="margin-top:0px; padding-left:20px;">',
-        '<li><b>Cohen / Hedge / Glass:</b> &lt; 0.2 (Negligible) | &ge; 0.2 (Small) | &ge; 0.5 (Medium) | &ge; 0.8 (Large)</li>',
+        '<li><b>Cohen / Hedges / Glass:</b> &lt; 0.2 (Negligible) | &ge; 0.2 (Small) | &ge; 0.5 (Medium) | &ge; 0.8 (Large)</li>',
         '<li><b>Rank Biserial (Correlation):</b> &lt; 0.1 (Negligible) | &ge; 0.1 (Small) | &ge; 0.3 (Medium) | &ge; 0.5 (Large)</li>',
         '</ul>',
         '</div>'
@@ -29,25 +43,28 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       ame_html <- paste0(
         '<div style="font-size:0.9em; line-height:1.6; padding:8px; background-color:#f4f6f8; border-left:4px solid #2c3e50; margin-bottom:10px;">',
         '<h4 style="margin-top:0; margin-bottom:6px;">&#128161; AME (Average Marginal Effect) Interpretation</h4>',
-        '<p style="margin-bottom:0;">The AME represents the absolute difference in the dependent variable\'s original metric between the two groups. ',
+        '<p style="margin-bottom:0;">The AME represents the discrete difference in the dependent variable\'s original metric between the two groups on the response scale. ',
         'For the <b>Interpretation</b> column, the AME is internally standardized (divided by the standard deviation of the DV) ',
         'so that Cohen\'s (1988) benchmarks can be applied.</p>',
         '</div>'
       )
       self$results$ameBenchmark$setContent(ame_html)
     },
+    
     .run = function() {
       data                 <- self$data
       mode                 <- self$options$mode
       run_analysis         <- self$options$run_analysis
       include_interactions <- self$options$include_interactions
       table <- self$results$effectSizeTable
+      
       if (mode == "cross_sectional") {
         table$setTitle("Pairwise Effect Size Results (Independent Samples)")
       } else {
         table$setTitle("Within-Subjects Effect Sizes (Time Effects)")
       }
       table$setNote("engine", "Note. Computations powered by the 'effectsize' R package. Variance is pooled locally between the compared pairs, not globally across the entire model.")
+      
       if (mode == "cross_sectional") {
         dep_vars            <- self$options$dep_vars_cs
         indep_vars          <- self$options$indep_vars_cs
@@ -131,10 +148,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       clesTable          <- self$results$clesTable
       clesLongTable      <- self$results$clesLongTable
       
-      try(table$deleteRows(), silent = TRUE)
-      try(table_long_between$deleteRows(), silent = TRUE)
-      try(clesTable$deleteRows(), silent = TRUE)
-      try(clesLongTable$deleteRows(), silent = TRUE)
+      if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
+      if (table_long_between$rowCount > 0) try(table_long_between$deleteRows(), silent = TRUE)
+      if (clesTable$rowCount > 0) try(clesTable$deleteRows(), silent = TRUE)
+      if (clesLongTable$rowCount > 0) try(clesLongTable$deleteRows(), silent = TRUE)
       
       try(table$deleteNote("covariate_note"), silent = TRUE)
       try(table_long_between$deleteNote("covariate_note"), silent = TRUE)
@@ -144,7 +161,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       n_rows <- 0
+      n_cles <- 0
       n_rows_long_between <- 0
+      n_cles_long <- 0
+      
       grouping_factors <- list()
       if (private$.is_defined(indep_vars)) {
         for (iv in indep_vars) {
@@ -161,27 +181,31 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       } else if (mode == "longitudinal") {
         table_long_between$setNote("engine", "Note. Computations powered by the 'effectsize' R package. Variance is pooled locally between the compared pairs.")
       }
+      
       if (mode == "cross_sectional") {
+        cov_col_full <- if (has_cov) private$.to_numeric_vec(data[[cov_var]]) else NULL
         for (iv_name in names(grouping_factors)) {
           iv_col_raw <- grouping_factors[[iv_name]]
           for (dv in dep_vars) {
             if (iv_name == dv) next
-            dv_col <- data[[dv]]
-            if (!is.numeric(dv_col)) next
-            cov_col_raw <- if (has_cov) data[[cov_var]] else NULL
-            valid  <- !is.na(iv_col_raw) & !is.na(dv_col)
+            dv_col_raw <- private$.to_numeric_vec(data[[dv]])
+            if (is.null(dv_col_raw) || all(is.na(dv_col_raw))) next
+            
+            valid <- !is.na(iv_col_raw) & !is.na(dv_col_raw)
             if (has_cov) {
-              valid <- valid & !is.na(cov_col_raw)
+              valid <- valid & !is.na(cov_col_full)
             }
-            iv_col <- droplevels(iv_col_raw[valid])
-            dv_col <- dv_col[valid]
-            cov_col <- if (has_cov) cov_col_raw[valid] else NULL
-            n      <- sum(valid)
+            iv_col  <- droplevels(iv_col_raw[valid])
+            dv_col  <- dv_col_raw[valid]
+            cov_col <- if (has_cov) cov_col_full[valid] else NULL
+            n       <- sum(valid)
             if (n < 3) next
+            
             groups      <- levels(iv_col)
             if (length(groups) < 2) next
             group_pairs <- combn(groups, 2, simplify = FALSE)
             groups_note <- paste0("[Available groups: ", paste(groups, collapse = ", "), "]")
+            
             for (gp in group_pairs) {
               ga    <- dv_col[iv_col == gp[[1]]]
               gb    <- dv_col[iv_col == gp[[2]]]
@@ -189,23 +213,25 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               if (length(ga) < 2 || length(gb) < 2) next
               cov_a <- if (has_cov) cov_col[iv_col == gp[[1]]] else NULL
               cov_b <- if (has_cov) cov_col[iv_col == gp[[2]]] else NULL
+              
               if (isTRUE(use_glm)) {
                 result <- tryCatch({
                   private$.compute_glm(iv_col, dv_col, gp[[1]], gp[[2]], es_glm_dist, ci_method, ci_level, n_bootstrap, cov_col)
                 }, error = function(e) {
-                  list(es_value = NA, ci_lower = NA, ci_upper = NA, method = "AME (error)", interpretation = paste0("GLM error: ", e$message))
+                  list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = "AME (error)", interpretation = paste0("GLM error: ", e$message))
                 })
               } else {
                 ref_grp <- if (es_method == "glass_delta") {
                   rg <- trimws(reference_group)
-                  if (nchar(rg) > 0 && rg %in% groups) rg else gp[[1]]
-                } else gp[[1]]
+                  if (nchar(rg) > 0 && rg %in% c(gp[[1]], gp[[2]])) rg else gp[[2]]
+                } else gp[[2]]
                 result <- tryCatch({
                   private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], ref_grp, es_method, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
                 }, error = function(e) {
-                  list(es_value = NA, ci_lower = NA, ci_upper = NA, method = es_method, interpretation = paste0("Computation error: ", e$message))
+                  list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method, interpretation = paste0("Computation error: ", e$message))
                 })
               }
+              
               interp_note <- result$interpretation
               if (es_method == "glass_delta" && !isTRUE(use_glm)) interp_note <- paste0(interp_note, " ", groups_note)
               n_rows <- n_rows + 1
@@ -222,8 +248,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               ))
               if (isTRUE(show_cles)) {
                 cles_result <- private$.compute_cles_independent(ga, gb)
+                n_cles <- n_cles + 1
                 clesTable$addRow(
-                  rowKey = paste0(iv_name, dv, gp[[1]], gp[[2]]),
+                  rowKey = n_cles,
                   values = list(
                     dv         = dv,
                     iv         = iv_name,
@@ -236,6 +263,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
       }
+      
       if (mode == "longitudinal") {
         subsets <- list(list(label = "Overall Sample", mask = rep(TRUE, nrow(data))))
         if (length(grouping_factors) > 0) {
@@ -251,15 +279,17 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             }
           }
         }
+        
         if (long_format == "wide") {
           wave_pairs <- combn(wave_vars, 2, simplify = FALSE)
           for (pair in wave_pairs) {
             w1   <- pair[[1]]
             w2   <- pair[[2]]
-            col1_full <- data[[w1]]
-            col2_full <- data[[w2]]
-            cov_col_full <- if (has_cov) data[[cov_var]] else NULL
-            if (!is.numeric(col1_full) || !is.numeric(col2_full)) next
+            col1_full <- private$.to_numeric_vec(data[[w1]])
+            col2_full <- private$.to_numeric_vec(data[[w2]])
+            cov_col_full <- if (has_cov) private$.to_numeric_vec(data[[cov_var]]) else NULL
+            if (is.null(col1_full) || is.null(col2_full)) next
+            
             for (sub in subsets) {
               mask <- sub$mask
               col1 <- col1_full[mask]
@@ -269,20 +299,23 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               if (has_cov) {
                 valid <- valid & !is.na(cov_col)
               }
-              col1   <- col1[valid]
-              col2   <- col2[valid]
+              col1    <- col1[valid]
+              col2    <- col2[valid]
               cov_col <- if (has_cov) cov_col[valid] else NULL
-              n_pair <- sum(valid)
+              n_pair  <- sum(valid)
               if (n_pair < 3) next
+              
               ref_wave <- if (es_method_long == "glass_dz") {
                 rg <- trimws(reference_group_long)
                 if (nchar(rg) > 0 && rg %in% c(w1, w2)) rg else w1
               } else w1
+              
               result <- tryCatch({
                 private$.compute_dependent_paired(col1, col2, w1, w2, ref_wave, es_method_long, ci_method, ci_level, n_bootstrap, cov_col)
               }, error = function(e) {
-                list(es_value = NA, ci_lower = NA, ci_upper = NA, method = es_method_long, interpretation = paste0("Paired error: ", e$message))
+                list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Paired error: ", e$message))
               })
+              
               n_rows <- n_rows + 1
               table$addRow(rowKey = n_rows, values = list(
                 dv             = paste0(w1, " vs ", w2),
@@ -297,8 +330,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               ))
               if (isTRUE(show_cles_long)) {
                 cles_result <- private$.compute_cles_paired(col1, col2)
+                n_cles_long <- n_cles_long + 1
                 clesLongTable$addRow(
-                  rowKey = paste0(sub$label, w1, w2),
+                  rowKey = n_cles_long,
                   values = list(
                     dv         = sub$label,
                     comparison = paste0(w1, " vs ", w2),
@@ -308,21 +342,22 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               }
             }
           }
+          
           if (length(grouping_factors) > 0) {
             for (wave in wave_vars) {
-              dv_col <- data[[wave]]
-              if (!is.numeric(dv_col)) next
+              dv_col <- private$.to_numeric_vec(data[[wave]])
+              if (is.null(dv_col) || all(is.na(dv_col))) next
               for (iv_name in names(grouping_factors)) {
                 iv_col_raw <- grouping_factors[[iv_name]]
-                cov_col_raw <- if (has_cov) data[[cov_var]] else NULL
+                cov_col_raw <- if (has_cov) private$.to_numeric_vec(data[[cov_var]]) else NULL
                 valid <- !is.na(iv_col_raw) & !is.na(dv_col)
                 if (has_cov) {
                   valid <- valid & !is.na(cov_col_raw)
                 }
-                iv_col <- droplevels(iv_col_raw[valid])
+                iv_col     <- droplevels(iv_col_raw[valid])
                 dv_col_sub <- dv_col[valid]
-                cov_col <- if (has_cov) cov_col_raw[valid] else NULL
-                groups <- levels(iv_col)
+                cov_col    <- if (has_cov) cov_col_raw[valid] else NULL
+                groups     <- levels(iv_col)
                 if (length(groups) < 2) next
                 group_pairs <- combn(groups, 2, simplify = FALSE)
                 for (gp in group_pairs) {
@@ -339,9 +374,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                                           rank_biserial_paired = "rank_biserial",
                                           es_method)
                   result <- tryCatch({
-                    private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[1]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
+                    private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[2]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
                   }, error = function(e) {
-                    list(es_value = NA, ci_lower = NA, ci_upper = NA, method = method_to_use, interpretation = paste0("Error: ", e$message))
+                    list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method_to_use, interpretation = paste0("Error: ", e$message))
                   })
                   n_rows_long_between <- n_rows_long_between + 1
                   table_long_between$addRow(rowKey = n_rows_long_between, values = list(
@@ -368,9 +403,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             return()
           }
           for (dv in dep_vars) {
-            dv_col_full <- data[[dv]]
-            cov_col_full <- if (has_cov) data[[cov_var]] else NULL
-            if (!is.numeric(dv_col_full)) next
+            dv_col_full <- private$.to_numeric_vec(data[[dv]])
+            cov_col_full <- if (has_cov) private$.to_numeric_vec(data[[cov_var]]) else NULL
+            if (is.null(dv_col_full) || all(is.na(dv_col_full))) next
             time_pairs <- combn(time_levels, 2, simplify = FALSE)
             for (pair in time_pairs) {
               t1 <- pair[[1]]
@@ -390,6 +425,23 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                     df_t1 <- df_t1[!is.na(df_t1$cov), ]
                     df_t2 <- df_t2[!is.na(df_t2$cov), ]
                   }
+                  
+                  # Deduplicate subject IDs if multiple measurements exist per wave
+                  if (anyDuplicated(df_t1$id)) {
+                    if (has_cov) {
+                      df_t1 <- stats::aggregate(cbind(val, cov) ~ id, data = df_t1, FUN = mean)
+                    } else {
+                      df_t1 <- stats::aggregate(val ~ id, data = df_t1, FUN = mean)
+                    }
+                  }
+                  if (anyDuplicated(df_t2$id)) {
+                    if (has_cov) {
+                      df_t2 <- stats::aggregate(cbind(val, cov) ~ id, data = df_t2, FUN = mean)
+                    } else {
+                      df_t2 <- stats::aggregate(val ~ id, data = df_t2, FUN = mean)
+                    }
+                  }
+                  
                   matched <- merge(df_t1, df_t2, by = "id")
                   col1   <- matched$val.x
                   col2   <- matched$val.y
@@ -405,7 +457,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   result <- tryCatch({
                     private$.compute_dependent_paired(col1, col2, t1, t2, ref_wave, es_method_long, ci_method, ci_level, n_bootstrap, cov_col)
                   }, error = function(e) {
-                    list(es_value = NA, ci_lower = NA, ci_upper = NA, method = es_method_long, interpretation = paste0("Paired error: ", e$message))
+                    list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Paired error: ", e$message))
                   })
                   n_rows <- n_rows + 1
                   table$addRow(rowKey = n_rows, values = list(
@@ -421,8 +473,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   ))
                   if (isTRUE(show_cles_long)) {
                     cles_result <- private$.compute_cles_paired(col1, col2)
+                    n_cles_long <- n_cles_long + 1
                     clesLongTable$addRow(
-                      rowKey = paste0(sub$label, dv, t1, t2),
+                      rowKey = n_cles_long,
                       values = list(
                         dv         = if (sub$label == "Overall Sample") dv else paste0(dv, " (", sub$label, ")"),
                         comparison = paste0(t1, " vs ", t2),
@@ -454,7 +507,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   result <- tryCatch({
                     private$.compute_2groups(g1, g2, t1, t2, t1, method_to_use_unpaired, ci_method, ci_level, n_bootstrap, cov_g1, cov_g2)
                   }, error = function(e) {
-                    list(es_value = NA, ci_lower = NA, ci_upper = NA, method = method_to_use_unpaired, interpretation = paste0("Error: ", e$message))
+                    list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method_to_use_unpaired, interpretation = paste0("Error: ", e$message))
                   })
                   n_rows <- n_rows + 1
                   table$addRow(rowKey = n_rows, values = list(
@@ -470,8 +523,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   ))
                   if (isTRUE(show_cles_long)) {
                     cles_result <- private$.compute_cles_independent(g1, g2)
+                    n_cles <- n_cles + 1
                     clesTable$addRow(
-                      rowKey = paste0(sub$label, dv, t1, t2),
+                      rowKey = n_cles,
                       values = list(
                         dv         = dv,
                         iv         = sub$label,
@@ -493,10 +547,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   if (has_cov) {
                     valid <- valid & !is.na(cov_col_raw)
                   }
-                  iv_col <- droplevels(iv_col_raw[valid])
+                  iv_col     <- droplevels(iv_col_raw[valid])
                   dv_col_sub <- dv_col_full[valid]
-                  cov_col <- if (has_cov) cov_col_raw[valid] else NULL
-                  groups <- levels(iv_col)
+                  cov_col    <- if (has_cov) cov_col_raw[valid] else NULL
+                  groups     <- levels(iv_col)
                   if (length(groups) < 2) next
                   group_pairs <- combn(groups, 2, simplify = FALSE)
                   for (gp in group_pairs) {
@@ -513,9 +567,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                                             rank_biserial_paired = "rank_biserial",
                                             es_method)
                     result <- tryCatch({
-                      private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[1]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
+                      private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[2]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
                     }, error = function(e) {
-                      list(es_value = NA, ci_lower = NA, ci_upper = NA, method = method_to_use, interpretation = paste0("Error: ", e$message))
+                      list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method_to_use, interpretation = paste0("Error: ", e$message))
                     })
                     n_rows_long_between <- n_rows_long_between + 1
                     table_long_between$addRow(rowKey = n_rows_long_between, values = list(
@@ -536,6 +590,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
       }
+      
       if (n_rows == 0) {
         self$results$text$setContent("No valid pairs found. Check variable assignments, types, and missing data.")
       } else {
@@ -545,8 +600,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       self$results$text$setVisible(TRUE)
     },
+    
     .interpret = function(value, method) {
-      if (is.na(value)) return("—")
+      if (is.na(value) || !is.finite(value)) return("—")
       abs_val <- abs(value)
       thresholds <- switch(method,
                            cohens_d = , hedges_g = , glass_delta = ,
@@ -561,84 +617,118 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       if (abs_val < thresholds$large)  return("Medium")
       return("Large")
     },
+    
     .compute_cles_independent = function(ga, gb) {
       ps <- try(effectsize::p_superiority(ga, gb, parametric = FALSE), silent = TRUE)
-      if (inherits(ps, "try-error")) return(list(cles = NA))
+      if (inherits(ps, "try-error")) return(list(cles = NA_real_))
       p <- as.numeric(ps$p_superiority)
-      cles_val <- if (p < 0.5) 1 - p else p
-      list(cles = cles_val)
+      list(cles = p)
     },
+    
     .compute_cles_paired = function(col1, col2) {
       diff_vec <- col1 - col2
-      if (length(na.omit(diff_vec)) == 0) return(list(cles = NA))
-      p <- mean(diff_vec > 0, na.rm = TRUE) + 0.5 * mean(diff_vec == 0, na.rm = TRUE)
-      cles_val <- if (p < 0.5) 1 - p else p
-      list(cles = cles_val)
+      valid_diff <- na.omit(diff_vec)
+      if (length(valid_diff) == 0) return(list(cles = NA_real_))
+      p <- mean(valid_diff > 0) + 0.5 * mean(valid_diff == 0)
+      list(cles = p)
     },
+    
     .compute_2groups = function(ga, gb, name_a, name_b, ref_grp, method, ci_method, ci_level, n_bootstrap, cov_a = NULL, cov_b = NULL) {
       es_val <- NA_real_; ci_lo <- NA_real_; ci_hi <- NA_real_
       has_cov <- !is.null(cov_a) && !is.null(cov_b)
+      n1 <- length(ga)
+      n2 <- length(gb)
+      s1 <- sd(ga, na.rm = TRUE)
+      s2 <- sd(gb, na.rm = TRUE)
+      
+      if (is.na(s1) || is.na(s2) || (s1 == 0 && s2 == 0)) {
+        return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance"))
+      }
+      
+      df_pair <- data.frame(
+        y = c(ga, gb),
+        group = factor(c(rep(name_a, n1), rep(name_b, n2)))
+      )
+      
       if (has_cov) {
-        n1 <- length(ga)
-        n2 <- length(gb)
-        s1 <- sd(ga)
-        s2 <- sd(gb)
         raw_sd_pooled <- sqrt(((n1 - 1) * s1^2 + (n2 - 1) * s2^2) / (n1 + n2 - 2))
-        df <- data.frame(
+        if (is.na(raw_sd_pooled) || raw_sd_pooled == 0) {
+          return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance"))
+        }
+        df_cov <- data.frame(
           y = c(ga, gb),
           group = factor(c(rep(name_a, n1), rep(name_b, n2))),
           cov = c(cov_a, cov_b)
         )
-        if (ci_method == "analytical") {
-          if (method == "rank_biserial") {
-            res_fit <- lm(y ~ cov, data = df)
-            resids <- residuals(res_fit)
-            res_a <- resids[df$group == name_a]
-            res_b <- resids[df$group == name_b]
-            res <- tryCatch({
-              effectsize::rank_biserial(res_a, res_b, ci = ci_level)
-            }, error = function(e) NULL)
-            if (!is.null(res)) {
-              es_val <- as.numeric(res[[1]])
-              ci_lo  <- as.numeric(res$CI_low)
-              ci_hi  <- as.numeric(res$CI_high)
-            }
-          } else {
-            fit <- lm(y ~ group + cov, data = df)
-            emm <- emmeans::emmeans(fit, "group")
-            emm_df <- as.data.frame(emm)
-            emm_a <- emm_df$emmean[emm_df$group == name_a]
-            emm_b <- emm_df$emmean[emm_df$group == name_b]
-            if (length(emm_a) > 0 && length(emm_b) > 0) {
-              adj_diff <- emm_a - emm_b
-              contr_df <- as.data.frame(pairs(emm))
-              se_diff <- contr_df$SE[1]
-              alpha <- 1 - ci_level
-              df_res <- df.residual(fit)
-              t_crit <- qt(1 - alpha / 2, df = df_res)
-              ci_lo_diff <- adj_diff - t_crit * se_diff
-              ci_hi_diff <- adj_diff + t_crit * se_diff
-              if (method == "cohens_d") {
-                es_val <- adj_diff / raw_sd_pooled
-                ci_lo <- ci_lo_diff / raw_sd_pooled
-                ci_hi <- ci_hi_diff / raw_sd_pooled
-              } else if (method == "hedges_g") {
-                correction <- 1 - (3 / (4 * (n1 + n2) - 9))
-                es_val <- (adj_diff / raw_sd_pooled) * correction
-                ci_lo <- (ci_lo_diff / raw_sd_pooled) * correction
-                ci_hi <- (ci_hi_diff / raw_sd_pooled) * correction
-              } else if (method == "glass_delta") {
-                s_ref <- if (ref_grp == name_a) s1 else s2
-                es_val <- adj_diff / s_ref
-                ci_lo <- ci_lo_diff / s_ref
-                ci_hi <- ci_hi_diff / s_ref
-              }
+        
+        # Calculate sample point estimate with covariate
+        if (method == "rank_biserial") {
+          res_fit <- lm(y ~ cov, data = df_cov)
+          resids <- residuals(res_fit)
+          res_a <- resids[df_cov$group == name_a]
+          res_b <- resids[df_cov$group == name_b]
+          rb_res <- tryCatch({
+            effectsize::rank_biserial(res_a, res_b, ci = ci_level)
+          }, error = function(e) NULL)
+          if (!is.null(rb_res)) {
+            es_val <- as.numeric(rb_res[[1]])
+            if (ci_method == "analytical") {
+              ci_lo <- as.numeric(rb_res$CI_low)
+              ci_hi <- as.numeric(rb_res$CI_high)
             }
           }
         } else {
+          fit <- lm(y ~ group + cov, data = df_cov)
+          emm <- emmeans::emmeans(fit, "group")
+          emm_df <- as.data.frame(emm)
+          emm_a <- emm_df$emmean[emm_df$group == name_a]
+          emm_b <- emm_df$emmean[emm_df$group == name_b]
+          if (length(emm_a) > 0 && length(emm_b) > 0) {
+            adj_diff <- emm_a - emm_b
+            contr_df <- as.data.frame(pairs(emm))
+            se_diff <- contr_df$SE[1]
+            alpha <- 1 - ci_level
+            df_res <- df.residual(fit)
+            t_crit <- qt(1 - alpha / 2, df = df_res)
+            ci_lo_diff <- adj_diff - t_crit * se_diff
+            ci_hi_diff <- adj_diff + t_crit * se_diff
+            
+            if (method == "cohens_d") {
+              es_val <- adj_diff / raw_sd_pooled
+              if (ci_method == "analytical") {
+                ci_lo <- ci_lo_diff / raw_sd_pooled
+                ci_hi <- ci_hi_diff / raw_sd_pooled
+              }
+            } else if (method == "hedges_g") {
+              df_tot <- n1 + n2 - 2
+              correction <- if (df_tot > 1) 1 - (3 / (4 * df_tot - 1)) else 1
+              es_val <- (adj_diff / raw_sd_pooled) * correction
+              if (ci_method == "analytical") {
+                ci_lo <- (ci_lo_diff / raw_sd_pooled) * correction
+                ci_hi <- (ci_hi_diff / raw_sd_pooled) * correction
+              }
+            } else if (method == "glass_delta") {
+              s_ref <- if (ref_grp == name_a) s1 else s2
+              if (is.na(s_ref) || s_ref == 0) return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in reference group"))
+              # Glass's delta: (non-ref - ref) / s_ref
+              diff_glass <- if (ref_grp == name_a) -adj_diff else adj_diff
+              lo_glass   <- if (ref_grp == name_a) -ci_hi_diff else ci_lo_diff
+              hi_glass   <- if (ref_grp == name_a) -ci_lo_diff else ci_hi_diff
+              df_ref <- if (ref_grp == name_a) n1 - 1 else n2 - 1
+              corr_glass <- if (df_ref > 1) 1 - (3 / (4 * df_ref - 1)) else 1
+              es_val <- (diff_glass / s_ref) * corr_glass
+              if (ci_method == "analytical") {
+                ci_lo <- (lo_glass / s_ref) * corr_glass
+                ci_hi <- (hi_glass / s_ref) * corr_glass
+              }
+            }
+          }
+        }
+        
+        # Bootstrap CI with covariate
+        if (ci_method == "bootstrap") {
           calc_adj_es <- function(b_ga, b_gb, b_cov_a, b_cov_b) {
-            b_n1 <- length(b_ga)
-            b_n2 <- length(b_gb)
+            b_n1 <- length(b_ga); b_n2 <- length(b_gb)
             b_df <- data.frame(
               y = c(b_ga, b_gb),
               group = factor(c(rep(name_a, b_n1), rep(name_b, b_n2))),
@@ -653,43 +743,41 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             b_emm_b <- b_emm_df$emmean[b_emm_df$group == name_b]
             if (length(b_emm_a) == 0 || length(b_emm_b) == 0) return(NA_real_)
             b_adj_diff <- b_emm_a - b_emm_b
-            b_s1 <- sd(b_ga)
-            b_s2 <- sd(b_gb)
+            b_s1 <- sd(b_ga, na.rm = TRUE)
+            b_s2 <- sd(b_gb, na.rm = TRUE)
             b_sd_pooled <- sqrt(((b_n1 - 1) * b_s1^2 + (b_n2 - 1) * b_s2^2) / (b_n1 + b_n2 - 2))
             if (method == "cohens_d") {
               return(b_adj_diff / b_sd_pooled)
             } else if (method == "hedges_g") {
-              b_correction <- 1 - (3 / (4 * (b_n1 + b_n2) - 9))
-              return((b_adj_diff / b_sd_pooled) * b_correction)
+              b_corr <- 1 - (3 / (4 * (b_n1 + b_n2 - 2) - 1))
+              return((b_adj_diff / b_sd_pooled) * b_corr)
             } else if (method == "glass_delta") {
               b_s_ref <- if (ref_grp == name_a) b_s1 else b_s2
-              return(b_adj_diff / b_s_ref)
+              if (is.na(b_s_ref) || b_s_ref == 0) return(NA_real_)
+              b_diff_glass <- if (ref_grp == name_a) -b_adj_diff else b_adj_diff
+              b_df_ref <- if (ref_grp == name_a) b_n1 - 1 else b_n2 - 1
+              b_corr_glass <- if (b_df_ref > 1) 1 - (3 / (4 * b_df_ref - 1)) else 1
+              return((b_diff_glass / b_s_ref) * b_corr_glass)
             }
             return(NA_real_)
           }
           calc_adj_rb <- function(b_ga, b_gb, b_cov_a, b_cov_b) {
-            b_n1 <- length(b_ga)
-            b_n2 <- length(b_gb)
-            b_df <- data.frame(
-              y = c(b_ga, b_gb),
-              cov = c(b_cov_a, b_cov_b)
-            )
+            b_n1 <- length(b_ga); b_n2 <- length(b_gb)
+            b_df <- data.frame(y = c(b_ga, b_gb), cov = c(b_cov_a, b_cov_b))
             b_fit <- try(lm(y ~ cov, data = b_df), silent = TRUE)
             if (inherits(b_fit, "try-error")) return(NA_real_)
             b_resids <- residuals(b_fit)
             b_res_a <- b_resids[1:b_n1]
             b_res_b <- b_resids[(b_n1 + 1):(b_n1 + b_n2)]
-            rb_res <- try(effectsize::rank_biserial(b_res_a, b_res_b)[[1]], silent = TRUE)
+            rb_res <- try(effectsize::rank_biserial(b_res_a, b_res_b, ci = NULL)[[1]], silent = TRUE)
             if (inherits(rb_res, "try-error")) return(NA_real_)
             as.numeric(rb_res)
           }
           boot_fn <- function() {
             idx_a <- sample(seq_len(n1), n1, replace = TRUE)
             idx_b <- sample(seq_len(n2), n2, replace = TRUE)
-            b_ga <- ga[idx_a]
-            b_cov_a <- cov_a[idx_a]
-            b_gb <- gb[idx_b]
-            b_cov_b <- cov_b[idx_b]
+            b_ga <- ga[idx_a]; b_cov_a <- cov_a[idx_a]
+            b_gb <- gb[idx_b]; b_cov_b <- cov_b[idx_b]
             if (method == "rank_biserial") {
               calc_adj_rb(b_ga, b_gb, b_cov_a, b_cov_b)
             } else {
@@ -699,37 +787,42 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           boot_vals <- replicate(n_bootstrap, boot_fn())
           boot_vals <- boot_vals[is.finite(boot_vals)]
           if (length(boot_vals) >= 10) {
-            es_val <- mean(boot_vals)
             alpha <- 1 - ci_level
             q     <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
-            ci_lo <- q[[1]]; ci_hi <- q[[2]]
+            ci_lo <- as.numeric(q[[1]]); ci_hi <- as.numeric(q[[2]])
           }
         }
       } else {
-        if (ci_method == "analytical") {
-          res <- tryCatch({
-            switch(method,
-                   cohens_d      = effectsize::cohens_d(ga, gb, ci = ci_level),
-                   hedges_g      = effectsize::hedges_g(ga, gb, ci = ci_level),
-                   glass_delta   = effectsize::glass_delta(ga, gb, ci = ci_level),
-                   rank_biserial = effectsize::rank_biserial(ga, gb, ci = ci_level)
-            )
-          }, error = function(e) NULL)
-          if (!is.null(res)) {
-            es_val <- as.numeric(res[[1]])
+        # Without covariate: compute sample point estimate and analytical CI
+        res <- tryCatch({
+          switch(method,
+                 cohens_d      = effectsize::cohens_d(ga, gb, ci = ci_level),
+                 hedges_g      = effectsize::hedges_g(ga, gb, ci = ci_level),
+                 glass_delta   = effectsize::glass_delta(y ~ group, data = df_pair, reference = ref_grp, ci = ci_level),
+                 rank_biserial = effectsize::rank_biserial(ga, gb, ci = ci_level)
+          )
+        }, error = function(e) NULL)
+        if (!is.null(res)) {
+          es_val <- as.numeric(res[[1]])
+          if (ci_method == "analytical") {
             ci_lo  <- as.numeric(res$CI_low)
             ci_hi  <- as.numeric(res$CI_high)
           }
-        } else {
-          n1 <- length(ga); n2 <- length(gb)
+        }
+        
+        # Bootstrap without covariate: fast replicate (ci = NULL)
+        if (ci_method == "bootstrap") {
           boot_fn <- function() {
             b1 <- sample(ga, n1, replace = TRUE); b2 <- sample(gb, n2, replace = TRUE)
             res_b <- tryCatch({
               switch(method,
-                     cohens_d      = effectsize::cohens_d(b1, b2, ci = ci_level)[[1]],
-                     hedges_g      = effectsize::hedges_g(b1, b2, ci = ci_level)[[1]],
-                     glass_delta   = effectsize::glass_delta(b1, b2, ci = ci_level)[[1]],
-                     rank_biserial = effectsize::rank_biserial(b1, b2, ci = ci_level)[[1]]
+                     cohens_d      = effectsize::cohens_d(b1, b2, ci = NULL)[[1]],
+                     hedges_g      = effectsize::hedges_g(b1, b2, ci = NULL)[[1]],
+                     glass_delta   = {
+                       b_df <- data.frame(y = c(b1, b2), group = factor(c(rep(name_a, n1), rep(name_b, n2))))
+                       effectsize::glass_delta(y ~ group, data = b_df, reference = ref_grp, ci = NULL)[[1]]
+                     },
+                     rank_biserial = effectsize::rank_biserial(b1, b2, ci = NULL)[[1]]
               )
             }, error = function(e) NA_real_)
             as.numeric(res_b)
@@ -737,65 +830,89 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           boot_vals <- replicate(n_bootstrap, boot_fn())
           boot_vals <- boot_vals[is.finite(boot_vals)]
           if (length(boot_vals) >= 10) {
-            es_val <- mean(boot_vals)
             alpha <- 1 - ci_level
             q     <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
-            ci_lo <- q[[1]]; ci_hi <- q[[2]]
+            ci_lo <- as.numeric(q[[1]]); ci_hi <- as.numeric(q[[2]])
           }
         }
       }
       list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = method, interpretation = private$.interpret(es_val, method))
     },
+    
     .compute_dependent_paired = function(col1, col2, name1, name2, ref_wave, method, ci_method, ci_level, n_bootstrap, cov_col = NULL) {
       es_val <- NA_real_; ci_lo <- NA_real_; ci_hi <- NA_real_
       has_cov <- !is.null(cov_col)
+      n <- length(col1)
+      sd1 <- sd(col1, na.rm = TRUE)
+      sd2 <- sd(col2, na.rm = TRUE)
+      diff_vec <- col1 - col2
+      sd_diff <- sd(diff_vec, na.rm = TRUE)
+      
+      if (is.na(sd_diff) || sd_diff == 0) {
+        return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in difference score"))
+      }
+      
       if (has_cov) {
-        n <- length(col1)
-        diff_vec <- col1 - col2
-        raw_sd_diff <- sd(diff_vec, na.rm = TRUE)
-        s_ref <- if (ref_wave == name1) sd(col1, na.rm = TRUE) else sd(col2, na.rm = TRUE)
+        s_ref <- if (ref_wave == name1) sd1 else sd2
         df <- data.frame(diff = diff_vec, cov = cov_col)
-        if (ci_method == "analytical") {
-          if (method == "rank_biserial_paired") {
-            fit <- lm(diff ~ cov, data = df)
-            resids <- residuals(fit)
-            res <- tryCatch({
-              effectsize::rank_biserial(resids, rep(0, length(resids)), paired = TRUE, ci = ci_level)
-            }, error = function(e) NULL)
-            if (!is.null(res)) {
-              es_val <- as.numeric(res[[1]])
+        if (method == "rank_biserial_paired") {
+          fit <- lm(diff ~ cov, data = df)
+          resids <- residuals(fit)
+          res <- tryCatch({
+            effectsize::rank_biserial(resids, mu = 0, ci = ci_level)
+          }, error = function(e) NULL)
+          if (!is.null(res)) {
+            es_val <- as.numeric(res[[1]])
+            if (ci_method == "analytical") {
               ci_lo  <- as.numeric(res$CI_low)
               ci_hi  <- as.numeric(res$CI_high)
             }
-          } else {
-            fit <- lm(diff ~ cov, data = df)
-            emm <- emmeans::emmeans(fit, ~ 1)
-            emm_df <- as.data.frame(emm)
-            if (nrow(emm_df) > 0) {
-              adj_diff <- emm_df$emmean[1]
-              se_diff <- emm_df$SE[1]
-              alpha <- 1 - ci_level
-              df_res <- df.residual(fit)
-              t_crit <- qt(1 - alpha / 2, df = df_res)
-              ci_lo_diff <- adj_diff - t_crit * se_diff
-              ci_hi_diff <- adj_diff + t_crit * se_diff
-              if (method == "cohens_dz") {
-                es_val <- adj_diff / raw_sd_diff
-                ci_lo <- ci_lo_diff / raw_sd_diff
-                ci_hi <- ci_hi_diff / raw_sd_diff
-              } else if (method == "hedges_gz") {
-                correction <- 1 - (3 / (4 * n - 9))
-                es_val <- (adj_diff / raw_sd_diff) * correction
-                ci_lo <- (ci_lo_diff / raw_sd_diff) * correction
-                ci_hi <- (ci_hi_diff / raw_sd_diff) * correction
-              } else if (method == "glass_dz") {
-                es_val <- adj_diff / s_ref
-                ci_lo <- ci_lo_diff / s_ref
-                ci_hi <- ci_hi_diff / s_ref
+          }
+        } else {
+          fit <- lm(diff ~ cov, data = df)
+          emm <- emmeans::emmeans(fit, ~ 1)
+          emm_df <- as.data.frame(emm)
+          if (nrow(emm_df) > 0) {
+            adj_diff <- emm_df$emmean[1]
+            se_diff <- emm_df$SE[1]
+            alpha <- 1 - ci_level
+            df_res <- df.residual(fit)
+            t_crit <- qt(1 - alpha / 2, df = df_res)
+            ci_lo_diff <- adj_diff - t_crit * se_diff
+            ci_hi_diff <- adj_diff + t_crit * se_diff
+            
+            if (method == "cohens_dz") {
+              es_val <- adj_diff / sd_diff
+              if (ci_method == "analytical") {
+                ci_lo <- ci_lo_diff / sd_diff
+                ci_hi <- ci_hi_diff / sd_diff
+              }
+            } else if (method == "hedges_gz") {
+              df_mod <- n - 2
+              correction <- if (df_mod > 1) 1 - (3 / (4 * df_mod - 1)) else 1
+              es_val <- (adj_diff / sd_diff) * correction
+              if (ci_method == "analytical") {
+                ci_lo <- (ci_lo_diff / sd_diff) * correction
+                ci_hi <- (ci_hi_diff / sd_diff) * correction
+              }
+            } else if (method == "glass_dz") {
+              if (is.na(s_ref) || s_ref == 0) return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in reference wave"))
+              diff_glass <- if (ref_wave == name1) -adj_diff else adj_diff
+              lo_glass   <- if (ref_wave == name1) -ci_hi_diff else ci_lo_diff
+              hi_glass   <- if (ref_wave == name1) -ci_lo_diff else ci_hi_diff
+              df_ref <- n - 2
+              corr_glass <- if (df_ref > 1) 1 - (3 / (4 * df_ref - 1)) else 1
+              es_val <- (diff_glass / s_ref) * corr_glass
+              if (ci_method == "analytical") {
+                ci_lo <- (lo_glass / s_ref) * corr_glass
+                ci_hi <- (hi_glass / s_ref) * corr_glass
               }
             }
           }
-        } else {
+        }
+        
+        # Bootstrap paired with covariate
+        if (ci_method == "bootstrap") {
           calc_adj_paired_es <- function(b_col1, b_col2, b_cov) {
             b_n <- length(b_col1)
             b_diff <- b_col1 - b_col2
@@ -805,18 +922,21 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             b_emm <- try(emmeans::emmeans(b_fit, ~ 1), silent = TRUE)
             if (inherits(b_emm, "try-error")) return(NA_real_)
             b_adj_diff <- as.data.frame(b_emm)$emmean[1]
-            b_sd_diff <- sd(b_diff)
+            b_sd_diff <- sd(b_diff, na.rm = TRUE)
             if (method == "cohens_dz") {
               return(b_adj_diff / b_sd_diff)
             } else if (method == "hedges_gz") {
-              b_correction <- 1 - (3 / (4 * b_n - 9))
-              return((b_adj_diff / b_sd_diff) * b_correction)
+              b_corr <- 1 - (3 / (4 * (b_n - 2) - 1))
+              return((b_adj_diff / b_sd_diff) * b_corr)
             } else if (method == "glass_dz") {
-              b_s_ref <- if (ref_wave == name1) sd(b_col1) else sd(b_col2)
-              return(b_adj_diff / b_s_ref)
+              b_s_ref <- if (ref_wave == name1) sd(b_col1, na.rm = TRUE) else sd(b_col2, na.rm = TRUE)
+              if (is.na(b_s_ref) || b_s_ref == 0) return(NA_real_)
+              b_diff_glass <- if (ref_wave == name1) -b_adj_diff else b_adj_diff
+              b_corr_glass <- 1 - (3 / (4 * (b_n - 2) - 1))
+              return((b_diff_glass / b_s_ref) * b_corr_glass)
             } else if (method == "rank_biserial_paired") {
               b_resids <- residuals(b_fit)
-              rb_res <- try(effectsize::rank_biserial(b_resids, rep(0, length(b_resids)), paired = TRUE)[[1]], silent = TRUE)
+              rb_res <- try(effectsize::rank_biserial(b_resids, mu = 0, ci = NULL)[[1]], silent = TRUE)
               if (inherits(rb_res, "try-error")) return(NA_real_)
               return(as.numeric(rb_res))
             }
@@ -832,38 +952,53 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           boot_vals <- replicate(n_bootstrap, boot_fn())
           boot_vals <- boot_vals[is.finite(boot_vals)]
           if (length(boot_vals) >= 10) {
-            es_val <- mean(boot_vals)
             alpha <- 1 - ci_level
             q     <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
-            ci_lo <- q[[1]]; ci_hi <- q[[2]]
+            ci_lo <- as.numeric(q[[1]]); ci_hi <- as.numeric(q[[2]])
           }
         }
       } else {
-        if (ci_method == "analytical") {
-          res <- tryCatch({
-            switch(method,
-                   cohens_dz            = effectsize::cohens_d(col1, col2, paired = TRUE, ci = ci_level),
-                   hedges_gz            = effectsize::hedges_g(col1, col2, paired = TRUE, ci = ci_level),
-                   glass_dz             = effectsize::glass_delta(col1, col2, ci = ci_level),
-                   rank_biserial_paired = effectsize::rank_biserial(col1, col2, paired = TRUE, ci = ci_level)
-            )
-          }, error = function(e) NULL)
-          if (!is.null(res)) {
-            es_val <- as.numeric(res[[1]])
+        # Without covariate: paired analytical point estimate and CI
+        res <- tryCatch({
+          switch(method,
+                 cohens_dz            = effectsize::cohens_d(col1, col2, paired = TRUE, ci = ci_level),
+                 hedges_gz            = effectsize::hedges_g(col1, col2, paired = TRUE, ci = ci_level),
+                 glass_dz             = {
+                   # Becker's d (method = "b" uses second variable as reference/control)
+                   if (ref_wave == name1) {
+                     effectsize::repeated_measures_d(col2, col1, method = "b", ci = ci_level)
+                   } else {
+                     effectsize::repeated_measures_d(col1, col2, method = "b", ci = ci_level)
+                   }
+                 },
+                 rank_biserial_paired = effectsize::rank_biserial(col1, col2, paired = TRUE, ci = ci_level)
+          )
+        }, error = function(e) NULL)
+        if (!is.null(res)) {
+          es_val <- as.numeric(res[[1]])
+          if (ci_method == "analytical") {
             ci_lo  <- as.numeric(res$CI_low)
             ci_hi  <- as.numeric(res$CI_high)
           }
-        } else {
-          n <- length(col1)
+        }
+        
+        # Bootstrap paired without covariate: fast replicate (ci = NULL)
+        if (ci_method == "bootstrap") {
           boot_fn <- function() {
             idx <- sample(seq_len(n), n, replace = TRUE)
             b1 <- col1[idx]; b2 <- col2[idx]
             res_b <- tryCatch({
               switch(method,
-                     cohens_dz            = effectsize::cohens_d(b1, b2, paired = TRUE, ci = ci_level)[[1]],
-                     hedges_gz            = effectsize::hedges_g(b1, b2, paired = TRUE, ci = ci_level)[[1]],
-                     glass_dz             = effectsize::glass_delta(b1, b2, ci = ci_level)[[1]],
-                     rank_biserial_paired = effectsize::rank_biserial(b1, b2, paired = TRUE, ci = ci_level)[[1]]
+                     cohens_dz            = effectsize::cohens_d(b1, b2, paired = TRUE, ci = NULL)[[1]],
+                     hedges_gz            = effectsize::hedges_g(b1, b2, paired = TRUE, ci = NULL)[[1]],
+                     glass_dz             = {
+                       if (ref_wave == name1) {
+                         effectsize::repeated_measures_d(b2, b1, method = "b", ci = NULL)[[1]]
+                       } else {
+                         effectsize::repeated_measures_d(b1, b2, method = "b", ci = NULL)[[1]]
+                       }
+                     },
+                     rank_biserial_paired = effectsize::rank_biserial(b1, b2, paired = TRUE, ci = NULL)[[1]]
               )
             }, error = function(e) NA_real_)
             as.numeric(res_b)
@@ -871,82 +1006,90 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           boot_vals <- replicate(n_bootstrap, boot_fn())
           boot_vals <- boot_vals[is.finite(boot_vals)]
           if (length(boot_vals) >= 10) {
-            es_val <- mean(boot_vals)
             alpha <- 1 - ci_level
             q     <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
-            ci_lo <- q[[1]]; ci_hi <- q[[2]]
+            ci_lo <- as.numeric(q[[1]]); ci_hi <- as.numeric(q[[2]])
           }
         }
       }
       list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = method, interpretation = private$.interpret(es_val, method))
     },
+    
     .compute_glm = function(iv_col, dv_col, name_a, name_b, dist, ci_method, ci_level, n_bootstrap, cov_col = NULL) {
       family_fn <- switch(dist, 
                           glm_gaussian     = gaussian(link = "identity"),
                           glm_gamma        = Gamma(link = "log"), 
                           glm_inv_gaussian = inverse.gaussian(link = "log"), 
                           Gamma(link = "log"))
+      
       mask <- iv_col %in% c(name_a, name_b)
       iv_sub <- droplevels(iv_col[mask])
       dv_sub <- dv_col[mask]
       n <- length(dv_sub)
       has_cov <- !is.null(cov_col)
-      if (has_cov) {
-        cov_sub <- cov_col[mask]
-        df_glm <- data.frame(y = dv_sub, x = relevel(iv_sub, ref = name_a), cov = cov_sub)
-        fit <- glm(y ~ x + cov, data = df_glm, family = family_fn)
-        coef_x <- coef(fit)[2]
-        if (dist == "glm_gaussian") { ame <- coef_x } else { ame <- coef_x * mean(dv_sub, na.rm = TRUE) }
-        if (ci_method == "analytical") {
-          se_coef <- summary(fit)$coefficients[2, "Std. Error"]
-          if (dist == "glm_gaussian") { se_ame <- se_coef } else { se_ame <- se_coef * mean(dv_sub, na.rm = TRUE) }
-          z <- qnorm(1 - (1 - ci_level) / 2)
-          ci_lo <- ame - z * se_ame
-          ci_hi <- ame + z * se_ame
-        } else {
-          boot_fn <- function() {
-            idx <- sample(seq_len(n), n, replace = TRUE)
-            b_fit <- try(glm(y ~ x + cov, data = df_glm[idx, ], family = family_fn), silent = TRUE)
-            if(inherits(b_fit, "try-error")) return(NA)
-            if (dist == "glm_gaussian") { coef(b_fit)[2] } else { coef(b_fit)[2] * mean(df_glm$y[idx], na.rm = TRUE) }
-          }
-          boot_vals <- replicate(n_bootstrap, boot_fn())
-          boot_vals <- boot_vals[is.finite(boot_vals)]
-          if(length(boot_vals)<10) { ci_lo <- NA; ci_hi <- NA } else {
-            alpha <- 1 - ci_level
-            q <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
-            ci_lo <- q[[1]]; ci_hi <- q[[2]]
-          }
-        }
-      } else {
-        df_glm <- data.frame(y = dv_sub, x = relevel(iv_sub, ref = name_a))
-        fit <- glm(y ~ x, data = df_glm, family = family_fn)
-        coef_x <- coef(fit)[2]
-        if (dist == "glm_gaussian") { ame <- coef_x } else { ame <- coef_x * mean(dv_sub, na.rm = TRUE) }
-        if (ci_method == "analytical") {
-          se_coef <- summary(fit)$coefficients[2, "Std. Error"]
-          if (dist == "glm_gaussian") { se_ame <- se_coef } else { se_ame <- se_coef * mean(dv_sub, na.rm = TRUE) }
-          z <- qnorm(1 - (1 - ci_level) / 2)
-          ci_lo <- ame - z * se_ame
-          ci_hi <- ame + z * se_ame
-        } else {
-          boot_fn <- function() {
-            idx <- sample(seq_len(n), n, replace = TRUE)
-            b_fit <- try(glm(y ~ x, data = df_glm[idx, ], family = family_fn), silent = TRUE)
-            if(inherits(b_fit, "try-error")) return(NA)
-            if (dist == "glm_gaussian") { coef(b_fit)[2] } else { coef(b_fit)[2] * mean(dv_sub[idx], na.rm = TRUE) }
-          }
-          boot_vals <- replicate(n_bootstrap, boot_fn())
-          boot_vals <- boot_vals[is.finite(boot_vals)]
-          if(length(boot_vals)<10) { ci_lo <- NA; ci_hi <- NA } else {
-            alpha <- 1 - ci_level
-            q <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
-            ci_lo <- q[[1]]; ci_hi <- q[[2]]
-          }
+      
+      # Positive value check for Gamma and Inverse Gaussian
+      if (dist %in% c("glm_gamma", "glm_inv_gaussian")) {
+        if (any(dv_sub <= 0, na.rm = TRUE)) {
+          return(list(
+            es_value = NA_real_,
+            ci_lower = NA_real_,
+            ci_upper = NA_real_,
+            method = paste0("AME (", dist, ")"),
+            interpretation = "Error: DV must be strictly positive (> 0) for Gamma/Inverse Gaussian distribution"
+          ))
         }
       }
-      interp_val <- private$.interpret(abs(ame) / sd(dv_sub, na.rm = TRUE), "cohens_d")
-      list(es_value = ame, ci_lower = ci_lo, ci_upper = ci_hi, method = paste0("AME (", dist, ")"), interpretation = interp_val)
+      
+      cov_sub <- if (has_cov) cov_col[mask] else NULL
+      df_glm <- if (has_cov) {
+        data.frame(y = dv_sub, x = factor(iv_sub, levels = c(name_a, name_b)), cov = cov_sub)
+      } else {
+        data.frame(y = dv_sub, x = factor(iv_sub, levels = c(name_a, name_b)))
+      }
+      formula_glm <- if (has_cov) y ~ x + cov else y ~ x
+      
+      fit <- glm(formula_glm, data = df_glm, family = family_fn)
+      emm <- emmeans::emmeans(fit, "x", type = "response")
+      pairs_df <- as.data.frame(pairs(emmeans::regrid(emm)))
+      
+      # pairs gives name_a - name_b on the response scale
+      ame <- pairs_df$estimate[1]
+      se_ame <- pairs_df$SE[1]
+      alpha <- 1 - ci_level
+      z <- qnorm(1 - alpha / 2)
+      ci_lo <- ame - z * se_ame
+      ci_hi <- ame + z * se_ame
+      
+      if (ci_method == "bootstrap") {
+        boot_fn <- function() {
+          idx <- sample(seq_len(n), n, replace = TRUE)
+          b_df <- df_glm[idx, ]
+          b_fit <- try(glm(formula_glm, data = b_df, family = family_fn), silent = TRUE)
+          if (inherits(b_fit, "try-error")) return(NA_real_)
+          b_emm <- try(emmeans::emmeans(b_fit, "x", type = "response"), silent = TRUE)
+          if (inherits(b_emm, "try-error")) return(NA_real_)
+          b_pairs <- try(as.data.frame(pairs(emmeans::regrid(b_emm))), silent = TRUE)
+          if (inherits(b_pairs, "try-error") || nrow(b_pairs) == 0) return(NA_real_)
+          b_pairs$estimate[1]
+        }
+        boot_vals <- replicate(n_bootstrap, boot_fn())
+        boot_vals <- boot_vals[is.finite(boot_vals)]
+        if (length(boot_vals) >= 10) {
+          q <- quantile(boot_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
+          ci_lo <- as.numeric(q[[1]]); ci_hi <- as.numeric(q[[2]])
+        }
+      }
+      
+      sd_dv <- sd(dv_sub, na.rm = TRUE)
+      interp_val <- if (is.finite(sd_dv) && sd_dv > 0) private$.interpret(abs(ame) / sd_dv, "cohens_d") else "—"
+      list(
+        es_value = ame,
+        ci_lower = ci_lo,
+        ci_upper = ci_hi,
+        method = paste0("AME (", dist, ")"),
+        interpretation = interp_val
+      )
     }
   )
 )

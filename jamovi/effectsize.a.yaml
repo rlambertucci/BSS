@@ -130,7 +130,7 @@ options:
       options:
         - title: Cohen's d
           name: cohens_d
-        - title: Hedge's g
+        - title: Hedges' g
           name: hedges_g
         - title: Glass' Delta
           name: glass_delta
@@ -154,7 +154,7 @@ options:
       options:
         - title: Cohen's dz
           name: cohens_dz
-        - title: Hedge's gz
+        - title: Hedges' gz
           name: hedges_gz
         - title: Glass' Delta z
           name: glass_dz
@@ -217,3 +217,8 @@ options:
         - title: 99%
           name: ci_99
       default: ci_95
+
+refs:
+    - effectsize
+    - emmeans
+    - Cohen1988

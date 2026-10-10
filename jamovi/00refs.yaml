@@ -211,3 +211,14 @@ Elkin2021:
   booktitle: "Proceedings of the 34th Annual ACM Symposium on User Interface Software and Technology (UIST '21)"
   pages: "754-768"
   doi: "10.1145/3472749.3474784"
+
+effectsize:
+  type: article
+  author: "Ben-Shachar, M. S., Lüdecke, D., & Makowski, D."
+  year: 2020
+  title: "effectsize: Estimation of Effect Size Indices and What They Mean"
+  journal: "Journal of Open Source Software"
+  volume: 5
+  issue: 56
+  pages: "2815"
+  doi: "10.21105/joss.02815"
