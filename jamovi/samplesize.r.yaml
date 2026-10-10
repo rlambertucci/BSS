@@ -9,6 +9,9 @@ items:
     visible: (mode == 'finite')
 
   - name: sampleSizeTable_finite
+    refs:
+      - Cochran1977
+      - Slovin1960
     title: Sample Size Calculation Results
     type: Table
     rows: 1
@@ -45,6 +48,10 @@ items:
     visible: (mode == 'animals')
 
   - name: sampleSizeTable_animals
+    refs:
+      - Festing2002
+      - Charan2013
+      - Arifin2017
     title: Sample Size Calculation Results (Resource Equation)
     type: Table
     visible: (mode == 'animals')

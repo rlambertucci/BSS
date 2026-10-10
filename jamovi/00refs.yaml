@@ -222,3 +222,51 @@ effectsize:
   issue: 56
   pages: "2815"
   doi: "10.21105/joss.02815"
+
+Cochran1977:
+  type: book
+  author: "Cochran, W. G."
+  year: 1977
+  title: "Sampling Techniques"
+  edition: "3rd"
+  publisher: "John Wiley & Sons"
+  address: "New York"
+
+Slovin1960:
+  type: manual
+  author: "Slovin, E."
+  year: 1960
+  title: "Slovin's Formula for Sampling Technique"
+
+Festing2002:
+  type: article
+  author: "Festing, M. F. W., & Altman, D. G."
+  year: 2002
+  title: "Guidelines for the design and statistical analysis of experiments using laboratory animals"
+  journal: "BMJ"
+  volume: 324
+  issue: 7335
+  pages: "473-476"
+  doi: "10.1136/bmj.324.7335.473"
+
+Charan2013:
+  type: article
+  author: "Charan, J., & Kantharia, N. D."
+  year: 2013
+  title: "How to calculate sample size in animal studies?"
+  journal: "Journal of Pharmacology and Pharmacotherapeutics"
+  volume: 4
+  issue: 4
+  pages: "303-306"
+  doi: "10.4103/0976-500X.119726"
+
+Arifin2017:
+  type: article
+  author: "Arifin, W. N., & Wan Mohammad, W. M. Z."
+  year: 2017
+  title: "Sample size calculation in animal studies using resource equation approach"
+  journal: "Malaysian Journal of Medical Sciences"
+  volume: 24
+  issue: 5
+  pages: "101-105"
+  doi: "10.21315/mjms2017.24.5.11"

@@ -62,9 +62,16 @@ options:
   - name: nMeasures_animals
     title: Number of Repeated Measures (r) (Designs 2 and 3)
     type: Integer
-    default: 0
+    default: 2
 
   - name: sacrifice_animals
     title: Animals Sacrificed at Each Measure (Designs 2 and 3)
     type: Bool
     default: false
+
+refs:
+    - Cochran1977
+    - Slovin1960
+    - Festing2002
+    - Charan2013
+    - Arifin2017
