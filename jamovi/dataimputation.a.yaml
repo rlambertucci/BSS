@@ -340,4 +340,10 @@ options:
     - name: imputedColsOutput_mr
       title: Save Imputed Variables
       type: Output
-...
+
+refs:
+    - mice
+    - miceadds
+    - missRanger
+    - VIM
+    - GGally

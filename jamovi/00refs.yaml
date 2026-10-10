@@ -91,3 +91,46 @@ gtools:
   year: 2022
   title: "gtools: Various R Programming Tools"
   url: "https://CRAN.R-project.org/package=gtools"
+
+mice:
+  type: article
+  author: "van Buuren, S., & Groothuis-Oudshoorn, K."
+  year: 2011
+  title: "mice: Multivariate Imputation by Chained Equations in R"
+  journal: "Journal of Statistical Software"
+  volume: 45
+  issue: 3
+  pages: "1-67"
+  doi: "10.18637/jss.v045.i03"
+
+miceadds:
+  type: manual
+  author: "Robitzsch, A., & Grund, S."
+  year: 2024
+  title: "miceadds: Some Additional Multiple Imputation Functions, Especially for 'mice'"
+  url: "https://CRAN.R-project.org/package=miceadds"
+
+missRanger:
+  type: manual
+  author: "Mayer, M."
+  year: 2019
+  title: "missRanger: Fast Imputation of Missing Values"
+  url: "https://CRAN.R-project.org/package=missRanger"
+
+VIM:
+  type: article
+  author: "Kowarik, A., & Templ, M."
+  year: 2016
+  title: "Imputation with the R Package VIM"
+  journal: "Journal of Statistical Software"
+  volume: 74
+  issue: 7
+  pages: "1-16"
+  doi: "10.18637/jss.v074.i07"
+
+GGally:
+  type: manual
+  author: "Schloerke, B., Cook, D., Larmarange, J., Briatte, F., Marbach, M., Thoen, E., Elberg, A., & Crowley, J."
+  year: 2021
+  title: "GGally: Extension to 'ggplot2'"
+  url: "https://CRAN.R-project.org/package=GGally"

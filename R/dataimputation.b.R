@@ -230,6 +230,10 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
           self$results$missingnessTable_mice_long$setNote("wide_req", "Note. Wide format requires a Subject ID variable to link repeated measures.")
           return()
         }
+        if (anyNA(data[[subject_id_var]])) {
+          jmvcore::reject("Subject ID variable cannot contain missing values.", code = "subject_id_has_na")
+          return()
+        }
         
         wide_to_long_map <- list(wave_vars = wave_vars, subject_id_var = subject_id_var, original_data = data)
         data_wide         <- data
@@ -273,7 +277,11 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       }
       
       if (!is.null(subject_id_var) && nchar(subject_id_var) > 0 && subject_id_var %in% names(data_to_impute)) {
-        data_to_impute[[subject_id_var]] <- as.integer(data_to_impute[[subject_id_var]])
+        if (anyNA(data_to_impute[[subject_id_var]])) {
+          jmvcore::reject("Subject ID variable cannot contain missing values.", code = "subject_id_has_na")
+          return()
+        }
+        data_to_impute[[subject_id_var]] <- as.integer(as.factor(data_to_impute[[subject_id_var]]))
       }
       
       base_seed <- suppressWarnings(as.numeric(seed_str))
@@ -285,13 +293,17 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         data_to_impute, vars_to_impute, subject_id_var, effective_time_var, group_var, fixed_covariates, imp_method
       )
       
-      mice_obj <- tryCatch({
-        if (requireNamespace("miceadds", quietly = TRUE)) {
-          fn_name <- paste0("mice.impute.", imp_method)
-          fn <- tryCatch(utils::getFromNamespace(fn_name, "miceadds"), error = function(e) NULL)
-          if (!is.null(fn)) assign(fn_name, fn, envir = globalenv())
+      fn_name <- paste0("mice.impute.", imp_method)
+      fn_assigned <- FALSE
+      if (requireNamespace("miceadds", quietly = TRUE)) {
+        fn <- tryCatch(utils::getFromNamespace(fn_name, "miceadds"), error = function(e) NULL)
+        if (!is.null(fn)) {
+          assign(fn_name, fn, envir = globalenv())
+          fn_assigned <- TRUE
         }
-        
+      }
+      
+      mice_obj <- tryCatch({
         mice::mice(
           data            = data_to_impute,
           m               = num_imp,
@@ -303,6 +315,10 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         )
       }, error = function(e) {
         jmvcore::reject(paste("MICE Longitudinal multilevel error:", e$message))
+      }, finally = {
+        if (fn_assigned && exists(fn_name, envir = globalenv())) {
+          rm(list = fn_name, envir = globalenv())
+        }
       })
       
       private$.mice_long_result <- mice_obj
@@ -559,11 +575,17 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         na_idx       <- which(is.na(original_col))
         
         for (i in na_idx) {
+          val <- imputed_col[i]
+          imputed_str <- if (is.numeric(val)) {
+            as.character(round(val, 3))
+          } else {
+            as.character(val)
+          }
           if (row_num <= 1000) {
             table_result_ref$addRow(rowKey = row_num, values = list(
               variable  = var_name,
               original  = "NA",
-              imputed   = as.character(round(suppressWarnings(as.numeric(imputed_col[i])), 3) %||% as.character(imputed_col[i])),
+              imputed   = imputed_str,
               rowNumber = i
             ))
             row_num <- row_num + 1
