@@ -313,7 +313,8 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(run_analysis)",
                 refs=list(
                     "effectsize",
-                    "emmeans"),
+                    "emmeans",
+                    "Cohen1988"),
                 clearWith=list(
                     "mode",
                     "dep_vars_cs",
@@ -386,7 +387,8 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(run_analysis && mode == 'longitudinal')",
                 refs=list(
                     "effectsize",
-                    "emmeans"),
+                    "emmeans",
+                    "Cohen1988"),
                 clearWith=list(
                     "mode",
                     "dep_vars_long",
@@ -451,7 +453,8 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(run_analysis && mode == 'cross_sectional' && show_cles)",
                 refs=list(
                     "effectsize",
-                    "emmeans"),
+                    "emmeans",
+                    "Cohen1988"),
                 clearWith=list(
                     "mode",
                     "dep_vars_cs",
@@ -495,7 +498,8 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(run_analysis && mode == 'longitudinal' && show_cles_long)",
                 refs=list(
                     "effectsize",
-                    "emmeans"),
+                    "emmeans",
+                    "Cohen1988"),
                 clearWith=list(
                     "mode",
                     "run_analysis",

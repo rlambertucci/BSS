@@ -137,9 +137,3 @@ options:
       title: Run ART Analysis
       type: Bool
       default: false
-
-refs:
-    - ARTool
-    - emmeans
-    - Wobbrock2011
-    - Elkin2021

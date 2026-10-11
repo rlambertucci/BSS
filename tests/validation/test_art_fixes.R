@@ -95,7 +95,7 @@ j_corr_norm <- if (df_norm > 1) (1 - 3 / (4 * df_norm - 1)) else 1
 stopifnot(j_corr_norm < 1 && j_corr_norm > 0)
 cat(sprintf("OK: Hedges' g ajustado com precisao (J com df=15: %.4f, J com df=0.8: %.4f)!\n", j_corr_norm, j_corr_low))
 
-cat("\n=== TESTE 5: BSS-CODE-006 (Referencias de ART em 00refs.yaml e art.a.yaml) ===\n")
+cat("\n=== TESTE 5: BSS-CODE-006 (Referencias de ART em 00refs.yaml e art.r.yaml) ===\n")
 refs_00 <- readLines("jamovi/00refs.yaml", warn = FALSE)
 stopifnot(any(grepl("^ARTool:", refs_00)))
 stopifnot(any(grepl("^emmeans:", refs_00)))
@@ -103,8 +103,8 @@ stopifnot(any(grepl("^Wobbrock2011:", refs_00)))
 stopifnot(any(grepl("^Elkin2021:", refs_00)))
 cat("OK: Todas as 4 referencias presentes em 00refs.yaml!\n")
 
-art_yaml <- readLines("jamovi/art.a.yaml", warn = FALSE)
-stopifnot(any(grepl("^refs:", art_yaml)))
-cat("OK: Chave refs presente em jamovi/art.a.yaml!\n")
+art_yaml <- readLines("jamovi/art.r.yaml", warn = FALSE)
+stopifnot(any(grepl("refs:", art_yaml)))
+cat("OK: Chave refs presente em jamovi/art.r.yaml!\n")
 
 cat("\nTODOS OS TESTES DE VALIDACAO DE ART PASSARAM COM 100% DE SUCESSO!\n")

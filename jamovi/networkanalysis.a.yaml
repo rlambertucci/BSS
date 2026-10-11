@@ -263,10 +263,3 @@ options:
       title: Network Plot Height
       type: Integer
       default: 500
-
-refs:
-    - qgraph
-    - bootnet
-    - mgm
-    - EBICglasso
-    - ExpectedInfluence

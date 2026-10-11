@@ -5,8 +5,8 @@
 **Autor Original:** Rafael Lambertucci (`rlambertucci@unifesp.br`)  
 **Auditoria e Refatoração:** Antigravity AI / T3 Code  
 **Branch de Trabalho:** `refactor/audit-v0.3.0`  
-**Data de Conclusão:** 10/10/2026  
-**Status Consolidado:** **100% CONCLUÍDO E APROVADO** (54 Tickets Auditados e Validados)
+**Data de Conclusão:** 11/10/2026  
+**Status Consolidado:** **100% CONCLUÍDO E APROVADO** (55 Tickets Auditados e Validados)
 
 ---
 
@@ -24,11 +24,12 @@
 | **8** | `correlationcomparison` | `BSS-STAT-030` a `032` | `BSS-CODE-011` a `012` | **Aprovado** | `b844afa` |
 | **9** | `datapresentation` | `BSS-STAT-033` a `034` | `BSS-CODE-013` a `015` | **Aprovado** | `49c477f` |
 | **10** | `datatransform` | `BSS-STAT-035` a `038` | `BSS-CODE-016` | **Aprovado** | `c755b34` |
-| **Total** | **10 Módulos** | **38 Tickets STAT** | **16 Tickets CODE** | **100% OK** | **54 Tickets** |
+| **11** | `jmvtools / compiler` | — | `BSS-CODE-017` | **Aprovado** | — |
+| **Total** | **10 Módulos** | **38 Tickets STAT** | **17 Tickets CODE** | **100% OK** | **55 Tickets** |
 
 ---
 
-## 2. Inventário Completo dos 54 Tickets
+## 2. Inventário Completo dos 55 Tickets
 
 ### Ciclo 1: `networkanalysis`
 - **`BSS-STAT-001`:** Centralidade de Força (*Strength*) estendida para redes mistas (`mgm`) via média ponderada dos graus de conectividade absoluta.
@@ -104,7 +105,10 @@
 - **`BSS-STAT-038`:** Transparência metodológica com nota de rodapé automática para amostragem no teste de Shapiro-Wilk quando $N > 5000$.
 - **`BSS-CODE-016`:** Cadastro de `bestNormalize` (Peterson, 2021), `SuppDists` (Wheeler, 2020), `BoxCox1964`, `YeoJohnson2000`, `Johnson1949` e `ShapiroWilk1965` em `00refs.yaml`.
 
+### Ciclo 11: `jmvtools / compiler`
+- **`BSS-CODE-017`:** Compatibilidade estrita com o compilador do jamovi (`jamovi-compiler` / `jmvtools`): remoção da chave inválida `refs:` dos esquemas `jamovi/*.a.yaml` (mantendo-as vinculadas a tabelas e gráficos em `jamovi/*.r.yaml` e catalogadas em `jamovi/00refs.yaml`), alinhamento de versão/data em `jamovi/0000.yaml` (`0.3.0` / `2026-10-10`) e regeneração automática limpa dos cabeçalhos `.h.R`.
+
 ---
 
 ## 3. Conclusão da Auditoria Global
-O pacote `BSS` v0.3.0 foi integralmente auditado e depurado. Todas as operações matemáticas, fórmulas estatísticas, transformações de dados e estruturas de dados de saída atendem aos mais altos padrões internacionais de reprodutibilidade, estabilidade de software e conformidade com diretrizes científicas consolidadas.
+O pacote `BSS` v0.3.0 foi integralmente auditado e depurado. Todas as operações matemáticas, fórmulas estatísticas, transformações de dados, estruturas de dados de saída e arquivos de definição jamovi atendem aos mais altos padrões internacionais de reprodutibilidade, estabilidade de software e conformidade com diretrizes científicas consolidadas.

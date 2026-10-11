@@ -73,11 +73,3 @@ options:
     - name: transformedVarsOutput
       title: Save Transformed Variables to Spreadsheet
       type: Output
-refs:
-    - bestNormalize
-    - SuppDists
-    - BoxCox1964
-    - YeoJohnson2000
-    - Johnson1949
-    - ShapiroWilk1965
-...

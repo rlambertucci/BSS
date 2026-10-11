@@ -217,8 +217,3 @@ options:
         - title: 99%
           name: ci_99
       default: ci_95
-
-refs:
-    - effectsize
-    - emmeans
-    - Cohen1988

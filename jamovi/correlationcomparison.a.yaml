@@ -59,10 +59,3 @@ options:
       title: Correlation Coefficient (r23 - Var2 vs Var3)
       type: Number
       default: 0
-
-refs:
-    - Fisher1921
-    - Steiger1980
-    - Williams1959
-    - Zou2007
-...

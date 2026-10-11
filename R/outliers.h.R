@@ -269,6 +269,9 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$add(jmvcore::Table$new(
                 options=options,
                 name="dixonTable",
+                refs=list(
+                    "Dixon1950",
+                    "Rorabacher1991"),
                 title="Dixon's Q Test Results",
                 visible="(mode == 'dixon')",
                 columns=list(
@@ -377,6 +380,10 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$add(jmvcore::Table$new(
                 options=options,
                 name="modzTable",
+                refs=list(
+                    "Iglewicz1993",
+                    "Leys2013",
+                    "Wilcox2017"),
                 title="Modified Z-Score Outliers Summary",
                 visible="(mode == 'modz')",
                 columns=list(
@@ -465,6 +472,9 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$add(jmvcore::Table$new(
                 options=options,
                 name="iqrTable",
+                refs=list(
+                    "Tukey1977",
+                    "Hoaglin1987"),
                 title="IQR Outliers Summary",
                 visible="(mode == 'iqr')",
                 columns=list(

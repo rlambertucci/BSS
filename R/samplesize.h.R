@@ -14,7 +14,7 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             population_proportion_finite = 0.5,
             design_animals = "Design 1 (One-way ANOVA)",
             nGroups_animals = 2,
-            nMeasures_animals = 0,
+            nMeasures_animals = 2,
             sacrifice_animals = FALSE, ...) {
 
             super$initialize(
@@ -68,7 +68,7 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             private$..nMeasures_animals <- jmvcore::OptionInteger$new(
                 "nMeasures_animals",
                 nMeasures_animals,
-                default=0)
+                default=2)
             private$..sacrifice_animals <- jmvcore::OptionBool$new(
                 "sacrifice_animals",
                 sacrifice_animals,
@@ -132,6 +132,9 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$add(jmvcore::Table$new(
                 options=options,
                 name="sampleSizeTable_finite",
+                refs=list(
+                    "Cochran1977",
+                    "Slovin1960"),
                 title="Sample Size Calculation Results",
                 rows=1,
                 visible="(mode == 'finite')",
@@ -169,6 +172,10 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$add(jmvcore::Table$new(
                 options=options,
                 name="sampleSizeTable_animals",
+                refs=list(
+                    "Festing2002",
+                    "Charan2013",
+                    "Arifin2017"),
                 title="Sample Size Calculation Results (Resource Equation)",
                 visible="(mode == 'animals')",
                 columns=list(
@@ -239,7 +246,7 @@ samplesize <- function(
     population_proportion_finite = 0.5,
     design_animals = "Design 1 (One-way ANOVA)",
     nGroups_animals = 2,
-    nMeasures_animals = 0,
+    nMeasures_animals = 2,
     sacrifice_animals = FALSE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))

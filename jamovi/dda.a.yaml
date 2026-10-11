@@ -70,10 +70,3 @@ options:
   title: 'Pairwise Effect Sizes (d & g)'
   type: Bool
   default: FALSE
-
-refs:
-    - MASS
-    - effsize
-    - Huberty2006
-    - Courville2001
-    - Cohen1988
