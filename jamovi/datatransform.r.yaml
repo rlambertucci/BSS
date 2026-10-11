@@ -16,10 +16,13 @@ items:
         - bestNormalize
         - SuppDists
         - Bartlett1937
+        - Blom1958
+        - VanDerWaerden1952
       clearWith:
         - vars
         - method
         - auto_shift
+        - int_formula
       columns:
         - name: variable
           title: Variable
@@ -55,6 +58,7 @@ items:
         - vars
         - method
         - auto_shift
+        - int_formula
         - normality_test
         - alpha_sw
       columns:
@@ -77,6 +81,50 @@ items:
           title: Normality
           type: text
 
+    - name: recommendationTable
+      title: Transformation Recommender & Ranking
+      type: Table
+      visible: (show_recommendation_table)
+      refs:
+        - Blom1958
+        - VanDerWaerden1952
+        - bestNormalize
+      clearWith:
+        - vars
+        - auto_shift
+        - int_formula
+        - normality_test
+      columns:
+        - name: variable
+          title: Variable
+          type: text
+          combineBelow: true
+        - name: rank
+          title: Rank
+          type: integer
+        - name: method
+          title: Method
+          type: text
+        - name: skewness
+          title: Skewness
+          type: number
+          format: dp:4
+        - name: kurtosis
+          title: Excess Kurtosis
+          type: number
+          format: dp:4
+        - name: score
+          title: Criterion (|Skew| + 0.5×|Kurt|)
+          type: number
+          format: dp:4
+        - name: normality_p
+          title: Normality p (SW)
+          type: number
+          format: zto,pvalue
+        - name: recommended
+          title: Recommendation
+          type: text
+
     - name: qqPlots
       title: Q-Q Plot
       type: Array
@@ -89,6 +137,7 @@ items:
         - vars
         - method
         - auto_shift
+        - int_formula
       template:
         title: $key
         type: Image
@@ -109,6 +158,7 @@ items:
         - vars
         - method
         - auto_shift
+        - int_formula
       template:
         title: $key
         type: Image
@@ -129,6 +179,7 @@ items:
         - vars
         - method
         - auto_shift
+        - int_formula
       template:
         title: $key
         type: Image
@@ -146,4 +197,5 @@ items:
         - vars
         - method
         - auto_shift
+        - int_formula
         - suffix

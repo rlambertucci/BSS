@@ -35,6 +35,8 @@ options:
           name: arcsine
         - title: Empirical Logit (Proportions / Rates)
           name: logit
+        - title: Rank-Based Inverse Normal (INT / Van der Waerden, Blom, Tukey)
+          name: int
       default: yeojohnson
 
     - name: auto_shift
@@ -94,3 +96,22 @@ options:
     - name: transformedVarsOutput
       title: Save Transformed Variables to Spreadsheet
       type: Output
+
+    - name: int_formula
+      title: Rank-Based Formula
+      type: List
+      options:
+        - name: blom
+          title: Blom (c = 3/8)
+        - name: vdw
+          title: Van der Waerden (c = 0)
+        - name: tukey
+          title: Tukey (c = 1/3)
+        - name: rankit
+          title: Rankit (c = 1/2)
+      default: blom
+
+    - name: show_recommendation_table
+      title: Transformation Recommender & Ranking
+      type: Bool
+      default: false

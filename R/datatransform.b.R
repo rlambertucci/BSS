@@ -17,17 +17,69 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       suppressWarnings(as.numeric(x))
     },
     
+    .calc_skewness = function(x) {
+      n <- length(x)
+      if (n < 3) return(NA_real_)
+      m <- mean(x)
+      m2 <- mean((x - m)^2)
+      if (m2 == 0) return(0)
+      m3 <- mean((x - m)^3)
+      m3 / (m2^(1.5))
+    },
+    
+    .calc_kurtosis = function(x) {
+      n <- length(x)
+      if (n < 4) return(NA_real_)
+      m <- mean(x)
+      m2 <- mean((x - m)^2)
+      if (m2 == 0) return(0)
+      m4 <- mean((x - m)^4)
+      (m4 / (m2^2)) - 3
+    },
+    
+    .get_normality_p = function(x, test_type = "shapiro") {
+      n <- length(x)
+      if (n < 3) return(NA_real_)
+      data_sample <- x
+      if (test_type == "shapiro" && n > 5000) {
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+          on.exit(assign(".Random.seed", old_seed, envir = .GlobalEnv))
+        }
+        set.seed(12345)
+        data_sample <- sample(x, 5000)
+      }
+      
+      if (test_type == "anderson_darling") {
+        if (requireNamespace("nortest", quietly = TRUE)) {
+          res <- tryCatch(nortest::ad.test(data_sample), error = function(e) NULL)
+          if (!is.null(res)) return(as.numeric(res$p.value))
+        }
+        return(private$.calc_anderson_darling(data_sample)$p)
+      } else if (test_type == "shapiro_francia") {
+        if (requireNamespace("nortest", quietly = TRUE)) {
+          res <- tryCatch(nortest::sf.test(data_sample), error = function(e) NULL)
+          if (!is.null(res)) return(as.numeric(res$p.value))
+        }
+        return(private$.calc_shapiro_francia(data_sample)$p)
+      } else {
+        res <- tryCatch(stats::shapiro.test(data_sample), error = function(e) NULL)
+        if (!is.null(res)) return(as.numeric(res$p.value))
+        return(NA_real_)
+      }
+    },
+    
     .init = function() {
       if (is.null(self$options$vars) || length(self$options$vars) == 0) return()
       
       html <- self$results$transformInfo
-      html$setContent("<h3>Data Transformation</h3><p>Power and bounded transformations for normality. NAs are preserved.</p>")
+      html$setContent("<h3>Data Transformation</h3><p>Power, bounded, and rank-based inverse normal transformations for Gaussian normalization. Missing values (NAs) are preserved.</p>")
       
       if (self$options$show_lambda_table) {
         tbl <- self$results$lambdaTable
         tbl$setNote(
           "citation",
-          "Note. Box-Cox and Yeo-Johnson transformations are performed using the bestNormalize package. Johnson curve transformations are performed using the SuppDists package. Arcsine and Logit transformations follow Bartlett (1937) and Cox (1970). Citations: (1) Peterson, R. A. (2021). Finding optimal normalizing transformations via bestNormalize. The R Journal, 13(1), 310-329. (2) Wheeler, B. (2020). SuppDists: Supplementary Distributions. (3) Box, G. E., & Cox, D. R. (1964). An analysis of transformations. JRSS-B, 26(2), 211-243. (4) Yeo, I. K., & Johnson, R. A. (2000). Biometrika, 87(4), 955-969. (5) Johnson, N. L. (1949). Biometrika, 36(1/2), 149-176. (6) Bartlett, M. S. (1937). Supplement to JRSS, 4(1), 137-183."
+          "Note. Box-Cox and Yeo-Johnson transformations are performed using bestNormalize. Johnson curves follow SuppDists. Arcsine and Logit follow Bartlett (1937) and Cox (1970). Rank-based inverse normal transformations (INT) follow Blom (1958) and van der Waerden (1952). Citations: (1) Peterson (2021); (2) Wheeler (2020); (3) Box & Cox (1964); (4) Yeo & Johnson (2000); (5) Johnson (1949); (6) Bartlett (1937); (7) Blom (1958); (8) van der Waerden (1952)."
         )
         for (var in self$options$vars) {
           if (self$options$method == "johnson") {
@@ -40,6 +92,16 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
             tbl$addRow(rowKey=var, values=list(variable=var, method="Arcsine", parameter="Scale Factor"))
           } else if (self$options$method == "logit") {
             tbl$addRow(rowKey=var, values=list(variable=var, method="Empirical Logit", parameter="Epsilon (\u03b5)"))
+          } else if (self$options$method == "int") {
+            int_name <- switch(
+              self$options$int_formula,
+              "blom" = "Blom (c = 3/8)",
+              "vdw" = "Van der Waerden (c = 0)",
+              "tukey" = "Tukey (c = 1/3)",
+              "rankit" = "Rankit (c = 1/2)",
+              "Blom (c = 3/8)"
+            )
+            tbl$addRow(rowKey=var, values=list(variable=var, method="Rank-Based INT", parameter=int_name))
           } else {
             method_name <- ifelse(self$options$method == "boxcox", "Box-Cox", "Yeo-Johnson")
             tbl$addRow(rowKey=var, values=list(variable=var, method=method_name, parameter="Lambda (\u03bb)"))
@@ -71,6 +133,14 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           ntbl$addRow(rowKey=paste0(var, "_after"), values=list(variable=var, moment="After"))
         }
       }
+      
+      if (self$options$show_recommendation_table) {
+        rec_tbl <- self$results$recommendationTable
+        rec_tbl$setNote(
+          "recommender_note",
+          "Note. Methods are evaluated and ranked by minimizing composite deviation from Gaussian normality: Criterion = |Skewness| + 0.5 \u00d7 |Excess Kurtosis|. Lower criterion scores indicate shapes closer to the standard normal bell curve. Citations: Blom (1958); van der Waerden (1952); Peterson (2021)."
+        )
+      }
     },
     
     .run = function() {
@@ -82,6 +152,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       auto_shift <- self$options$auto_shift
       alpha_sw <- self$options$alpha_sw
       norm_test <- if (!is.null(self$options$normality_test)) self$options$normality_test else "shapiro"
+      int_form <- if (!is.null(self$options$int_formula)) self$options$int_formula else "blom"
       all_treated_vectors <- list()
       
       for (var in vars) {
@@ -151,6 +222,26 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           if (self$options$show_lambda_table) {
             self$results$lambdaTable$setRow(rowKey=var, values=list(value=eps, shift_applied="No", shift_value=0))
           }
+        } else if (method == "int") {
+          c_val <- switch(
+            int_form,
+            "blom" = 0.375,
+            "vdw" = 0.0,
+            "tukey" = 1 / 3,
+            "rankit" = 0.5,
+            0.375
+          )
+          n_c <- length(x_clean)
+          r_c <- rank(x_clean, ties.method = "average")
+          p_ranks <- (r_c - c_val) / (n_c - 2 * c_val + 1)
+          p_ranks <- pmin(pmax(p_ranks, 1e-09), 1 - 1e-09)
+          x_trans_clean <- stats::qnorm(p_ranks)
+          if (self$options$show_lambda_table) {
+            self$results$lambdaTable$setRow(
+              rowKey=var,
+              values=list(value=c_val, shift_applied="No", shift_value=0)
+            )
+          }
         } else if (method == "johnson") {
           jt <- tryCatch(
             SuppDists::JohnsonFit(x_clean, moment="quant"),
@@ -197,6 +288,112 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           if (self$options$show_qq_plot) self$results$qqPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
           if (self$options$show_hist_plot) self$results$histPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
           if (self$options$show_density_plot) self$results$densityPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
+        }
+        
+        # Recommendation table computation
+        if (self$options$show_recommendation_table) {
+          rec_tbl <- self$results$recommendationTable
+          cands <- list()
+          
+          # 1. Original
+          cands[["Original (No Transform)"]] <- x_clean
+          
+          # 2. Yeo-Johnson
+          yj_try <- tryCatch(bestNormalize::yeojohnson(x_clean)$x.t, error = function(e) NULL)
+          if (!is.null(yj_try)) cands[["Yeo-Johnson"]] <- yj_try
+          
+          # 3. Box-Cox (with auto-shift if needed)
+          bc_in <- x_clean
+          if (min(bc_in) <= 0) bc_in <- bc_in + abs(min(bc_in)) + 0.001
+          bc_try <- tryCatch(bestNormalize::boxcox(bc_in)$x.t, error = function(e) NULL)
+          if (!is.null(bc_try)) cands[["Box-Cox"]] <- bc_try
+          
+          # 4. Rank-Based INT (Blom)
+          n_c <- length(x_clean)
+          r_c <- rank(x_clean, ties.method = "average")
+          p_blom <- (r_c - 0.375) / (n_c + 0.25)
+          p_blom <- pmin(pmax(p_blom, 1e-09), 1 - 1e-09)
+          cands[["Rank-Based INT (Blom)"]] <- stats::qnorm(p_blom)
+          
+          # 5. Rank-Based INT (Van der Waerden)
+          p_vdw <- r_c / (n_c + 1)
+          p_vdw <- pmin(pmax(p_vdw, 1e-09), 1 - 1e-09)
+          cands[["Rank-Based INT (Van der Waerden)"]] <- stats::qnorm(p_vdw)
+          
+          # 6. Johnson System
+          j_try <- tryCatch({
+            jt_fit <- SuppDists::JohnsonFit(x_clean, moment = "quant")
+            y_j <- (x_clean - jt_fit$xi) / jt_fit$lambda
+            if (jt_fit$type == "SL") y_j <- pmax(y_j, 1e-09)
+            if (jt_fit$type == "SB") y_j <- pmin(pmax(y_j, 1e-09), 1 - 1e-09)
+            switch(jt_fit$type,
+              "SN" = jt_fit$gamma + jt_fit$delta * y_j,
+              "SL" = jt_fit$gamma + jt_fit$delta * log(y_j),
+              "SU" = jt_fit$gamma + jt_fit$delta * asinh(y_j),
+              "SB" = jt_fit$gamma + jt_fit$delta * log(y_j / (1 - y_j))
+            )
+          }, error = function(e) NULL)
+          if (!is.null(j_try) && !any(is.na(j_try))) cands[["Johnson Curve"]] <- j_try
+          
+          # 7. Natural Log
+          min_val <- min(x_clean)
+          shift_log <- if (min_val <= 0) abs(min_val) + 0.001 else 0
+          cands[["Natural Log (ln)"]] <- log(x_clean + shift_log)
+          
+          # 8. Square Root
+          shift_sqrt <- if (min_val < 0) abs(min_val) else 0
+          cands[["Square Root"]] <- sqrt(x_clean + shift_sqrt)
+          
+          # 9. Arcsine and Logit if bounded / proportions
+          if (min_val >= 0 && max(x_clean) <= 100) {
+            scale_prop <- ifelse(max(x_clean) > 1.05, 100, 1)
+            p_unit <- x_clean / scale_prop
+            cands[["Arcsine Square Root"]] <- asin(sqrt(pmin(pmax(p_unit, 0), 1)))
+            p_logit <- (pmin(pmax(p_unit, 0), 1) * (n_c - 1) + 0.5) / n_c
+            cands[["Empirical Logit"]] <- log(p_logit / (1 - p_logit))
+          }
+          
+          cand_results <- list()
+          for (c_name in names(cands)) {
+            vec <- cands[[c_name]]
+            if (is.null(vec) || length(vec) < 3 || stats::var(vec, na.rm=TRUE) == 0) next
+            sk <- private$.calc_skewness(vec)
+            kt <- private$.calc_kurtosis(vec)
+            if (is.na(sk) || is.na(kt)) next
+            score_val <- abs(sk) + 0.5 * abs(kt)
+            norm_p <- private$.get_normality_p(vec, norm_test)
+            cand_results[[length(cand_results) + 1]] <- list(
+              method = c_name,
+              skew = sk,
+              kurt = kt,
+              score = score_val,
+              p = norm_p
+            )
+          }
+          
+          if (length(cand_results) > 0) {
+            scores <- vapply(cand_results, function(cr) cr$score, numeric(1))
+            ord <- order(scores)
+            cand_results <- cand_results[ord]
+            
+            for (rk in seq_along(cand_results)) {
+              cr <- cand_results[[rk]]
+              row_k <- paste0(var, "_rec_", rk)
+              rec_tbl$addRow(
+                rowKey = row_k,
+                values = list(
+                  variable = var,
+                  rank = as.integer(rk),
+                  method = cr$method,
+                  skewness = cr$skew,
+                  kurtosis = cr$kurt,
+                  score = cr$score,
+                  normality_p = cr$p,
+                  recommended = if (rk == 1) "Recommended (*)" else ""
+                )
+              )
+            }
+          }
         }
       }
       

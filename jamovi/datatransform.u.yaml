@@ -27,6 +27,10 @@ children:
           - type: ComboBox
             name: method
             label: Transformation Method
+          - type: ComboBox
+            name: int_formula
+            label: Rank-Based Formula
+            enable: (method == 'int')
           - type: CheckBox
             name: auto_shift
             label: Automatic Shift for Non-Positive Values
@@ -60,6 +64,9 @@ children:
             label: Significance Level (α)
             format: number
             enable: (show_normality_table)
+          - type: CheckBox
+            name: show_recommendation_table
+            label: Transformation Recommender & Ranking (Minimizing Skewness & Kurtosis)
           - type: CheckBox
             name: show_qq_plot
             label: Q-Q Plot (before & after transformation)

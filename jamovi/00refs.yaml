@@ -691,3 +691,20 @@ MurtaghLegendre2014:
   issue: 3
   pages: "274-295"
   doi: "10.1007/s00357-014-9161-z"
+
+Blom1958:
+  type: book
+  author: "Blom, G."
+  year: 1958
+  title: "Statistical Estimates and Transformed Beta-Variables"
+  publisher: "John Wiley & Sons"
+  address: "New York"
+
+VanDerWaerden1952:
+  type: article
+  author: "van der Waerden, B. L."
+  year: 1952
+  title: "Order tests for the two-sample problem and their power"
+  journal: "Indagationes Mathematicae"
+  volume: 14
+  pages: "453-458"
