@@ -32,9 +32,6 @@ children:
                 name: independent_r2
                 label: Correlation Coefficient (Group 2)
                 format: number
-              - type: CheckBox
-                name: show_ci_plot
-                label: Show Correlation Confidence Interval Plot
 
       - type: Content
         name: dependent
@@ -59,9 +56,6 @@ children:
                 name: dependent_r23
                 label: Correlation Coefficient (r₂₃ — Var 2 vs Var 3)
                 format: number
-              - type: CheckBox
-                name: show_ci_plot
-                label: Show Correlation Confidence Interval Plot
 
       - type: Content
         name: dep_nonoverlapping
@@ -98,9 +92,6 @@ children:
                 name: dep_non_r24
                 label: Intercorrelation r₂₄ (Var 2 vs Var 4)
                 format: number
-              - type: CheckBox
-                name: show_ci_plot
-                label: Show Correlation Confidence Interval Plot
 
       - type: Content
         name: multigroup
@@ -130,12 +121,6 @@ children:
                     name: multi_group
                     isTarget: true
                     maxItemCount: 1
-          - type: LayoutBox
-            margin: large
-            children:
-              - type: CheckBox
-                name: show_ellipse_plot
-                label: "Show Scatterplot with Overlapping Confidence Ellipses"
 
       - type: Content
         name: partial_comparison
@@ -192,3 +177,21 @@ children:
                     name: group_jennrich
                     maxItemCount: 1
                     isTarget: true
+
+  - type: CollapseBox
+    label: Plots
+    collapsed: false
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: CheckBox
+            name: show_ci_plot
+            label: Show Correlation Confidence Interval Plot
+            enable: (mode == 'independent' || mode == 'dependent' || mode == 'dep_nonoverlapping')
+          - type: CheckBox
+            name: show_ellipse_plot
+            label: Show Scatterplot with Overlapping Confidence Ellipses
+            enable: (mode == 'multigroup' || mode == 'partial_comparison')

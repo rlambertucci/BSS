@@ -558,7 +558,7 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 width=600,
                 height=450,
                 renderFun=".renderEllipsePlot",
-                visible="((mode == 'multigroup' && show_ellipse_plot) || (mode == 'partial_comparison'))",
+                visible="((mode == 'multigroup' || mode == 'partial_comparison') && show_ellipse_plot)",
                 refs=list(
                     "ggplot2"),
                 clearWith=list(
