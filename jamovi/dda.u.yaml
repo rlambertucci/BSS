@@ -24,7 +24,7 @@ children:
             isTarget: true
 
   - type: CollapseBox
-    label: Results
+    label: Results & Assumptions
     collapsed: false
     stretchFactor: 1
     children:
@@ -40,6 +40,10 @@ children:
             name: structCoef
           - type: CheckBox
             name: gc
+          - type: CheckBox
+            name: boxM
+          - type: CheckBox
+            name: classTable
 
   - type: CollapseBox
     label: Plot Options
@@ -52,14 +56,24 @@ children:
         children:
           - type: CheckBox
             name: plot
+          - type: CheckBox
+            name: showEllipse
+            enable: (plot)
+          - type: TextBox
+            name: ellipseLevel
+            label: Ellipse Confidence Level
+            format: number
+            enable: (plot && showEllipse)
           - type: TextBox
             name: width
             label: Plot Width
             format: number
+            enable: (plot)
           - type: TextBox
             name: height
             label: Plot Height
             format: number
+            enable: (plot)
 
   - type: CollapseBox
     label: Advanced

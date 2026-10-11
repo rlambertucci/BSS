@@ -10,7 +10,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
       
       .init = function() {
         info_html <- paste0(
-          '<div style="font-size: 0.9em; line-height: 1.5;">',
+          '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
           '<ul>',
           '<li><b>Descriptive Discriminant Analysis (DDA)</b> &rarr; A multivariate technique that identifies ',
           'linear combinations of continuous variables (discriminant functions) that best separate ',
@@ -22,8 +22,11 @@ DDAClass <- if (requireNamespace('jmvcore'))
           '<li><b>Pairwise Effect Sizes</b> &rarr; Cohen\'s d and Hedges\' g computed on LD1 scores for each ',
           'pair of groups, quantifying the magnitude of group separation along the first discriminant ',
           'function. <i>Cohen, J. (1988).</i></li>',
+          '<li><b>Classification & LOOCV</b> &rarr; Cross-validated reclassification matrix (leave-one-out cross-validation) ',
+          'evaluating predictive accuracy and Cohen\'s Kappa beyond chance. <i>Fisher, R. A. (1936).</i></li>',
+          '<li><b>Box\'s M Test</b> &rarr; Formal multivariate test for the homogeneity of group covariance matrices. <i>Box, G. E. P. (1949).</i></li>',
           '</ul>',
-          '<p style="font-style: italic; padding-top: 10px;">',
+          '<p style=\"font-style: italic; padding-top: 10px;\">',
           'Note: DDA assumes multivariate normality and homogeneity of covariance matrices across groups. ',
           'At least two groups and one covariate are required.',
           '</p>',
@@ -31,16 +34,41 @@ DDAClass <- if (requireNamespace('jmvcore'))
         )
         self$results$ddaInfo$setContent(info_html)
         
-        if (isTRUE(self$options$plot)) { width <- self$options$width; height <- self$options$height; self$results$plot$setSize(width, height) }
+        if (isTRUE(self$options$plot)) {
+          width  <- self$options$width
+          height <- self$options$height
+          self$results$plot$setSize(width, height)
+        }
         
-        structCoefTable <- self$results$structCoefTable; if (!"varName" %in% private$.getColumnNames(structCoefTable)) { try(structCoefTable$addColumn(name = "varName", title = "", type = 'text'), silent = TRUE) }
-        propTable <- self$results$prop; if (!"name" %in% private$.getColumnNames(propTable)) { try(propTable$addColumn(name = "name", title = "", type = 'text', content="Proportion(%)"), silent = TRUE); if (propTable$rowCount == 0) { try(propTable$addRow(rowKey=1, values=list()), silent = TRUE) } }
-        gcTable <- self$results$gc; if (!"name" %in% private$.getColumnNames(gcTable)) { try(gcTable$addColumn(name = "name", title = "Groups", type = 'text'), silent = TRUE) }
-        discScoresTable <- self$results$discScoresTable; if (!"obs" %in% private$.getColumnNames(discScoresTable)) { try(discScoresTable$addColumn(name = "obs", title = "Observation", type = 'text'), silent = TRUE) }
-        pairwiseESTable <- self$results$pairwiseESTable; required_cols <- c("group1", "group2", "cohenD", "hedgesG"); current_cols_pairwise <- private$.getColumnNames(pairwiseESTable)
+        structCoefTable <- self$results$structCoefTable
+        if (!"varName" %in% private$.getColumnNames(structCoefTable)) {
+          try(structCoefTable$addColumn(name = "varName", title = "", type = 'text'), silent = TRUE)
+        }
+        
+        propTable <- self$results$prop
+        if (!"name" %in% private$.getColumnNames(propTable)) {
+          try(propTable$addColumn(name = "name", title = "", type = 'text', content="Proportion(%)"), silent = TRUE)
+          if (propTable$rowCount == 0) { try(propTable$addRow(rowKey=1, values=list()), silent = TRUE) }
+        }
+        
+        gcTable <- self$results$gc
+        if (!"name" %in% private$.getColumnNames(gcTable)) {
+          try(gcTable$addColumn(name = "name", title = "Groups", type = 'text'), silent = TRUE)
+        }
+        
+        discScoresTable <- self$results$discScoresTable
+        if (!"obs" %in% private$.getColumnNames(discScoresTable)) {
+          try(discScoresTable$addColumn(name = "obs", title = "Observation", type = 'text'), silent = TRUE)
+        }
+        
+        pairwiseESTable <- self$results$pairwiseESTable
+        required_cols <- c("group1", "group2", "cohenD", "hedgesG")
+        current_cols_pairwise <- private$.getColumnNames(pairwiseESTable)
         if (!all(required_cols %in% current_cols_pairwise)) {
-          try(pairwiseESTable$addColumn(name="group1", title="Group 1", type='text'), silent=TRUE); try(pairwiseESTable$addColumn(name="group2", title="Group 2", type='text'), silent=TRUE)
-          try(pairwiseESTable$addColumn(name="cohenD", title="Cohen's d", type='number', format='zto'), silent=TRUE); try(pairwiseESTable$addColumn(name="hedgesG", title="Hedges' g", type='number', format='zto'), silent=TRUE)
+          try(pairwiseESTable$addColumn(name="group1", title="Group 1", type='text'), silent=TRUE)
+          try(pairwiseESTable$addColumn(name="group2", title="Group 2", type='text'), silent=TRUE)
+          try(pairwiseESTable$addColumn(name="cohenD", title="Cohen's d", type='number', format='zto'), silent=TRUE)
+          try(pairwiseESTable$addColumn(name="hedgesG", title="Hedges' g", type='number', format='zto'), silent=TRUE)
         }
       },
       
@@ -88,22 +116,31 @@ DDAClass <- if (requireNamespace('jmvcore'))
         formula <- stats::as.formula(formula)
         lda.results <- tryCatch({ MASS::lda(formula, data = data) }, error = function(e) {
           msg <- paste("LDA calculation failed:", e$message); code <- "lda_error"
-          if (grepl("collinear", e$message, ignore.case = TRUE)) { msg <- paste("LDA calculation failed due to collinearity among covariates."); code <- "lda_collinearity_error"
-          } else if (grepl("group means are identical", e$message, ignore.case = TRUE)) { msg <- paste("LDA calculation failed: Group means are identical for the selected covariates."); code <- "lda_identical_means_error"
-          } else if (grepl("some group is too small", e$message, ignore.case = TRUE)) { msg <- paste("LDA calculation failed: At least one group has too few observations relative to the number of covariates."); code <- "lda_small_group_error" }
+          if (grepl("collinear", e$message, ignore.case = TRUE)) {
+            msg <- paste("LDA calculation failed due to collinearity among covariates."); code <- "lda_collinearity_error"
+          } else if (grepl("group means are identical", e$message, ignore.case = TRUE)) {
+            msg <- paste("LDA calculation failed: Group means are identical for the selected covariates."); code <- "lda_identical_means_error"
+          } else if (grepl("some group is too small", e$message, ignore.case = TRUE)) {
+            msg <- paste("LDA calculation failed: At least one group has too few observations relative to the number of covariates."); code <- "lda_small_group_error"
+          }
           jmvcore::reject(msg, code=code); return(NULL)
         })
         if (is.null(lda.results)) return()
         
         scores <- NULL; centroids <- NULL; n_lds <- 0
         tryCatch({
-          scores <- stats::predict(lda.results)$x; if (is.vector(scores)) scores <- matrix(scores, ncol = 1)
-          colnames(scores) <- paste0("LD", 1:ncol(scores)); n_lds <- ncol(scores)
+          scores <- stats::predict(lda.results)$x
+          if (is.vector(scores)) scores <- matrix(scores, ncol = 1)
+          colnames(scores) <- paste0("LD", 1:ncol(scores))
+          n_lds <- ncol(scores)
           scores_df <- data.frame(Group = data[[dep]], scores)
           centroids <- stats::aggregate(. ~ Group, data = scores_df, FUN = mean)
-        }, error = function(e) { jmvcore::reject(paste("Error calculating scores/centroids:", e$message), code="score_centroid_error") })
+        }, error = function(e) {
+          jmvcore::reject(paste("Error calculating scores/centroids:", e$message), code="score_centroid_error")
+        })
         if (is.null(scores) || is.null(centroids)) return()
         
+        # 1. Coeficientes Lineares Discriminantes
         if (isTRUE(self$options$coef)) {
           table <- self$results$coef
           tryCatch({
@@ -117,7 +154,11 @@ DDAClass <- if (requireNamespace('jmvcore'))
             cols_to_remove <- setdiff(current_table_cols, c("name", dims))
             for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
             existing_cols <- private$.getColumnNames(table)
-            for (dim_name in dims) { if (!dim_name %in% existing_cols) { try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE) } }
+            for (dim_name in dims) {
+              if (!dim_name %in% existing_cols) {
+                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+              }
+            }
             
             try(table$setState(NULL), silent = TRUE)
             try(table$deleteRows(), silent = TRUE)
@@ -127,7 +168,9 @@ DDAClass <- if (requireNamespace('jmvcore'))
                 for (dim_name in dims) {
                   if (dim_name %in% names(coef_scaling_df)) {
                     row_values[[dim_name]] <- coef_scaling_df[var_name, dim_name]
-                  } else { row_values[[dim_name]] <- NA }
+                  } else {
+                    row_values[[dim_name]] <- NA
+                  }
                 }
                 try(table$addRow(rowKey = var_name, values = row_values), silent = TRUE)
               }
@@ -138,6 +181,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$coef$setState(NULL), silent=TRUE) }
         
+        # 2. Proporção de Traço (Proportion of trace)
         if (isTRUE(self$options$prop)) {
           table <- self$results$prop
           tryCatch({
@@ -148,7 +192,11 @@ DDAClass <- if (requireNamespace('jmvcore'))
             cols_to_remove <- setdiff(current_cols, c("name", dims))
             for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
             existing_cols <- private$.getColumnNames(table)
-            for (dim_name in dims) { if (!dim_name %in% existing_cols) { try(table$addColumn(name = dim_name, title=dim_name, type = 'number', format="pc"), silent=TRUE) } }
+            for (dim_name in dims) {
+              if (!dim_name %in% existing_cols) {
+                try(table$addColumn(name = dim_name, title=dim_name, type = 'number', format="pc"), silent=TRUE)
+              }
+            }
             
             row_values <- list(name = "Proportion(%)")
             for (i in seq_along(prop.lda)) { row_values[[dims[i]]] <- prop.lda[i] }
@@ -160,6 +208,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$prop$setRow(rowNo=1, values=list(name="Proportion(%)")), silent=TRUE) }
         
+        # 3. Centróides de Grupo (Group centroids)
         if (isTRUE(self$options$gc)) {
           table <- self$results$gc
           tryCatch({
@@ -171,7 +220,11 @@ DDAClass <- if (requireNamespace('jmvcore'))
             for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
             existing_cols <- private$.getColumnNames(table)
             if (!"name" %in% existing_cols) { try(table$addColumn(name = "name", title = "Groups", type = 'text'), silent = TRUE) }
-            for (dim_name in dims) { if (!dim_name %in% existing_cols) { try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE) } }
+            for (dim_name in dims) {
+              if (!dim_name %in% existing_cols) {
+                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+              }
+            }
             
             try(table$setState(NULL), silent = TRUE)
             try(table$deleteRows(), silent = TRUE)
@@ -183,7 +236,9 @@ DDAClass <- if (requireNamespace('jmvcore'))
                 for (dim_name in dims) {
                   if (dim_name %in% names(centroids)) {
                     row_values[[dim_name]] <- centroids[i, dim_name]
-                  } else { row_values[[dim_name]] <- NA }
+                  } else {
+                    row_values[[dim_name]] <- NA
+                  }
                 }
                 try(table$addRow(rowKey = group_name, values = row_values), silent = TRUE)
               }
@@ -194,13 +249,171 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$gc$setState(NULL), silent=TRUE) }
         
+        # 4. Teste M de Box para Homogeneidade de Matrizes de Covariância
+        if (isTRUE(self$options$boxM)) {
+          tableBox <- self$results$boxMTable
+          tryCatch({
+            tableBox$clear()
+            p <- length(covs)
+            k <- n_groups
+            N <- nrow(data)
+            group_counts <- table(data[[dep]])
+            
+            if (any(group_counts <= p)) {
+              tableBox$setNote(
+                "sample_size_warn",
+                paste0("Note. Box's M test requires group sample sizes strictly greater than the number of covariates (n > ", p, " for all groups).")
+              )
+            } else {
+              cov_list <- list()
+              det_vec  <- numeric(k)
+              n_vec    <- numeric(k)
+              valid_det <- TRUE
+              
+              for (i in seq_along(group_levels)) {
+                g <- group_levels[i]
+                sub_cov <- stats::cov(data[data[[dep]] == g, covs, drop = FALSE])
+                cov_list[[i]] <- sub_cov
+                n_vec[i] <- sum(data[[dep]] == g)
+                d_val <- det(sub_cov)
+                if (is.na(d_val) || d_val <= 0) {
+                  valid_det <- FALSE
+                  break
+                }
+                det_vec[i] <- d_val
+              }
+              
+              if (valid_det) {
+                pooled_cov <- matrix(0, nrow = p, ncol = p)
+                for (i in seq_along(group_levels)) {
+                  pooled_cov <- pooled_cov + (n_vec[i] - 1) * cov_list[[i]]
+                }
+                pooled_cov <- pooled_cov / (N - k)
+                det_pooled <- det(pooled_cov)
+                
+                if (!is.na(det_pooled) && det_pooled > 0) {
+                  m_stat <- (N - k) * log(det_pooled) - sum((n_vec - 1) * log(det_vec))
+                  c1 <- (sum(1 / (n_vec - 1)) - 1 / (N - k)) * ((2 * p^2 + 3 * p - 1) / (6 * (p + 1) * (k - 1)))
+                  chi_stat <- m_stat * (1 - c1)
+                  df_box <- as.integer(round(0.5 * p * (p + 1) * (k - 1)))
+                  p_val <- stats::pchisq(chi_stat, df = df_box, lower.tail = FALSE)
+                  
+                  tableBox$addRow(rowKey = 1, values = list(
+                    stat = m_stat,
+                    chi  = chi_stat,
+                    df   = df_box,
+                    p    = p_val
+                  ))
+                  tableBox$setNote(
+                    "citation",
+                    "Note. Box's M test evaluates the null hypothesis of equality of group covariance matrices (Box, 1949). A non-significant result (p > .05) supports homogeneity of covariance matrices."
+                  )
+                } else {
+                  tableBox$setNote("singular_warn", "Note. Pooled covariance matrix is singular; Box's M test cannot be computed.")
+                }
+              } else {
+                tableBox$setNote("singular_warn", "Note. At least one group covariance matrix is singular (determinant <= 0); Box's M test cannot be computed.")
+              }
+            }
+          }, error = function(e) {
+            tableBox$setNote("err", paste("Box's M calculation error:", e$message))
+          })
+        }
+        
+        # 5. Matriz de Classificação & Validação Cruzada (LOOCV)
+        if (isTRUE(self$options$classTable)) {
+          tableClass <- self$results$classTable
+          tryCatch({
+            tableClass$clear()
+            
+            # Dinamicamente adiciona colunas de predicao para cada grupo
+            current_cols <- private$.getColumnNames(tableClass)
+            for (g in group_levels) {
+              col_id <- paste0("pred_", g)
+              if (!col_id %in% current_cols) {
+                try(tableClass$addColumn(name = col_id, title = as.character(g), type = 'integer'), silent = TRUE)
+              }
+            }
+            
+            # Predicoes aparentes
+            pred_app <- stats::predict(lda.results)$class
+            tab_app  <- table(Actual = data[[dep]], Predicted = factor(pred_app, levels = group_levels))
+            
+            # Predicoes LOOCV
+            lda_cv <- tryCatch({
+              MASS::lda(formula, data = data, CV = TRUE)
+            }, error = function(e) NULL)
+            
+            pred_cv <- if (!is.null(lda_cv)) lda_cv$class else NULL
+            tab_cv  <- if (!is.null(pred_cv)) table(Actual = data[[dep]], Predicted = factor(pred_cv, levels = group_levels)) else NULL
+            
+            # Preenche linhas Original
+            for (g in group_levels) {
+              row_vals <- list(
+                method      = "Original (Apparent)",
+                actualGroup = as.character(g),
+                total       = as.integer(sum(tab_app[g, ])),
+                pctCorrect  = if (sum(tab_app[g, ]) > 0) (tab_app[g, g] / sum(tab_app[g, ])) * 100 else 0
+              )
+              for (pred_g in group_levels) {
+                row_vals[[paste0("pred_", pred_g)]] <- as.integer(tab_app[g, pred_g])
+              }
+              tableClass$addRow(rowKey = paste0("app_", g), values = row_vals)
+            }
+            
+            # Preenche linhas LOOCV
+            if (!is.null(tab_cv)) {
+              for (g in group_levels) {
+                row_vals <- list(
+                  method      = "Cross-validated (LOOCV)",
+                  actualGroup = as.character(g),
+                  total       = as.integer(sum(tab_cv[g, ])),
+                  pctCorrect  = if (sum(tab_cv[g, ]) > 0) (tab_cv[g, g] / sum(tab_cv[g, ])) * 100 else 0
+                )
+                for (pred_g in group_levels) {
+                  row_vals[[paste0("pred_", pred_g)]] <- as.integer(tab_cv[g, pred_g])
+                }
+                tableClass$addRow(rowKey = paste0("cv_", g), values = row_vals)
+              }
+            }
+            
+            total_cases <- sum(tab_app)
+            acc_app <- (sum(diag(tab_app)) / total_cases) * 100
+            
+            # Cohen's Kappa para predicoes aparentes
+            p_obs <- sum(diag(tab_app)) / total_cases
+            p_exp <- sum(rowSums(tab_app) * colSums(tab_app)) / (total_cases^2)
+            kappa_app <- if (p_exp < 1) (p_obs - p_exp) / (1 - p_exp) else 1
+            
+            acc_cv_str <- if (!is.null(tab_cv)) paste0(round((sum(diag(tab_cv)) / total_cases) * 100, 1), "%") else "N/A"
+            tableClass$setNote(
+              "summary",
+              paste0("Overall classification accuracy: Apparent = ", round(acc_app, 1), "%, LOOCV = ", acc_cv_str, " (Cohen's Kappa = ", round(kappa_app, 3), "). In cross-validation, each case is classified by the functions derived from all cases other than that case (Lachenbruch's holdout method).")
+            )
+          }, error = function(e) {
+            tableClass$setNote("err", paste("Classification table error:", e$message))
+          })
+        }
+        
+        # 6. Gráfico DDA Biplot Canônico
         if (isTRUE(self$options$plot)) {
           plotData <- data.frame(Group = data[[dep]], scores)
           centroids_plot <- centroids
           image <- self$results$plot
-          image$setState(list(plotData = plotData, centroids = centroids_plot, n_lds = n_lds, ld_colnames = colnames(scores)))
+          show_ellipse <- isTRUE(self$options$showEllipse)
+          ellipse_lvl  <- as.numeric(self$options$ellipseLevel)
+          if (is.na(ellipse_lvl) || ellipse_lvl <= 0 || ellipse_lvl >= 1) ellipse_lvl <- 0.95
+          image$setState(list(
+            plotData     = plotData,
+            centroids    = centroids_plot,
+            n_lds        = n_lds,
+            ld_colnames  = colnames(scores),
+            showEllipse  = show_ellipse,
+            ellipseLevel = ellipse_lvl
+          ))
         }
         
+        # 7. Coeficientes de Estrutura (Structure coefficients)
         if (isTRUE(self$options$structCoef)) {
           table <- self$results$structCoefTable
           tryCatch({
@@ -211,15 +424,23 @@ DDAClass <- if (requireNamespace('jmvcore'))
             for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
             existing_cols <- private$.getColumnNames(table)
             if (!"varName" %in% existing_cols) { try(table$addColumn(name = "varName", title = "", type = 'text'), silent = TRUE) }
-            for (dim_name in dims) { if (!dim_name %in% existing_cols) { try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE) } }
+            for (dim_name in dims) {
+              if (!dim_name %in% existing_cols) {
+                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+              }
+            }
             
             cormat_df <- NULL
             variable_names <- character(0)
             tryCatch({
-              cormat <- stats::cor(data[, covs, drop=FALSE], scores); cormat <- as.data.frame(cormat)
-              colnames(cormat) <- dims; cormat_df <- cormat;
+              cormat <- stats::cor(data[, covs, drop=FALSE], scores)
+              cormat <- as.data.frame(cormat)
+              colnames(cormat) <- dims
+              cormat_df <- cormat
               variable_names <- rownames(cormat_df)
-            }, error = function(e) { jmvcore::reject(paste("Error calculating struct coef cor:", e$message), code="structcoef_cor_error") })
+            }, error = function(e) {
+              jmvcore::reject(paste("Error calculating struct coef cor:", e$message), code="structcoef_cor_error")
+            })
             
             try(table$setState(NULL), silent = TRUE)
             try(table$deleteRows(), silent = TRUE)
@@ -230,7 +451,9 @@ DDAClass <- if (requireNamespace('jmvcore'))
                 for (dim_name in dims) {
                   if (dim_name %in% names(cormat_df)) {
                     row_values[[dim_name]] <- cormat_df[var_name, dim_name]
-                  } else { row_values[[dim_name]] <- NA }
+                  } else {
+                    row_values[[dim_name]] <- NA
+                  }
                 }
                 try(table$addRow(rowKey = var_name, values = row_values), silent = TRUE)
               }
@@ -241,6 +464,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$structCoefTable$setState(NULL), silent=TRUE) }
         
+        # 8. Escores Discriminantes
         if (isTRUE(self$options$discScores)) {
           table <- self$results$discScoresTable
           tryCatch({
@@ -252,7 +476,11 @@ DDAClass <- if (requireNamespace('jmvcore'))
             for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
             existing_cols <- private$.getColumnNames(table)
             if (!"obs" %in% existing_cols) { try(table$addColumn(name = "obs", title = "Observation", type = 'text'), silent = TRUE) }
-            for (dim_name in dims) { if (!dim_name %in% existing_cols) { try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE) } }
+            for (dim_name in dims) {
+              if (!dim_name %in% existing_cols) {
+                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+              }
+            }
             
             try(table$setState(NULL), silent = TRUE)
             try(table$deleteRows(), silent = TRUE)
@@ -271,6 +499,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$discScoresTable$setState(NULL), silent=TRUE) }
         
+        # 9. Tamanhos de Efeito Pareados (d & g)
         if (isTRUE(self$options$pairwiseES)) {
           tableES <- self$results$pairwiseESTable
           try(tableES$clearFootnotes(), silent = TRUE)
@@ -282,19 +511,28 @@ DDAClass <- if (requireNamespace('jmvcore'))
             jmvcore::reject("effsize package required for pairwise effect sizes.", code="effsize_missing")
           } else {
             tryCatch({
-              ld1_scores <- scores[, 1]; group_var <- data[[dep]]; group_pairs <- utils::combn(group_levels, 2, simplify = FALSE)
+              ld1_scores <- scores[, 1]
+              group_var <- data[[dep]]
+              group_pairs <- utils::combn(group_levels, 2, simplify = FALSE)
               for (pair in group_pairs) {
-                group1_name <- pair[1]; group2_name <- pair[2]; rowKey <- paste(group1_name, group2_name, sep = " vs ")
-                scores_g1 <- ld1_scores[group_var == group1_name]; scores_g2 <- ld1_scores[group_var == group2_name]
+                group1_name <- pair[1]
+                group2_name <- pair[2]
+                rowKey <- paste(group1_name, group2_name, sep = " vs ")
+                scores_g1 <- ld1_scores[group_var == group1_name]
+                scores_g2 <- ld1_scores[group_var == group2_name]
                 row_values <- list(group1 = group1_name, group2 = group2_name, cohenD = NA_real_, hedgesG = NA_real_)
-                if(length(scores_g1) < 2 || length(scores_g2) < 2) { footnotes[[rowKey]] <- list(col = "cohenD", message = "Insufficient data (n<2)...")
+                if (length(scores_g1) < 2 || length(scores_g2) < 2) {
+                  footnotes[[rowKey]] <- list(col = "cohenD", message = "Insufficient data (n<2)...")
                 } else {
                   tryCatch({
                     cd_est <- effsize::cohen.d(scores_g1, scores_g2, pooled = TRUE, paired = FALSE, na.rm = TRUE, hedges.correction = FALSE)$estimate
                     hg_est <- effsize::cohen.d(scores_g1, scores_g2, pooled = TRUE, paired = FALSE, na.rm = TRUE, hedges.correction = TRUE)$estimate
                     row_values$cohenD <- if (is.finite(cd_est)) cd_est else NA_real_
                     row_values$hedgesG <- if (is.finite(hg_est)) hg_est else NA_real_
-                  }, error = function(e) { err_msg <- gsub("[\r\n]", " ", e$message); footnotes[[rowKey]] <- list(col = "cohenD", message = paste("Calc error:", err_msg)) })
+                  }, error = function(e) {
+                    err_msg <- gsub("[\r\n]", " ", e$message)
+                    footnotes[[rowKey]] <- list(col = "cohenD", message = paste("Calc error:", err_msg))
+                  })
                 }
                 rows_to_add[[rowKey]] <- row_values
               }
@@ -316,11 +554,15 @@ DDAClass <- if (requireNamespace('jmvcore'))
               }
             }
             if (length(footnotes) > 0) {
-              for (key in names(footnotes)) { fn <- footnotes[[key]]; try(tableES$addFootnote(rowKey = key, col = fn$col, message = fn$message), silent = TRUE) }
+              for (key in names(footnotes)) {
+                fn <- footnotes[[key]]
+                try(tableES$addFootnote(rowKey = key, col = fn$col, message = fn$message), silent = TRUE)
+              }
             }
           }, error = function(e) {
             jmvcore::reject(paste("Error populating Pairwise table:", e$message), code="pairwise_populate_error")
-            try(tableES$setState(NULL), silent=TRUE); try(tableES$clearFootnotes(), silent = TRUE)
+            try(tableES$setState(NULL), silent=TRUE)
+            try(tableES$clearFootnotes(), silent = TRUE)
           })
         } else {
           try(self$results$pairwiseESTable$setState(NULL), silent=TRUE)
@@ -329,11 +571,21 @@ DDAClass <- if (requireNamespace('jmvcore'))
       },
       
       .plot = function(image, ggtheme, theme, ...) {
-        state <- image$state; if (is.null(state) || is.null(state$plotData) || is.null(state$centroids)) return(FALSE)
-        plotData <- state$plotData; centroids <- state$centroids; n_lds <- state$n_lds; ld_colnames <- state$ld_colnames
+        state <- image$state
+        if (is.null(state) || is.null(state$plotData) || is.null(state$centroids)) return(FALSE)
+        plotData     <- state$plotData
+        centroids    <- state$centroids
+        n_lds        <- state$n_lds
+        ld_colnames  <- state$ld_colnames
+        show_ellipse <- if (!is.null(state$showEllipse)) state$showEllipse else TRUE
+        ellipse_lvl  <- if (!is.null(state$ellipseLevel)) state$ellipseLevel else 0.95
+        
         if (nrow(plotData) == 0 || nrow(centroids) == 0 || n_lds < 1 || is.null(ld_colnames) || length(ld_colnames) < n_lds) return(FALSE)
         if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 package required for plot.", call. = FALSE)
-        ld1_col <- ld_colnames[1]; centroid_cols <- colnames(centroids); plot <- NULL
+        ld1_col <- ld_colnames[1]
+        centroid_cols <- colnames(centroids)
+        plot <- NULL
+        
         tryCatch({
           n_plot_groups <- length(unique(plotData$Group))
           if (n_lds == 1) {
@@ -352,15 +604,27 @@ DDAClass <- if (requireNamespace('jmvcore'))
             if (!ld1_col %in% colnames(plotData) || !ld2_col %in% colnames(plotData) || !ld1_col %in% centroid_cols || !ld2_col %in% centroid_cols) return(FALSE)
             plot <- ggplot2::ggplot(plotData, ggplot2::aes(x = .data[[ld1_col]], y = .data[[ld2_col]], color = Group)) +
               ggtheme +
-              ggplot2::geom_point(alpha = 0.6, size = 3.5, na.rm=TRUE) +
-              tryCatch(ggplot2::stat_ellipse(type = "norm", level = 0.95, na.rm = TRUE), error = function(e) NULL) +
+              ggplot2::geom_point(alpha = 0.6, size = 3.5, na.rm=TRUE)
+            
+            if (isTRUE(show_ellipse)) {
+              plot <- plot + tryCatch(
+                ggplot2::stat_ellipse(type = "norm", level = ellipse_lvl, na.rm = TRUE),
+                error = function(e) NULL
+              )
+            }
+            
+            plot <- plot +
               ggplot2::geom_point(data = centroids, ggplot2::aes(x = .data[[ld1_col]], y = .data[[ld2_col]], color = Group), size = 6, shape = 17, na.rm=TRUE) +
               ggplot2::labs(title = "Descriptive Discriminant Analysis Plot", x = ld1_col, y = ld2_col)
             if (n_plot_groups <= 8) {
               plot <- plot + ggplot2::scale_color_brewer(palette = "Set2")
             }
           }
-        }, error = function(e) { jmvcore::reject(paste("Error generating plot:", e$message), code="plot_error"); return(FALSE) })
+        }, error = function(e) {
+          jmvcore::reject(paste("Error generating plot:", e$message), code="plot_error")
+          return(FALSE)
+        })
+        
         if (!is.null(plot)) { print(plot); return(TRUE) } else { return(FALSE) }
       }
     )

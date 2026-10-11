@@ -12,7 +12,11 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             coef = TRUE,
             structCoef = TRUE,
             gc = TRUE,
+            classTable = FALSE,
+            boxM = FALSE,
             plot = FALSE,
+            showEllipse = TRUE,
+            ellipseLevel = 0.95,
             width = 500,
             height = 500,
             discScores = FALSE,
@@ -54,10 +58,28 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "gc",
                 gc,
                 default=TRUE)
+            private$..classTable <- jmvcore::OptionBool$new(
+                "classTable",
+                classTable,
+                default=FALSE)
+            private$..boxM <- jmvcore::OptionBool$new(
+                "boxM",
+                boxM,
+                default=FALSE)
             private$..plot <- jmvcore::OptionBool$new(
                 "plot",
                 plot,
                 default=FALSE)
+            private$..showEllipse <- jmvcore::OptionBool$new(
+                "showEllipse",
+                showEllipse,
+                default=TRUE)
+            private$..ellipseLevel <- jmvcore::OptionNumber$new(
+                "ellipseLevel",
+                ellipseLevel,
+                default=0.95,
+                min=0.5,
+                max=0.99)
             private$..width <- jmvcore::OptionInteger$new(
                 "width",
                 width,
@@ -81,7 +103,11 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..coef)
             self$.addOption(private$..structCoef)
             self$.addOption(private$..gc)
+            self$.addOption(private$..classTable)
+            self$.addOption(private$..boxM)
             self$.addOption(private$..plot)
+            self$.addOption(private$..showEllipse)
+            self$.addOption(private$..ellipseLevel)
             self$.addOption(private$..width)
             self$.addOption(private$..height)
             self$.addOption(private$..discScores)
@@ -94,7 +120,11 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         coef = function() private$..coef$value,
         structCoef = function() private$..structCoef$value,
         gc = function() private$..gc$value,
+        classTable = function() private$..classTable$value,
+        boxM = function() private$..boxM$value,
         plot = function() private$..plot$value,
+        showEllipse = function() private$..showEllipse$value,
+        ellipseLevel = function() private$..ellipseLevel$value,
         width = function() private$..width$value,
         height = function() private$..height$value,
         discScores = function() private$..discScores$value,
@@ -106,7 +136,11 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..coef = NA,
         ..structCoef = NA,
         ..gc = NA,
+        ..classTable = NA,
+        ..boxM = NA,
         ..plot = NA,
+        ..showEllipse = NA,
+        ..ellipseLevel = NA,
         ..width = NA,
         ..height = NA,
         ..discScores = NA,
@@ -122,6 +156,8 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         coef = function() private$.items[["coef"]],
         structCoefTable = function() private$.items[["structCoefTable"]],
         gc = function() private$.items[["gc"]],
+        boxMTable = function() private$.items[["boxMTable"]],
+        classTable = function() private$.items[["classTable"]],
         plot = function() private$.items[["plot"]],
         discScoresTable = function() private$.items[["discScoresTable"]],
         pairwiseESTable = function() private$.items[["pairwiseESTable"]]),
@@ -197,6 +233,66 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `title`="Groups", 
                         `type`="text", 
                         `content`="($key)"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="boxMTable",
+                title="Box's M Test for Homogeneity of Covariance",
+                refs=list(
+                    "Box1949"),
+                visible="(boxM)",
+                clearWith=list(
+                    "covs",
+                    "dep"),
+                columns=list(
+                    list(
+                        `name`="stat", 
+                        `title`="Box's M", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="chi", 
+                        `title`="Chi-Square", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="df", 
+                        `title`="df", 
+                        `type`="integer"),
+                    list(
+                        `name`="p", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="classTable",
+                title="Classification & Cross-Validation Matrix",
+                refs=list(
+                    "MASS",
+                    "Fisher1936"),
+                visible="(classTable)",
+                clearWith=list(
+                    "covs",
+                    "dep"),
+                columns=list(
+                    list(
+                        `name`="method", 
+                        `title`="Method", 
+                        `type`="text", 
+                        `combineBelow`=TRUE),
+                    list(
+                        `name`="actualGroup", 
+                        `title`="Actual Group", 
+                        `type`="text"),
+                    list(
+                        `name`="total", 
+                        `title`="Total (N)", 
+                        `type`="integer"),
+                    list(
+                        `name`="pctCorrect", 
+                        `title`="Correct (%)", 
+                        `type`="number", 
+                        `format`="dp:1"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="plot",
@@ -210,7 +306,9 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "covs",
                     "dep",
                     "width",
-                    "height")))
+                    "height",
+                    "showEllipse",
+                    "ellipseLevel")))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="discScoresTable",
@@ -288,7 +386,11 @@ DDABase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param coef .
 #' @param structCoef .
 #' @param gc .
+#' @param classTable .
+#' @param boxM .
 #' @param plot .
+#' @param showEllipse .
+#' @param ellipseLevel .
 #' @param width .
 #' @param height .
 #' @param discScores .
@@ -300,6 +402,8 @@ DDABase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$coef} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$structCoefTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$gc} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$boxMTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$classTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$plot} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$discScoresTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$pairwiseESTable} \tab \tab \tab \tab \tab a table \cr
@@ -320,7 +424,11 @@ DDA <- function(
     coef = TRUE,
     structCoef = TRUE,
     gc = TRUE,
+    classTable = FALSE,
+    boxM = FALSE,
     plot = FALSE,
+    showEllipse = TRUE,
+    ellipseLevel = 0.95,
     width = 500,
     height = 500,
     discScores = FALSE,
@@ -346,7 +454,11 @@ DDA <- function(
         coef = coef,
         structCoef = structCoef,
         gc = gc,
+        classTable = classTable,
+        boxM = boxM,
         plot = plot,
+        showEllipse = showEllipse,
+        ellipseLevel = ellipseLevel,
         width = width,
         height = height,
         discScores = discScores,

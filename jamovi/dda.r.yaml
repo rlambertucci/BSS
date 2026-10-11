@@ -64,6 +64,58 @@ items:
           type: text
           content: ($key)
 
+    - name: boxMTable
+      title: "Box's M Test for Homogeneity of Covariance"
+      type: Table
+      refs:
+        - Box1949
+      visible: (boxM)
+      clearWith:
+        - covs
+        - dep
+      columns:
+        - name: stat
+          title: "Box's M"
+          type: number
+          format: dp:3
+        - name: chi
+          title: "Chi-Square"
+          type: number
+          format: dp:3
+        - name: df
+          title: "df"
+          type: integer
+        - name: p
+          title: "p"
+          type: number
+          format: zto,pvalue
+
+    - name: classTable
+      title: Classification & Cross-Validation Matrix
+      type: Table
+      refs:
+        - MASS
+        - Fisher1936
+      visible: (classTable)
+      clearWith:
+        - covs
+        - dep
+      columns:
+        - name: method
+          title: Method
+          type: text
+          combineBelow: true
+        - name: actualGroup
+          title: Actual Group
+          type: text
+        - name: total
+          title: Total (N)
+          type: integer
+        - name: pctCorrect
+          title: Correct (%)
+          type: number
+          format: dp:1
+
     - name: plot
       title: Descriptive Discriminant Analysis Plot
       type: Image
@@ -77,6 +129,8 @@ items:
         - dep
         - width
         - height
+        - showEllipse
+        - ellipseLevel
 
     - name: discScoresTable
       title: Discriminant Scores

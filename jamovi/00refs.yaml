@@ -509,3 +509,25 @@ Rubin1987:
   publisher: "John Wiley & Sons"
   address: "New York"
   doi: "10.1002/9780470316696"
+
+Box1949:
+  type: article
+  author: "Box, G. E. P."
+  year: 1949
+  title: "A general distribution theory for a class of likelihood criteria"
+  journal: "Biometrika"
+  volume: 36
+  issue: 3-4
+  pages: "317-346"
+  doi: "10.1093/biomet/36.3-4.317"
+
+Fisher1936:
+  type: article
+  author: "Fisher, R. A."
+  year: 1936
+  title: "The use of multiple measurements in taxonomic problems"
+  journal: "Annals of Eugenics"
+  volume: 7
+  issue: 2
+  pages: "179-188"
+  doi: "10.1111/j.1469-1809.1936.tb02137.x"

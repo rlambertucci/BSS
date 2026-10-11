@@ -46,10 +46,32 @@ options:
   type: Bool
   default: TRUE
 
+- name: classTable
+  title: 'Classification & Cross-validation Matrix (LOOCV)'
+  type: Bool
+  default: FALSE
+
+- name: boxM
+  title: "Box's M test for equality of covariance matrices"
+  type: Bool
+  default: FALSE
+
 - name: plot
   title: 'DDA plot'
   type: Bool
   default: FALSE
+
+- name: showEllipse
+  title: 'Show confidence ellipses'
+  type: Bool
+  default: TRUE
+
+- name: ellipseLevel
+  title: 'Ellipse confidence level'
+  type: Number
+  default: 0.95
+  min: 0.50
+  max: 0.99
 
 - name: width
   type: Integer
