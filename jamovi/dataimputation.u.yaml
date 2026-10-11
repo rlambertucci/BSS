@@ -69,6 +69,8 @@ children:
                   - type: CheckBox
                     name: show_pattern_plot_mice_cs
                   - type: CheckBox
+                    name: show_upset_plot_mice_cs
+                  - type: CheckBox
                     name: show_pattern_table_mice_cs
                   - type: CheckBox
                     name: show_correlation_plot_mice_cs
@@ -84,6 +86,35 @@ children:
                   - type: CheckBox
                     name: show_pooled_summary_mice_cs
                     enable: (run_imputation_mice_cs)
+
+          - type: CollapseBox
+            label: Predictive Modeling (Rubin's Rules)
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: enable_model_pooling_mice_cs
+                    enable: (run_imputation_mice_cs)
+                  - type: ComboBox
+                    name: model_type_mice_cs
+                    enable: (enable_model_pooling_mice_cs)
+                  - type: TargetLayoutBox
+                    label: Dependent Variable (Y)
+                    children:
+                      - type: VariablesListBox
+                        name: model_dep_mice_cs
+                        maxItemCount: 1
+                        isTarget: true
+                  - type: TargetLayoutBox
+                    label: Predictors (X)
+                    children:
+                      - type: VariablesListBox
+                        name: model_indep_mice_cs
+                        isTarget: true
 
           - type: CollapseBox
             label: Save to Worksheet
@@ -208,6 +239,8 @@ children:
                   - type: CheckBox
                     name: show_pattern_plot_mice_long
                   - type: CheckBox
+                    name: show_upset_plot_mice_long
+                  - type: CheckBox
                     name: show_pattern_table_mice_long
                   - type: CheckBox
                     name: show_correlation_plot_mice_long
@@ -223,6 +256,35 @@ children:
                   - type: CheckBox
                     name: show_pooled_summary_mice_long
                     enable: (run_imputation_mice_long)
+
+          - type: CollapseBox
+            label: Predictive Modeling (Rubin's Rules)
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: enable_model_pooling_mice_long
+                    enable: (run_imputation_mice_long)
+                  - type: ComboBox
+                    name: model_type_mice_long
+                    enable: (enable_model_pooling_mice_long)
+                  - type: TargetLayoutBox
+                    label: Dependent Variable (Y)
+                    children:
+                      - type: VariablesListBox
+                        name: model_dep_mice_long
+                        maxItemCount: 1
+                        isTarget: true
+                  - type: TargetLayoutBox
+                    label: Predictors (X)
+                    children:
+                      - type: VariablesListBox
+                        name: model_indep_mice_long
+                        isTarget: true
 
           - type: CollapseBox
             label: Save to Worksheet
@@ -306,6 +368,8 @@ children:
                   - type: CheckBox
                     name: show_pattern_plot_mr
                   - type: CheckBox
+                    name: show_upset_plot_mr
+                  - type: CheckBox
                     name: show_pattern_table_mr
                   - type: CheckBox
                     name: show_correlation_plot_mr
@@ -318,6 +382,35 @@ children:
                   - type: CheckBox
                     name: show_pooled_summary_mr
                     enable: (run_imputation_mr)
+
+          - type: CollapseBox
+            label: Predictive Modeling (Rubin's Rules)
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: enable_model_pooling_mr
+                    enable: (run_imputation_mr)
+                  - type: ComboBox
+                    name: model_type_mr
+                    enable: (enable_model_pooling_mr)
+                  - type: TargetLayoutBox
+                    label: Dependent Variable (Y)
+                    children:
+                      - type: VariablesListBox
+                        name: model_dep_mr
+                        maxItemCount: 1
+                        isTarget: true
+                  - type: TargetLayoutBox
+                    label: Predictors (X)
+                    children:
+                      - type: VariablesListBox
+                        name: model_indep_mr
+                        isTarget: true
 
           - type: CollapseBox
             label: Save to Worksheet

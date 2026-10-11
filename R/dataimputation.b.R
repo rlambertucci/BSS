@@ -78,6 +78,7 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       run_imp        <- self$options$run_imputation_mice_cs
       
       show_pattern        <- self$options$show_pattern_plot_mice_cs
+      show_upset          <- isTRUE(self$options$show_upset_plot_mice_cs)
       show_pattern_table  <- self$options$show_pattern_table_mice_cs
       show_correlation    <- self$options$show_correlation_plot_mice_cs
       show_trace          <- self$options$show_trace_plot_mice_cs
@@ -117,6 +118,12 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       
       if (show_pattern) {
         self$results$patternPlot_mice_cs$setState(list(data = data, vars = vars_to_impute))
+      }
+      if (show_upset) {
+        self$results$upsetPlot_mice_cs$setState(list(data = data, vars = vars_to_impute))
+      }
+      if (nrow(data) > 10000) {
+        miss_table$setNote("large_sample", paste0("Large sample size detected (N = ", nrow(data), "). Imputation optimized with batch monitoring. Recommended settings: PMM with k <= 5 or num.trees <= 100."))
       }
       if (show_correlation) {
         private$.set_correlation_state(data, vars_to_impute, self$results$correlationPlot_mice_cs)
@@ -160,10 +167,21 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       
       pooled_data <- private$.pool_imputations(mice_obj, data_to_impute, vars_to_impute)
       
-      if (isTRUE(show_pooled_summary)) {
+      completed_list <- NULL
+      if (isTRUE(show_pooled_summary) || isTRUE(self$options$enable_model_pooling_mice_cs)) {
         completed_list <- lapply(seq_len(mice_obj$m), function(i) mice::complete(mice_obj, action = i))
+      }
+      
+      if (isTRUE(show_pooled_summary) && !is.null(completed_list)) {
         private$.fill_rubin_summary_table_datasets(
           completed_list, data, vars_to_impute, self$results$pooledSummaryTable_mice_cs
+        )
+      }
+      
+      if (isTRUE(self$options$enable_model_pooling_mice_cs) && !is.null(completed_list)) {
+        private$.runModelPooling(
+          completed_list, data, self$options$model_dep_mice_cs, self$options$model_indep_mice_cs,
+          self$options$model_type_mice_cs, self$results$modelPoolingTable_mice_cs
         )
       }
       
@@ -190,6 +208,7 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       wave_vars        <- self$options$wave_vars_mice_long
       
       show_pattern        <- self$options$show_pattern_plot_mice_long
+      show_upset          <- isTRUE(self$options$show_upset_plot_mice_long)
       show_pattern_table  <- self$options$show_pattern_table_mice_long
       show_correlation    <- self$options$show_correlation_plot_mice_long
       show_trace          <- self$options$show_trace_plot_mice_long
@@ -232,6 +251,12 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       
       if (show_pattern) {
         self$results$patternPlot_mice_long$setState(list(data = data, vars = vars_for_miss_table))
+      }
+      if (show_upset) {
+        self$results$upsetPlot_mice_long$setState(list(data = data, vars = vars_for_miss_table))
+      }
+      if (nrow(data) > 10000) {
+        miss_table$setNote("large_sample", paste0("Large sample size detected (N = ", nrow(data), "). Imputation optimized with batch monitoring. Recommended settings: PMM with k <= 5 or num.trees <= 100."))
       }
       if (show_correlation) {
         private$.set_correlation_state(data, vars_for_miss_table, self$results$correlationPlot_mice_long)
@@ -394,6 +419,13 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         }
       }
       
+      if (isTRUE(self)) {
+        models_list <- if (!is.null(wide_to_long_map)) completed_wide_list else lapply(seq_len(mice_obj), function(i) mice::complete(mice_obj, action = i))
+        private$.runModelPooling(
+          models_list, data, self, self,
+          self, self
+        )
+      }
       private$.fill_imputed_table(data, pooled_data, vars_to_impute, self$results$imputedData_mice_long)
       
       private$.write_output(pooled_data, vars_to_impute, data, self$results$imputedColsOutput_mice_long)
@@ -412,6 +444,7 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       run_imp        <- self$options$run_imputation_mr
       
       show_pattern        <- self$options$show_pattern_plot_mr
+      show_upset          <- isTRUE(self$options$show_upset_plot_mr)
       show_pattern_table  <- self$options$show_pattern_table_mr
       show_correlation    <- self$options$show_correlation_plot_mr
       show_density        <- self$options$show_density_plot_mr
@@ -449,6 +482,12 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       
       if (show_pattern) {
         self$results$patternPlot_mr$setState(list(data = data, vars = vars_to_impute))
+      }
+      if (show_upset) {
+        self$results$upsetPlot_mr$setState(list(data = data, vars = vars_to_impute))
+      }
+      if (nrow(data) > 10000) {
+        miss_table$setNote("large_sample", paste0("Large sample size detected (N = ", nrow(data), "). Imputation optimized with batch monitoring. Recommended settings: PMM with k <= 5 or num.trees <= 100."))
       }
       if (show_correlation) {
         private$.set_correlation_state(data, vars_to_impute, self$results$correlationPlot_mr)
@@ -536,6 +575,12 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
       
       if (isTRUE(show_pooled_summary)) {
         private$.fill_mr_summary_table(data_to_impute, imputed_data_result, vars_to_impute, self$results$pooledSummaryTable_mr)
+      }
+      if (isTRUE(self$options$enable_model_pooling_mr) && length(imp_list) > 0) {
+        private$.runModelPooling(
+          imp_list, data, self$options$model_dep_mr, self$options$model_indep_mr,
+          self$options$model_type_mr, self$results$modelPoolingTable_mr
+        )
       }
       
       private$.fill_imputed_table(data, imputed_data_result, vars_to_impute, self$results$imputedData_mr)
@@ -902,6 +947,195 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
     },
     .renderStripPlotMR = function(image, ggtheme, theme, ...) {
       private$.draw_mr_strip(image)
+    },
+
+    .renderUpsetPlotMiceCS = function(image, ggtheme, theme, ...) {
+      private$.draw_upset_plot(image)
+    },
+    .renderUpsetPlotMiceLong = function(image, ggtheme, theme, ...) {
+      private$.draw_upset_plot(image)
+    },
+    .renderUpsetPlotMR = function(image, ggtheme, theme, ...) {
+      private$.draw_upset_plot(image)
+    },
+    
+    .draw_upset_plot = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      state <- image$state
+      data <- state$data
+      vars <- intersect(state$vars, names(data))
+      if (length(vars) < 2) return(FALSE)
+      
+      sub_data <- data[, vars, drop = FALSE]
+      is_na_mat <- is.na(sub_data)
+      if (!any(is_na_mat)) {
+        p <- ggplot2::ggplot() +
+          ggplot2::annotate("text", x = 1, y = 1, label = "No missing values observed in the selected variables.", size = 4.5, color = "#555555") +
+          ggplot2::theme_void()
+        print(p)
+        return(TRUE)
+      }
+      
+      patterns <- apply(is_na_mat, 1, function(row) paste(as.integer(row), collapse = ""))
+      pat_counts <- sort(table(patterns), decreasing = TRUE)
+      
+      top_n <- min(15, length(pat_counts))
+      top_pats <- names(pat_counts)[1:top_n]
+      counts <- as.integer(pat_counts[1:top_n])
+      
+      top_df <- data.frame(
+        Pattern = factor(seq_len(top_n)),
+        Count   = counts
+      )
+      
+      p_list <- list()
+      line_list <- list()
+      for (i in seq_len(top_n)) {
+        bits <- as.integer(strsplit(top_pats[i], "")[[1]])
+        active_vars <- which(bits == 1)
+        for (v_idx in seq_along(vars)) {
+          p_list[[length(p_list) + 1]] <- data.frame(
+            Pattern = factor(i, levels = seq_len(top_n)),
+            Variable = factor(vars[v_idx], levels = rev(vars)),
+            IsMissing = (bits[v_idx] == 1)
+          )
+        }
+        if (length(active_vars) > 1) {
+          line_list[[length(line_list) + 1]] <- data.frame(
+            Pattern = factor(i, levels = seq_len(top_n)),
+            ymin = factor(vars[max(active_vars)], levels = rev(vars)),
+            ymax = factor(vars[min(active_vars)], levels = rev(vars))
+          )
+        }
+      }
+      mat_df <- do.call(rbind, p_list)
+      
+      p_top <- ggplot2::ggplot(top_df, ggplot2::aes(x = Pattern, y = Count)) +
+        ggplot2::geom_col(fill = "#1a5f7a", width = 0.6) +
+        ggplot2::geom_text(ggplot2::aes(label = Count), vjust = -0.4, size = 3.2) +
+        ggplot2::labs(title = "Missing Data Pattern Intersections (UpSet Plot)", y = "Intersection Size") +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(
+          axis.title.x = ggplot2::element_blank(),
+          axis.text.x = ggplot2::element_blank(),
+          axis.ticks.x = ggplot2::element_blank(),
+          plot.title = ggplot2::element_text(face = "bold", size = 12, color = "#1a5f7a"),
+          panel.grid.major.x = ggplot2::element_blank(),
+          panel.grid.minor = ggplot2::element_blank()
+        )
+      
+      p_bot <- ggplot2::ggplot(mat_df, ggplot2::aes(x = Pattern, y = Variable)) +
+        ggplot2::geom_point(ggplot2::aes(color = IsMissing, size = IsMissing)) +
+        ggplot2::scale_color_manual(values = c("TRUE" = "#1a5f7a", "FALSE" = "#d3d3d3"), guide = "none") +
+        ggplot2::scale_size_manual(values = c("TRUE" = 4.2, "FALSE" = 2.5), guide = "none") +
+        ggplot2::labs(x = "Pattern Combinations", y = NULL) +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(
+          panel.grid.major = ggplot2::element_line(color = "#f0f0f0"),
+          panel.grid.minor = ggplot2::element_blank(),
+          axis.text.x = ggplot2::element_blank(),
+          axis.text.y = ggplot2::element_text(face = "bold", size = 10)
+        )
+      
+      if (length(line_list) > 0) {
+        lines_df <- do.call(rbind, line_list)
+        p_bot <- p_bot + ggplot2::geom_linerange(data = lines_df, ggplot2::aes(x = Pattern, ymin = ymin, ymax = ymax), color = "#1a5f7a", linewidth = 1.1, inherit.aes = FALSE)
+      }
+      
+      combined <- cowplot::plot_grid(p_top, p_bot, ncol = 1, align = "v", rel_heights = c(1.2, 1))
+      print(combined)
+      TRUE
+    },
+    
+    .runModelPooling = function(completed_list, original_data, dep_var, indep_vars, model_type, table_ref) {
+      if (is.null(completed_list) || length(completed_list) == 0) return()
+      if (is.null(dep_var) || length(dep_var) == 0 || is.null(indep_vars) || length(indep_vars) == 0) return()
+      
+      m <- length(completed_list)
+      d1 <- completed_list[[1]]
+      if (!dep_var %in% names(d1) || !all(indep_vars %in% names(d1))) return()
+      
+      indep_bt <- paste0("`", indep_vars, "`")
+      dep_bt <- paste0("`", dep_var, "`")
+      fmla <- stats::as.formula(paste(dep_bt, "~", paste(indep_bt, collapse = " + ")))
+      
+      q_list <- list()
+      u_list <- list()
+      term_names <- NULL
+      
+      for (i in seq_len(m)) {
+        df_i <- completed_list[[i]]
+        fit_i <- tryCatch({
+          if (model_type == "logit") {
+            stats::glm(fmla, family = stats::binomial(), data = df_i)
+          } else {
+            stats::lm(fmla, data = df_i)
+          }
+        }, error = function(e) NULL)
+        
+        if (is.null(fit_i)) return()
+        
+        coef_tab <- stats::coef(summary(fit_i))
+        if (is.null(term_names)) term_names <- rownames(coef_tab)
+        
+        q_list[[i]] <- coef_tab[, 1]
+        u_list[[i]] <- (coef_tab[, 2])^2
+      }
+      
+      if (table_ref$rowCount > 0) table_ref$clear()
+      
+      q_mat <- do.call(rbind, q_list)
+      u_mat <- do.call(rbind, u_list)
+      n_total <- nrow(d1)
+      p_terms <- length(term_names)
+      
+      for (k in seq_along(term_names)) {
+        t_name <- term_names[k]
+        q_k <- q_mat[, k]
+        u_k <- u_mat[, k]
+        
+        q_bar <- mean(q_k)
+        u_bar <- mean(u_k)
+        b_var <- if (m > 1) stats::var(q_k) else 0
+        t_var <- u_bar + (1 + 1/m) * b_var
+        se_pooled <- sqrt(max(t_var, 0))
+        
+        rvi <- if (u_bar > 0) ((1 + 1/m) * b_var) / u_bar else 0
+        lambda <- if (t_var > 0) ((1 + 1/m) * b_var) / t_var else 0
+        
+        nu_com <- max(n_total - p_terms, 1)
+        nu_old <- if (b_var > 1e-12 && m > 1) (m - 1) * (1 + 1/rvi)^2 else 1000
+        nu_obs <- ((nu_com + 1) / (nu_com + 3)) * nu_com * (1 - lambda)
+        nu_adj <- if (b_var > 1e-12 && (nu_old + nu_obs) > 0) (nu_old * nu_obs) / (nu_old + nu_obs) else nu_com
+        nu_adj <- max(nu_adj, 1)
+        
+        stat_val <- if (se_pooled > 0) q_bar / se_pooled else NA_real_
+        p_val <- if (!is.na(stat_val)) 2 * stats::pt(abs(stat_val), df = nu_adj, lower.tail = FALSE) else NA_real_
+        
+        crit_t <- stats::qt(0.975, df = nu_adj)
+        ci_lower <- q_bar - crit_t * se_pooled
+        ci_upper <- q_bar + crit_t * se_pooled
+        
+        fmi <- (rvi + 2 / (nu_adj + 3)) / (1 + rvi)
+        
+        table_ref$addRow(rowKey = t_name, values = list(
+          term      = t_name,
+          estimate  = q_bar,
+          std_error = se_pooled,
+          statistic = stat_val,
+          df        = nu_adj,
+          p_value   = p_val,
+          ci_lower  = ci_lower,
+          ci_upper  = ci_upper,
+          rvi       = rvi,
+          fmi       = fmi
+        ))
+      }
+      
+      table_ref$setNote(
+        "citation",
+        "Note. Pooled parameter estimates and standard errors computed across m imputations using Rubin's rules with small-sample degrees of freedom adjustment (Barnard & Rubin, 1999). Citations: (1) Rubin, D. B. (1987). Multiple Imputation for Nonresponse in Surveys. (2) Barnard, J., & Rubin, D. B. (1999). Biometrika, 86(4), 948-955."
+      )
     },
     
     .draw_vim_pattern = function(image) {

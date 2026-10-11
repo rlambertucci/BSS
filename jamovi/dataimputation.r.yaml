@@ -150,6 +150,81 @@ items:
         type: number
         format: dp:3
 
+  - name: upsetPlot_mice_cs
+    title: Missing Data UpSet Plot
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderUpsetPlotMiceCS
+    visible: (mode == 'mice_cs' && show_upset_plot_mice_cs)
+    requiresData: true
+    refs:
+      - Lex2014
+      - ggplot2
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+
+  - name: modelPoolingTable_mice_cs
+    title: Pooled Model Estimates (Rubin's Rules)
+    type: Table
+    visible: (mode == 'mice_cs' && run_imputation_mice_cs && enable_model_pooling_mice_cs)
+    refs:
+      - Rubin1987
+      - BarnardRubin1999
+      - mice
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - run_imputation_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+      - model_type_mice_cs
+      - model_dep_mice_cs
+      - model_indep_mice_cs
+    columns:
+      - name: term
+        title: Term
+        type: text
+      - name: estimate
+        title: Estimate (Q)
+        type: number
+        format: dp:3
+      - name: std_error
+        title: SE (sqrt(T))
+        type: number
+        format: dp:3
+      - name: statistic
+        title: Statistic
+        type: number
+        format: dp:3
+      - name: df
+        title: df (adj)
+        type: number
+        format: dp:2
+      - name: p_value
+        title: p
+        type: number
+        format: zto,pvalue
+      - name: ci_lower
+        title: 95% CI Lower
+        type: number
+        format: dp:3
+      - name: ci_upper
+        title: 95% CI Upper
+        type: number
+        format: dp:3
+      - name: rvi
+        title: RVI
+        type: number
+        format: dp:3
+      - name: fmi
+        title: FMI
+        type: number
+        format: dp:3
+
   - name: patternPlot_mice_cs
     title: Missing Data Pattern (md.pattern)
     type: Image
@@ -413,6 +488,84 @@ items:
         type: number
         format: dp:3
 
+  - name: upsetPlot_mice_long
+    title: Missing Data UpSet Plot
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderUpsetPlotMiceLong
+    visible: (mode == 'mice_long' && show_upset_plot_mice_long)
+    requiresData: true
+    refs:
+      - Lex2014
+      - ggplot2
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - wave_vars_mice_long
+      - data_format_mice_long
+
+  - name: modelPoolingTable_mice_long
+    title: Pooled Model Estimates (Rubin's Rules)
+    type: Table
+    visible: (mode == 'mice_long' && run_imputation_mice_long && enable_model_pooling_mice_long)
+    refs:
+      - Rubin1987
+      - BarnardRubin1999
+      - mice
+      - miceadds
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - run_imputation_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - model_type_mice_long
+      - model_dep_mice_long
+      - model_indep_mice_long
+    columns:
+      - name: term
+        title: Term
+        type: text
+      - name: estimate
+        title: Estimate (Q)
+        type: number
+        format: dp:3
+      - name: std_error
+        title: SE (sqrt(T))
+        type: number
+        format: dp:3
+      - name: statistic
+        title: Statistic
+        type: number
+        format: dp:3
+      - name: df
+        title: df (adj)
+        type: number
+        format: dp:2
+      - name: p_value
+        title: p
+        type: number
+        format: zto,pvalue
+      - name: ci_lower
+        title: 95% CI Lower
+        type: number
+        format: dp:3
+      - name: ci_upper
+        title: 95% CI Upper
+        type: number
+        format: dp:3
+      - name: rvi
+        title: RVI
+        type: number
+        format: dp:3
+      - name: fmi
+        title: FMI
+        type: number
+        format: dp:3
+
   - name: patternPlot_mice_long
     title: Missing Data Pattern (md.pattern)
     type: Image
@@ -673,6 +826,83 @@ items:
         format: dp:3
       - name: diff_mean
         title: Mean Difference
+        type: number
+        format: dp:3
+
+  - name: upsetPlot_mr
+    title: Missing Data UpSet Plot
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderUpsetPlotMR
+    visible: (mode == 'missranger' && show_upset_plot_mr)
+    requiresData: true
+    refs:
+      - Lex2014
+      - ggplot2
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+
+  - name: modelPoolingTable_mr
+    title: Pooled Model Estimates (Rubin's Rules)
+    type: Table
+    visible: (mode == 'missranger' && run_imputation_mr && enable_model_pooling_mr)
+    refs:
+      - Rubin1987
+      - BarnardRubin1999
+      - missRanger
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+      - run_imputation_mr
+      - use_multiple_imputation_mr
+      - num_imputations_mr
+      - maxiter_mr
+      - num_trees_mr
+      - pmm_k_mr
+      - seed_mr
+      - model_type_mr
+      - model_dep_mr
+      - model_indep_mr
+    columns:
+      - name: term
+        title: Term
+        type: text
+      - name: estimate
+        title: Estimate (Q)
+        type: number
+        format: dp:3
+      - name: std_error
+        title: SE (sqrt(T))
+        type: number
+        format: dp:3
+      - name: statistic
+        title: Statistic
+        type: number
+        format: dp:3
+      - name: df
+        title: df (adj)
+        type: number
+        format: dp:2
+      - name: p_value
+        title: p
+        type: number
+        format: zto,pvalue
+      - name: ci_lower
+        title: 95% CI Lower
+        type: number
+        format: dp:3
+      - name: ci_upper
+        title: 95% CI Upper
+        type: number
+        format: dp:3
+      - name: rvi
+        title: RVI
+        type: number
+        format: dp:3
+      - name: fmi
+        title: FMI
         type: number
         format: dp:3
 

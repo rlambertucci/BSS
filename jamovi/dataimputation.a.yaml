@@ -119,6 +119,50 @@ options:
       type: Bool
       default: false
 
+    - name: show_upset_plot_mice_cs
+      title: Missing Data UpSet Plot
+      type: Bool
+      default: false
+
+    - name: enable_model_pooling_mice_cs
+      title: Predictive Modeling with Pooling
+      type: Bool
+      default: false
+
+    - name: model_type_mice_cs
+      title: Model Type
+      type: List
+      options:
+        - title: Linear Regression (OLS)
+          name: lm
+        - title: Logistic Regression (Binary)
+          name: logit
+        - title: ANOVA (Linear Model)
+          name: anova
+      default: lm
+
+    - name: model_dep_mice_cs
+      title: Dependent Variable (Y)
+      type: Variable
+      suggested:
+        - continuous
+        - nominal
+      permitted:
+        - numeric
+        - factor
+
+    - name: model_indep_mice_cs
+      title: Predictor Variables (X)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+
     - name: imputedColsOutput_mice_cs
       title: Save Imputed Variables (Pooled)
       type: Output
@@ -277,6 +321,50 @@ options:
       type: Bool
       default: false
 
+    - name: show_upset_plot_mice_long
+      title: Missing Data UpSet Plot
+      type: Bool
+      default: false
+
+    - name: enable_model_pooling_mice_long
+      title: Predictive Modeling with Pooling
+      type: Bool
+      default: false
+
+    - name: model_type_mice_long
+      title: Model Type
+      type: List
+      options:
+        - title: Linear Regression (OLS)
+          name: lm
+        - title: Logistic Regression (Binary)
+          name: logit
+        - title: ANOVA (Linear Model)
+          name: anova
+      default: lm
+
+    - name: model_dep_mice_long
+      title: Dependent Variable (Y)
+      type: Variable
+      suggested:
+        - continuous
+        - nominal
+      permitted:
+        - numeric
+        - factor
+
+    - name: model_indep_mice_long
+      title: Predictor Variables (X)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
+
     - name: imputedColsOutput_mice_long
       title: Save Imputed Variables (Pooled)
       type: Output
@@ -376,6 +464,50 @@ options:
       title: Pooled Parameter Summary
       type: Bool
       default: false
+
+    - name: show_upset_plot_mr
+      title: Missing Data UpSet Plot
+      type: Bool
+      default: false
+
+    - name: enable_model_pooling_mr
+      title: Predictive Modeling with Pooling
+      type: Bool
+      default: false
+
+    - name: model_type_mr
+      title: Model Type
+      type: List
+      options:
+        - title: Linear Regression (OLS)
+          name: lm
+        - title: Logistic Regression (Binary)
+          name: logit
+        - title: ANOVA (Linear Model)
+          name: anova
+      default: lm
+
+    - name: model_dep_mr
+      title: Dependent Variable (Y)
+      type: Variable
+      suggested:
+        - continuous
+        - nominal
+      permitted:
+        - numeric
+        - factor
+
+    - name: model_indep_mr
+      title: Predictor Variables (X)
+      type: Variables
+      suggested:
+        - continuous
+        - nominal
+        - ordinal
+      permitted:
+        - numeric
+        - factor
+
 
     - name: imputedColsOutput_mr
       title: Save Imputed Variables

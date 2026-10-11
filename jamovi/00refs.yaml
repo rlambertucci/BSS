@@ -771,3 +771,25 @@ Cochran1954:
   issue: 1
   pages: '101-129'
   doi: '10.2307/3001666'
+
+BarnardRubin1999:
+  type: article
+  author: "Barnard, J., & Rubin, D. B."
+  year: 1999
+  title: "Small-sample degrees of freedom with multiple imputation"
+  journal: "Biometrika"
+  volume: 86
+  issue: 4
+  pages: "948-955"
+  doi: "10.1093/biomet/86.4.948"
+
+Lex2014:
+  type: article
+  author: "Lex, A., Gehlenborg, N., Strobelt, H., Vuillemot, R., & Pfister, H."
+  year: 2014
+  title: "UpSet: Visualization of Intersecting Sets"
+  journal: "IEEE Transactions on Visualization and Computer Graphics"
+  volume: 20
+  issue: 12
+  pages: "1983-1992"
+  doi: "10.1109/TVCG.2014.2346248"

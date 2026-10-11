@@ -21,6 +21,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
             show_density_plot_mice_cs = FALSE,
             show_strip_plot_mice_cs = FALSE,
             show_pooled_summary_mice_cs = FALSE,
+            show_upset_plot_mice_cs = FALSE,
+            enable_model_pooling_mice_cs = FALSE,
+            model_type_mice_cs = "lm",
+            model_dep_mice_cs = NULL,
+            model_indep_mice_cs = NULL,
             vars_mice_long = NULL,
             predictor_vars_mice_long = NULL,
             data_format_mice_long = "wide",
@@ -41,6 +46,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
             show_density_plot_mice_long = FALSE,
             show_strip_plot_mice_long = FALSE,
             show_pooled_summary_mice_long = FALSE,
+            show_upset_plot_mice_long = FALSE,
+            enable_model_pooling_mice_long = FALSE,
+            model_type_mice_long = "lm",
+            model_dep_mice_long = NULL,
+            model_indep_mice_long = NULL,
             vars_mr = NULL,
             predictor_vars_mr = NULL,
             use_multiple_imputation_mr = FALSE,
@@ -55,7 +65,12 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
             show_correlation_plot_mr = FALSE,
             show_density_plot_mr = FALSE,
             show_strip_plot_mr = FALSE,
-            show_pooled_summary_mr = FALSE, ...) {
+            show_pooled_summary_mr = FALSE,
+            show_upset_plot_mr = FALSE,
+            enable_model_pooling_mr = FALSE,
+            model_type_mr = "lm",
+            model_dep_mr = NULL,
+            model_indep_mr = NULL, ...) {
 
             super$initialize(
                 package="BSS",
@@ -149,6 +164,41 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
                 "show_pooled_summary_mice_cs",
                 show_pooled_summary_mice_cs,
                 default=FALSE)
+            private$..show_upset_plot_mice_cs <- jmvcore::OptionBool$new(
+                "show_upset_plot_mice_cs",
+                show_upset_plot_mice_cs,
+                default=FALSE)
+            private$..enable_model_pooling_mice_cs <- jmvcore::OptionBool$new(
+                "enable_model_pooling_mice_cs",
+                enable_model_pooling_mice_cs,
+                default=FALSE)
+            private$..model_type_mice_cs <- jmvcore::OptionList$new(
+                "model_type_mice_cs",
+                model_type_mice_cs,
+                options=list(
+                    "lm",
+                    "logit",
+                    "anova"),
+                default="lm")
+            private$..model_dep_mice_cs <- jmvcore::OptionVariable$new(
+                "model_dep_mice_cs",
+                model_dep_mice_cs,
+                suggested=list(
+                    "continuous",
+                    "nominal"),
+                permitted=list(
+                    "numeric",
+                    "factor"))
+            private$..model_indep_mice_cs <- jmvcore::OptionVariables$new(
+                "model_indep_mice_cs",
+                model_indep_mice_cs,
+                suggested=list(
+                    "continuous",
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "numeric",
+                    "factor"))
             private$..imputedColsOutput_mice_cs <- jmvcore::OptionOutput$new(
                 "imputedColsOutput_mice_cs")
             private$..vars_mice_long <- jmvcore::OptionVariables$new(
@@ -281,6 +331,41 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
                 "show_pooled_summary_mice_long",
                 show_pooled_summary_mice_long,
                 default=FALSE)
+            private$..show_upset_plot_mice_long <- jmvcore::OptionBool$new(
+                "show_upset_plot_mice_long",
+                show_upset_plot_mice_long,
+                default=FALSE)
+            private$..enable_model_pooling_mice_long <- jmvcore::OptionBool$new(
+                "enable_model_pooling_mice_long",
+                enable_model_pooling_mice_long,
+                default=FALSE)
+            private$..model_type_mice_long <- jmvcore::OptionList$new(
+                "model_type_mice_long",
+                model_type_mice_long,
+                options=list(
+                    "lm",
+                    "logit",
+                    "anova"),
+                default="lm")
+            private$..model_dep_mice_long <- jmvcore::OptionVariable$new(
+                "model_dep_mice_long",
+                model_dep_mice_long,
+                suggested=list(
+                    "continuous",
+                    "nominal"),
+                permitted=list(
+                    "numeric",
+                    "factor"))
+            private$..model_indep_mice_long <- jmvcore::OptionVariables$new(
+                "model_indep_mice_long",
+                model_indep_mice_long,
+                suggested=list(
+                    "continuous",
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "numeric",
+                    "factor"))
             private$..imputedColsOutput_mice_long <- jmvcore::OptionOutput$new(
                 "imputedColsOutput_mice_long")
             private$..vars_mr <- jmvcore::OptionVariables$new(
@@ -364,6 +449,41 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
                 "show_pooled_summary_mr",
                 show_pooled_summary_mr,
                 default=FALSE)
+            private$..show_upset_plot_mr <- jmvcore::OptionBool$new(
+                "show_upset_plot_mr",
+                show_upset_plot_mr,
+                default=FALSE)
+            private$..enable_model_pooling_mr <- jmvcore::OptionBool$new(
+                "enable_model_pooling_mr",
+                enable_model_pooling_mr,
+                default=FALSE)
+            private$..model_type_mr <- jmvcore::OptionList$new(
+                "model_type_mr",
+                model_type_mr,
+                options=list(
+                    "lm",
+                    "logit",
+                    "anova"),
+                default="lm")
+            private$..model_dep_mr <- jmvcore::OptionVariable$new(
+                "model_dep_mr",
+                model_dep_mr,
+                suggested=list(
+                    "continuous",
+                    "nominal"),
+                permitted=list(
+                    "numeric",
+                    "factor"))
+            private$..model_indep_mr <- jmvcore::OptionVariables$new(
+                "model_indep_mr",
+                model_indep_mr,
+                suggested=list(
+                    "continuous",
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "numeric",
+                    "factor"))
             private$..imputedColsOutput_mr <- jmvcore::OptionOutput$new(
                 "imputedColsOutput_mr")
 
@@ -382,6 +502,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
             self$.addOption(private$..show_density_plot_mice_cs)
             self$.addOption(private$..show_strip_plot_mice_cs)
             self$.addOption(private$..show_pooled_summary_mice_cs)
+            self$.addOption(private$..show_upset_plot_mice_cs)
+            self$.addOption(private$..enable_model_pooling_mice_cs)
+            self$.addOption(private$..model_type_mice_cs)
+            self$.addOption(private$..model_dep_mice_cs)
+            self$.addOption(private$..model_indep_mice_cs)
             self$.addOption(private$..imputedColsOutput_mice_cs)
             self$.addOption(private$..vars_mice_long)
             self$.addOption(private$..predictor_vars_mice_long)
@@ -403,6 +528,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
             self$.addOption(private$..show_density_plot_mice_long)
             self$.addOption(private$..show_strip_plot_mice_long)
             self$.addOption(private$..show_pooled_summary_mice_long)
+            self$.addOption(private$..show_upset_plot_mice_long)
+            self$.addOption(private$..enable_model_pooling_mice_long)
+            self$.addOption(private$..model_type_mice_long)
+            self$.addOption(private$..model_dep_mice_long)
+            self$.addOption(private$..model_indep_mice_long)
             self$.addOption(private$..imputedColsOutput_mice_long)
             self$.addOption(private$..vars_mr)
             self$.addOption(private$..predictor_vars_mr)
@@ -419,6 +549,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
             self$.addOption(private$..show_density_plot_mr)
             self$.addOption(private$..show_strip_plot_mr)
             self$.addOption(private$..show_pooled_summary_mr)
+            self$.addOption(private$..show_upset_plot_mr)
+            self$.addOption(private$..enable_model_pooling_mr)
+            self$.addOption(private$..model_type_mr)
+            self$.addOption(private$..model_dep_mr)
+            self$.addOption(private$..model_indep_mr)
             self$.addOption(private$..imputedColsOutput_mr)
         }),
     active = list(
@@ -437,6 +572,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         show_density_plot_mice_cs = function() private$..show_density_plot_mice_cs$value,
         show_strip_plot_mice_cs = function() private$..show_strip_plot_mice_cs$value,
         show_pooled_summary_mice_cs = function() private$..show_pooled_summary_mice_cs$value,
+        show_upset_plot_mice_cs = function() private$..show_upset_plot_mice_cs$value,
+        enable_model_pooling_mice_cs = function() private$..enable_model_pooling_mice_cs$value,
+        model_type_mice_cs = function() private$..model_type_mice_cs$value,
+        model_dep_mice_cs = function() private$..model_dep_mice_cs$value,
+        model_indep_mice_cs = function() private$..model_indep_mice_cs$value,
         imputedColsOutput_mice_cs = function() private$..imputedColsOutput_mice_cs$value,
         vars_mice_long = function() private$..vars_mice_long$value,
         predictor_vars_mice_long = function() private$..predictor_vars_mice_long$value,
@@ -458,6 +598,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         show_density_plot_mice_long = function() private$..show_density_plot_mice_long$value,
         show_strip_plot_mice_long = function() private$..show_strip_plot_mice_long$value,
         show_pooled_summary_mice_long = function() private$..show_pooled_summary_mice_long$value,
+        show_upset_plot_mice_long = function() private$..show_upset_plot_mice_long$value,
+        enable_model_pooling_mice_long = function() private$..enable_model_pooling_mice_long$value,
+        model_type_mice_long = function() private$..model_type_mice_long$value,
+        model_dep_mice_long = function() private$..model_dep_mice_long$value,
+        model_indep_mice_long = function() private$..model_indep_mice_long$value,
         imputedColsOutput_mice_long = function() private$..imputedColsOutput_mice_long$value,
         vars_mr = function() private$..vars_mr$value,
         predictor_vars_mr = function() private$..predictor_vars_mr$value,
@@ -474,6 +619,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         show_density_plot_mr = function() private$..show_density_plot_mr$value,
         show_strip_plot_mr = function() private$..show_strip_plot_mr$value,
         show_pooled_summary_mr = function() private$..show_pooled_summary_mr$value,
+        show_upset_plot_mr = function() private$..show_upset_plot_mr$value,
+        enable_model_pooling_mr = function() private$..enable_model_pooling_mr$value,
+        model_type_mr = function() private$..model_type_mr$value,
+        model_dep_mr = function() private$..model_dep_mr$value,
+        model_indep_mr = function() private$..model_indep_mr$value,
         imputedColsOutput_mr = function() private$..imputedColsOutput_mr$value),
     private = list(
         ..mode = NA,
@@ -491,6 +641,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         ..show_density_plot_mice_cs = NA,
         ..show_strip_plot_mice_cs = NA,
         ..show_pooled_summary_mice_cs = NA,
+        ..show_upset_plot_mice_cs = NA,
+        ..enable_model_pooling_mice_cs = NA,
+        ..model_type_mice_cs = NA,
+        ..model_dep_mice_cs = NA,
+        ..model_indep_mice_cs = NA,
         ..imputedColsOutput_mice_cs = NA,
         ..vars_mice_long = NA,
         ..predictor_vars_mice_long = NA,
@@ -512,6 +667,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         ..show_density_plot_mice_long = NA,
         ..show_strip_plot_mice_long = NA,
         ..show_pooled_summary_mice_long = NA,
+        ..show_upset_plot_mice_long = NA,
+        ..enable_model_pooling_mice_long = NA,
+        ..model_type_mice_long = NA,
+        ..model_dep_mice_long = NA,
+        ..model_indep_mice_long = NA,
         ..imputedColsOutput_mice_long = NA,
         ..vars_mr = NA,
         ..predictor_vars_mr = NA,
@@ -528,6 +688,11 @@ dataimputationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         ..show_density_plot_mr = NA,
         ..show_strip_plot_mr = NA,
         ..show_pooled_summary_mr = NA,
+        ..show_upset_plot_mr = NA,
+        ..enable_model_pooling_mr = NA,
+        ..model_type_mr = NA,
+        ..model_dep_mr = NA,
+        ..model_indep_mr = NA,
         ..imputedColsOutput_mr = NA)
 )
 
@@ -540,6 +705,8 @@ dataimputationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         patternTable_mice_cs = function() private$.items[["patternTable_mice_cs"]],
         imputedData_mice_cs = function() private$.items[["imputedData_mice_cs"]],
         pooledSummaryTable_mice_cs = function() private$.items[["pooledSummaryTable_mice_cs"]],
+        upsetPlot_mice_cs = function() private$.items[["upsetPlot_mice_cs"]],
+        modelPoolingTable_mice_cs = function() private$.items[["modelPoolingTable_mice_cs"]],
         patternPlot_mice_cs = function() private$.items[["patternPlot_mice_cs"]],
         correlationPlot_mice_cs = function() private$.items[["correlationPlot_mice_cs"]],
         tracePlot_mice_cs = function() private$.items[["tracePlot_mice_cs"]],
@@ -551,6 +718,8 @@ dataimputationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         patternTable_mice_long = function() private$.items[["patternTable_mice_long"]],
         imputedData_mice_long = function() private$.items[["imputedData_mice_long"]],
         pooledSummaryTable_mice_long = function() private$.items[["pooledSummaryTable_mice_long"]],
+        upsetPlot_mice_long = function() private$.items[["upsetPlot_mice_long"]],
+        modelPoolingTable_mice_long = function() private$.items[["modelPoolingTable_mice_long"]],
         patternPlot_mice_long = function() private$.items[["patternPlot_mice_long"]],
         correlationPlot_mice_long = function() private$.items[["correlationPlot_mice_long"]],
         tracePlot_mice_long = function() private$.items[["tracePlot_mice_long"]],
@@ -562,6 +731,8 @@ dataimputationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
         patternTable_mr = function() private$.items[["patternTable_mr"]],
         imputedData_mr = function() private$.items[["imputedData_mr"]],
         pooledSummaryTable_mr = function() private$.items[["pooledSummaryTable_mr"]],
+        upsetPlot_mr = function() private$.items[["upsetPlot_mr"]],
+        modelPoolingTable_mr = function() private$.items[["modelPoolingTable_mr"]],
         patternPlot_mr = function() private$.items[["patternPlot_mr"]],
         correlationPlot_mr = function() private$.items[["correlationPlot_mr"]],
         densityPlot_mr = function() private$.items[["densityPlot_mr"]],
@@ -744,6 +915,91 @@ dataimputationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
                     list(
                         `name`="ci_upper", 
                         `title`="95% CI Upper", 
+                        `type`="number", 
+                        `format`="dp:3"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="upsetPlot_mice_cs",
+                title="Missing Data UpSet Plot",
+                width=700,
+                height=500,
+                renderFun=".renderUpsetPlotMiceCS",
+                visible="(mode == 'mice_cs' && show_upset_plot_mice_cs)",
+                requiresData=TRUE,
+                refs=list(
+                    "Lex2014",
+                    "ggplot2"),
+                clearWith=list(
+                    "vars_mice_cs",
+                    "predictor_vars_mice_cs")))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="modelPoolingTable_mice_cs",
+                title="Pooled Model Estimates (Rubin's Rules)",
+                visible="(mode == 'mice_cs' && run_imputation_mice_cs && enable_model_pooling_mice_cs)",
+                refs=list(
+                    "Rubin1987",
+                    "BarnardRubin1999",
+                    "mice"),
+                clearWith=list(
+                    "vars_mice_cs",
+                    "predictor_vars_mice_cs",
+                    "run_imputation_mice_cs",
+                    "imputation_method_mice_cs",
+                    "num_imputations_mice_cs",
+                    "maxiter_mice_cs",
+                    "seed_mice_cs",
+                    "model_type_mice_cs",
+                    "model_dep_mice_cs",
+                    "model_indep_mice_cs"),
+                columns=list(
+                    list(
+                        `name`="term", 
+                        `title`="Term", 
+                        `type`="text"),
+                    list(
+                        `name`="estimate", 
+                        `title`="Estimate (Q)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="std_error", 
+                        `title`="SE (sqrt(T))", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="statistic", 
+                        `title`="Statistic", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="df", 
+                        `title`="df (adj)", 
+                        `type`="number", 
+                        `format`="dp:2"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"),
+                    list(
+                        `name`="ci_lower", 
+                        `title`="95% CI Lower", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_upper", 
+                        `title`="95% CI Upper", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="rvi", 
+                        `title`="RVI", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="fmi", 
+                        `title`="FMI", 
                         `type`="number", 
                         `format`="dp:3"))))
             self$add(jmvcore::Image$new(
@@ -1037,6 +1293,94 @@ dataimputationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
                         `format`="dp:3"))))
             self$add(jmvcore::Image$new(
                 options=options,
+                name="upsetPlot_mice_long",
+                title="Missing Data UpSet Plot",
+                width=700,
+                height=500,
+                renderFun=".renderUpsetPlotMiceLong",
+                visible="(mode == 'mice_long' && show_upset_plot_mice_long)",
+                requiresData=TRUE,
+                refs=list(
+                    "Lex2014",
+                    "ggplot2"),
+                clearWith=list(
+                    "vars_mice_long",
+                    "predictor_vars_mice_long",
+                    "wave_vars_mice_long",
+                    "data_format_mice_long")))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="modelPoolingTable_mice_long",
+                title="Pooled Model Estimates (Rubin's Rules)",
+                visible="(mode == 'mice_long' && run_imputation_mice_long && enable_model_pooling_mice_long)",
+                refs=list(
+                    "Rubin1987",
+                    "BarnardRubin1999",
+                    "mice",
+                    "miceadds"),
+                clearWith=list(
+                    "vars_mice_long",
+                    "predictor_vars_mice_long",
+                    "run_imputation_mice_long",
+                    "imputation_method_mice_long",
+                    "num_imputations_mice_long",
+                    "maxiter_mice_long",
+                    "seed_mice_long",
+                    "model_type_mice_long",
+                    "model_dep_mice_long",
+                    "model_indep_mice_long"),
+                columns=list(
+                    list(
+                        `name`="term", 
+                        `title`="Term", 
+                        `type`="text"),
+                    list(
+                        `name`="estimate", 
+                        `title`="Estimate (Q)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="std_error", 
+                        `title`="SE (sqrt(T))", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="statistic", 
+                        `title`="Statistic", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="df", 
+                        `title`="df (adj)", 
+                        `type`="number", 
+                        `format`="dp:2"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"),
+                    list(
+                        `name`="ci_lower", 
+                        `title`="95% CI Lower", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_upper", 
+                        `title`="95% CI Upper", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="rvi", 
+                        `title`="RVI", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="fmi", 
+                        `title`="FMI", 
+                        `type`="number", 
+                        `format`="dp:3"))))
+            self$add(jmvcore::Image$new(
+                options=options,
                 name="patternPlot_mice_long",
                 title="Missing Data Pattern (md.pattern)",
                 width=700,
@@ -1322,6 +1666,93 @@ dataimputationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cl
                         `format`="dp:3"))))
             self$add(jmvcore::Image$new(
                 options=options,
+                name="upsetPlot_mr",
+                title="Missing Data UpSet Plot",
+                width=700,
+                height=500,
+                renderFun=".renderUpsetPlotMR",
+                visible="(mode == 'missranger' && show_upset_plot_mr)",
+                requiresData=TRUE,
+                refs=list(
+                    "Lex2014",
+                    "ggplot2"),
+                clearWith=list(
+                    "vars_mr",
+                    "predictor_vars_mr")))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="modelPoolingTable_mr",
+                title="Pooled Model Estimates (Rubin's Rules)",
+                visible="(mode == 'missranger' && run_imputation_mr && enable_model_pooling_mr)",
+                refs=list(
+                    "Rubin1987",
+                    "BarnardRubin1999",
+                    "missRanger"),
+                clearWith=list(
+                    "vars_mr",
+                    "predictor_vars_mr",
+                    "run_imputation_mr",
+                    "use_multiple_imputation_mr",
+                    "num_imputations_mr",
+                    "maxiter_mr",
+                    "num_trees_mr",
+                    "pmm_k_mr",
+                    "seed_mr",
+                    "model_type_mr",
+                    "model_dep_mr",
+                    "model_indep_mr"),
+                columns=list(
+                    list(
+                        `name`="term", 
+                        `title`="Term", 
+                        `type`="text"),
+                    list(
+                        `name`="estimate", 
+                        `title`="Estimate (Q)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="std_error", 
+                        `title`="SE (sqrt(T))", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="statistic", 
+                        `title`="Statistic", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="df", 
+                        `title`="df (adj)", 
+                        `type`="number", 
+                        `format`="dp:2"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"),
+                    list(
+                        `name`="ci_lower", 
+                        `title`="95% CI Lower", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_upper", 
+                        `title`="95% CI Upper", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="rvi", 
+                        `title`="RVI", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="fmi", 
+                        `title`="FMI", 
+                        `type`="number", 
+                        `format`="dp:3"))))
+            self$add(jmvcore::Image$new(
+                options=options,
                 name="patternPlot_mr",
                 title="Missing Data Pattern (md.pattern)",
                 width=700,
@@ -1447,6 +1878,11 @@ dataimputationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class
 #' @param show_density_plot_mice_cs .
 #' @param show_strip_plot_mice_cs .
 #' @param show_pooled_summary_mice_cs .
+#' @param show_upset_plot_mice_cs .
+#' @param enable_model_pooling_mice_cs .
+#' @param model_type_mice_cs .
+#' @param model_dep_mice_cs .
+#' @param model_indep_mice_cs .
 #' @param vars_mice_long .
 #' @param predictor_vars_mice_long .
 #' @param data_format_mice_long .
@@ -1467,6 +1903,11 @@ dataimputationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class
 #' @param show_density_plot_mice_long .
 #' @param show_strip_plot_mice_long .
 #' @param show_pooled_summary_mice_long .
+#' @param show_upset_plot_mice_long .
+#' @param enable_model_pooling_mice_long .
+#' @param model_type_mice_long .
+#' @param model_dep_mice_long .
+#' @param model_indep_mice_long .
 #' @param vars_mr .
 #' @param predictor_vars_mr .
 #' @param use_multiple_imputation_mr .
@@ -1482,6 +1923,11 @@ dataimputationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class
 #' @param show_density_plot_mr .
 #' @param show_strip_plot_mr .
 #' @param show_pooled_summary_mr .
+#' @param show_upset_plot_mr .
+#' @param enable_model_pooling_mr .
+#' @param model_type_mr .
+#' @param model_dep_mr .
+#' @param model_indep_mr .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$imputationInfo_mice_cs} \tab \tab \tab \tab \tab a html \cr
@@ -1489,6 +1935,8 @@ dataimputationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class
 #'   \code{results$patternTable_mice_cs} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$imputedData_mice_cs} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$pooledSummaryTable_mice_cs} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$upsetPlot_mice_cs} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$modelPoolingTable_mice_cs} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$patternPlot_mice_cs} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$correlationPlot_mice_cs} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$tracePlot_mice_cs} \tab \tab \tab \tab \tab an image \cr
@@ -1500,6 +1948,8 @@ dataimputationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class
 #'   \code{results$patternTable_mice_long} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$imputedData_mice_long} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$pooledSummaryTable_mice_long} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$upsetPlot_mice_long} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$modelPoolingTable_mice_long} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$patternPlot_mice_long} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$correlationPlot_mice_long} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$tracePlot_mice_long} \tab \tab \tab \tab \tab an image \cr
@@ -1511,6 +1961,8 @@ dataimputationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class
 #'   \code{results$patternTable_mr} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$imputedData_mr} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$pooledSummaryTable_mr} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$upsetPlot_mr} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$modelPoolingTable_mr} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$patternPlot_mr} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$correlationPlot_mr} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$densityPlot_mr} \tab \tab \tab \tab \tab an image \cr
@@ -1542,6 +1994,11 @@ dataimputation <- function(
     show_density_plot_mice_cs = FALSE,
     show_strip_plot_mice_cs = FALSE,
     show_pooled_summary_mice_cs = FALSE,
+    show_upset_plot_mice_cs = FALSE,
+    enable_model_pooling_mice_cs = FALSE,
+    model_type_mice_cs = "lm",
+    model_dep_mice_cs,
+    model_indep_mice_cs,
     vars_mice_long,
     predictor_vars_mice_long,
     data_format_mice_long = "wide",
@@ -1562,6 +2019,11 @@ dataimputation <- function(
     show_density_plot_mice_long = FALSE,
     show_strip_plot_mice_long = FALSE,
     show_pooled_summary_mice_long = FALSE,
+    show_upset_plot_mice_long = FALSE,
+    enable_model_pooling_mice_long = FALSE,
+    model_type_mice_long = "lm",
+    model_dep_mice_long,
+    model_indep_mice_long,
     vars_mr,
     predictor_vars_mr,
     use_multiple_imputation_mr = FALSE,
@@ -1576,13 +2038,20 @@ dataimputation <- function(
     show_correlation_plot_mr = FALSE,
     show_density_plot_mr = FALSE,
     show_strip_plot_mr = FALSE,
-    show_pooled_summary_mr = FALSE) {
+    show_pooled_summary_mr = FALSE,
+    show_upset_plot_mr = FALSE,
+    enable_model_pooling_mr = FALSE,
+    model_type_mr = "lm",
+    model_dep_mr,
+    model_indep_mr) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("dataimputation requires jmvcore to be installed (restart may be required)")
 
     if ( ! missing(vars_mice_cs)) vars_mice_cs <- jmvcore::resolveQuo(jmvcore::enquo(vars_mice_cs))
     if ( ! missing(predictor_vars_mice_cs)) predictor_vars_mice_cs <- jmvcore::resolveQuo(jmvcore::enquo(predictor_vars_mice_cs))
+    if ( ! missing(model_dep_mice_cs)) model_dep_mice_cs <- jmvcore::resolveQuo(jmvcore::enquo(model_dep_mice_cs))
+    if ( ! missing(model_indep_mice_cs)) model_indep_mice_cs <- jmvcore::resolveQuo(jmvcore::enquo(model_indep_mice_cs))
     if ( ! missing(vars_mice_long)) vars_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(vars_mice_long))
     if ( ! missing(predictor_vars_mice_long)) predictor_vars_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(predictor_vars_mice_long))
     if ( ! missing(subject_id_var_mice_long)) subject_id_var_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(subject_id_var_mice_long))
@@ -1590,13 +2059,19 @@ dataimputation <- function(
     if ( ! missing(group_var_mice_long)) group_var_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(group_var_mice_long))
     if ( ! missing(fixed_covariates_mice_long)) fixed_covariates_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(fixed_covariates_mice_long))
     if ( ! missing(wave_vars_mice_long)) wave_vars_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(wave_vars_mice_long))
+    if ( ! missing(model_dep_mice_long)) model_dep_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(model_dep_mice_long))
+    if ( ! missing(model_indep_mice_long)) model_indep_mice_long <- jmvcore::resolveQuo(jmvcore::enquo(model_indep_mice_long))
     if ( ! missing(vars_mr)) vars_mr <- jmvcore::resolveQuo(jmvcore::enquo(vars_mr))
     if ( ! missing(predictor_vars_mr)) predictor_vars_mr <- jmvcore::resolveQuo(jmvcore::enquo(predictor_vars_mr))
+    if ( ! missing(model_dep_mr)) model_dep_mr <- jmvcore::resolveQuo(jmvcore::enquo(model_dep_mr))
+    if ( ! missing(model_indep_mr)) model_indep_mr <- jmvcore::resolveQuo(jmvcore::enquo(model_indep_mr))
     if (missing(data))
         data <- jmvcore::marshalData(
             parent.frame(),
             `if`( ! missing(vars_mice_cs), vars_mice_cs, NULL),
             `if`( ! missing(predictor_vars_mice_cs), predictor_vars_mice_cs, NULL),
+            `if`( ! missing(model_dep_mice_cs), model_dep_mice_cs, NULL),
+            `if`( ! missing(model_indep_mice_cs), model_indep_mice_cs, NULL),
             `if`( ! missing(vars_mice_long), vars_mice_long, NULL),
             `if`( ! missing(predictor_vars_mice_long), predictor_vars_mice_long, NULL),
             `if`( ! missing(subject_id_var_mice_long), subject_id_var_mice_long, NULL),
@@ -1604,8 +2079,12 @@ dataimputation <- function(
             `if`( ! missing(group_var_mice_long), group_var_mice_long, NULL),
             `if`( ! missing(fixed_covariates_mice_long), fixed_covariates_mice_long, NULL),
             `if`( ! missing(wave_vars_mice_long), wave_vars_mice_long, NULL),
+            `if`( ! missing(model_dep_mice_long), model_dep_mice_long, NULL),
+            `if`( ! missing(model_indep_mice_long), model_indep_mice_long, NULL),
             `if`( ! missing(vars_mr), vars_mr, NULL),
-            `if`( ! missing(predictor_vars_mr), predictor_vars_mr, NULL))
+            `if`( ! missing(predictor_vars_mr), predictor_vars_mr, NULL),
+            `if`( ! missing(model_dep_mr), model_dep_mr, NULL),
+            `if`( ! missing(model_indep_mr), model_indep_mr, NULL))
 
 
     options <- dataimputationOptions$new(
@@ -1624,6 +2103,11 @@ dataimputation <- function(
         show_density_plot_mice_cs = show_density_plot_mice_cs,
         show_strip_plot_mice_cs = show_strip_plot_mice_cs,
         show_pooled_summary_mice_cs = show_pooled_summary_mice_cs,
+        show_upset_plot_mice_cs = show_upset_plot_mice_cs,
+        enable_model_pooling_mice_cs = enable_model_pooling_mice_cs,
+        model_type_mice_cs = model_type_mice_cs,
+        model_dep_mice_cs = model_dep_mice_cs,
+        model_indep_mice_cs = model_indep_mice_cs,
         vars_mice_long = vars_mice_long,
         predictor_vars_mice_long = predictor_vars_mice_long,
         data_format_mice_long = data_format_mice_long,
@@ -1644,6 +2128,11 @@ dataimputation <- function(
         show_density_plot_mice_long = show_density_plot_mice_long,
         show_strip_plot_mice_long = show_strip_plot_mice_long,
         show_pooled_summary_mice_long = show_pooled_summary_mice_long,
+        show_upset_plot_mice_long = show_upset_plot_mice_long,
+        enable_model_pooling_mice_long = enable_model_pooling_mice_long,
+        model_type_mice_long = model_type_mice_long,
+        model_dep_mice_long = model_dep_mice_long,
+        model_indep_mice_long = model_indep_mice_long,
         vars_mr = vars_mr,
         predictor_vars_mr = predictor_vars_mr,
         use_multiple_imputation_mr = use_multiple_imputation_mr,
@@ -1658,7 +2147,12 @@ dataimputation <- function(
         show_correlation_plot_mr = show_correlation_plot_mr,
         show_density_plot_mr = show_density_plot_mr,
         show_strip_plot_mr = show_strip_plot_mr,
-        show_pooled_summary_mr = show_pooled_summary_mr)
+        show_pooled_summary_mr = show_pooled_summary_mr,
+        show_upset_plot_mr = show_upset_plot_mr,
+        enable_model_pooling_mr = enable_model_pooling_mr,
+        model_type_mr = model_type_mr,
+        model_dep_mr = model_dep_mr,
+        model_indep_mr = model_indep_mr)
 
     analysis <- dataimputationClass$new(
         options = options,
