@@ -418,3 +418,33 @@ options:
       min: 0
       max: 1
       default: 0.5
+
+    - name: showFormattedTable
+      title: APA 7th Formatted HTML Table (Ready for Copy / Export)
+      type: Bool
+      default: false
+
+    - name: showCorrMatrix
+      title: Correlation Matrix with Significance Stars
+      type: Bool
+      default: false
+
+    - name: corrMethod
+      title: Correlation Method
+      type: List
+      options:
+        - name: pearson
+          title: Pearson (r)
+        - name: spearman
+          title: Spearman (rho)
+      default: pearson
+
+    - name: showCorrHeatmap
+      title: Correlation Heatmap
+      type: Bool
+      default: false
+
+    - name: corrCluster
+      title: Hierarchical Clustering in Heatmap
+      type: Bool
+      default: false

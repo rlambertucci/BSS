@@ -570,8 +570,16 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         )
         self$results$plots$get(key = dep_key)$setState(state)
       }
+      if (isTRUE(self$options$showFormattedTable) && isTRUE(showTable)) {
+        private$.generateApaHtml(table)
+      }
+
+      num_vars <- if (analysisType == 'cross_sectional') self$options$deps else self$options$rm_vars
+      if (length(num_vars) >= 2) {
+        private$.runCorrelationMatrix(num_vars, data, self$options$corrMethod)
+        private$.setHeatmapState(num_vars, data, self$options$corrMethod, self$options$corrCluster)
+      }
     },
-    
     .formatTableByNorm = function(table) {
       format <- self$options$tableFormat
       title <- self$options$tableTitle
@@ -796,6 +804,139 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       base <- pals[[palette]]; if (is.null(base)) base <- pals$set1
       if (n <= length(base)) return(base[1:n])
       return(grDevices::colorRampPalette(base)(n))
+    }
+    ,
+    .generateApaHtml = function(table) {
+      df <- tryCatch(table$asDF, error = function(e) NULL)
+      if (is.null(df) || nrow(df) == 0) return()
+      
+      title_text <- if (nzchar(self$options$tableTitle)) self$options$tableTitle else 'Descriptive Statistics by Group'
+      note_text <- if (nzchar(self$options$tableNote)) self$options$tableNote else 'Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
+      
+      col_names <- colnames(df)
+      header_html <- paste0('<tr>', paste0(sapply(col_names, function(c) paste0('<th style="padding: 6px 12px; font-weight: bold; border-bottom: 1px solid #000; text-align: left;">', c, '</th>')), collapse = ''), '</tr>')
+      
+      rows_html <- character(nrow(df))
+      for (i in seq_len(nrow(df))) {
+        row_vals <- df[i, ]
+        cells <- sapply(row_vals, function(v) {
+          val_str <- if (is.numeric(v)) sprintf('%.2f', v) else as.character(v)
+          paste0('<td style="padding: 5px 12px; text-align: left;">', val_str, '</td>')
+        })
+        rows_html[i] <- paste0('<tr>', paste0(cells, collapse = ''), '</tr>')
+      }
+      
+      html_content <- paste0(
+        '<div style="font-family: Times New Roman, serif; font-size: 13px; color: #111; max-width: 900px; margin: 15px 0;">',
+        '<p style="font-weight: bold; margin-bottom: 2px;">Table 1</p>',
+        '<p style="font-style: italic; margin-top: 0; margin-bottom: 10px;">', title_text, '</p>',
+        '<table style="border-collapse: collapse; width: 100%; border-top: 2px solid #000; border-bottom: 2px solid #000;">',
+        '<thead>', header_html, '</thead>',
+        '<tbody>', paste0(rows_html, collapse = ''), '</tbody>',
+        '</table>',
+        '<p style="font-size: 11px; margin-top: 8px; font-style: italic;">', note_text, '</p>',
+        '</div>'
+      )
+      self$results$formattedTable$setContent(html_content)
+    },
+    
+    .syncCorrTableColumns = function(corr_tbl, num_vars) {
+      get_col_names <- function(tbl) {
+        tryCatch(sapply(tbl$columns, function(col) col$name), error = function(e) character(0))
+      }
+      current_cols <- get_col_names(corr_tbl)
+      for (j in seq_along(num_vars)) {
+        col_id <- paste0('col_', j)
+        if (!col_id %in% current_cols) {
+          corr_tbl$addColumn(name = col_id, title = as.character(j), type = 'text')
+        }
+      }
+    },
+    
+    .runCorrelationMatrix = function(num_vars, data, method) {
+      if (!isTRUE(self$options$showCorrMatrix)) return()
+      tbl <- self$results$corrMatrixTable
+      tbl$deleteRows()
+      private$.syncCorrTableColumns(tbl, num_vars)
+      
+      k <- length(num_vars)
+      for (i in seq_len(k)) {
+        v_i <- num_vars[i]
+        vals_i <- private$.to_numeric_vec(data[[v_i]])
+        m <- mean(vals_i, na.rm = TRUE)
+        s <- stats::sd(vals_i, na.rm = TRUE)
+        row_vals <- list(num = as.character(i), var = v_i, mean = m, sd = s)
+        
+        for (j in seq_len(k)) {
+          col_id <- paste0('col_', j)
+          if (j == i) {
+            row_vals[[col_id]] <- '-'
+          } else if (j > i) {
+            row_vals[[col_id]] <- ''
+          } else {
+            v_j <- num_vars[j]
+            vals_j <- private$.to_numeric_vec(data[[v_j]])
+            ct <- tryCatch(stats::cor.test(vals_i, vals_j, method = method), error = function(e) NULL)
+            if (!is.null(ct)) {
+              r_val <- ct$estimate
+              p_val <- ct$p.value
+              stars <- if (p_val < 0.001) '***' else if (p_val < 0.01) '**' else if (p_val < 0.05) '*' else ''
+              row_vals[[col_id]] <- sprintf('%.2f%s', r_val, stars)
+            } else {
+              row_vals[[col_id]] <- 'NA'
+            }
+          }
+        }
+        tbl$addRow(rowKey = i, values = row_vals)
+      }
+      tbl$setNote('stars_note', 'Note. * p < .05, ** p < .01, *** p < .001. Lower diagonal contains bivariate correlation coefficients. M and SD represent mean and standard deviation.')
+    },
+    
+    .setHeatmapState = function(num_vars, data, method, cluster) {
+      if (!isTRUE(self$options$showCorrHeatmap)) return()
+      sub_df <- as.data.frame(lapply(data[, num_vars, drop = FALSE], private$.to_numeric_vec))
+      self$results$corrHeatmapPlot$setState(list(vars = num_vars, data = sub_df, method = method, cluster = cluster))
+    },
+    
+    .plotCorrHeatmap = function(image, ggtheme, theme, ...) {
+      if (is.null(image$state)) return(FALSE)
+      state <- image$state
+      num_vars <- state$vars
+      sub_df <- state$data
+      method <- state$method
+      cluster <- state$cluster
+      
+      cor_mat <- stats::cor(sub_df, use = 'pairwise.complete.obs', method = method)
+      cor_mat[is.na(cor_mat)] <- 0
+      
+      ordered_vars <- num_vars
+      if (isTRUE(cluster) && ncol(cor_mat) > 2) {
+        dist_mat <- stats::as.dist(1 - abs(cor_mat))
+        hc <- tryCatch(stats::hclust(dist_mat, method = 'complete'), error = function(e) NULL)
+        if (!is.null(hc)) {
+          ordered_vars <- colnames(cor_mat)[hc$order]
+        }
+      }
+      
+      df_heat <- expand.grid(Var1 = ordered_vars, Var2 = ordered_vars, stringsAsFactors = FALSE)
+      df_heat$value <- apply(df_heat, 1, function(row) cor_mat[row['Var1'], row['Var2']])
+      df_heat$Var1 <- factor(df_heat$Var1, levels = ordered_vars)
+      df_heat$Var2 <- factor(df_heat$Var2, levels = rev(ordered_vars))
+      
+      p <- ggplot2::ggplot(df_heat, ggplot2::aes(x = Var1, y = Var2, fill = value)) +
+        ggplot2::geom_tile(color = 'white', linewidth = 0.5) +
+        ggplot2::geom_text(ggplot2::aes(label = sprintf('%.2f', value)), color = ifelse(abs(df_heat$value) > 0.6, 'white', 'black'), size = 3.5) +
+        ggplot2::scale_fill_gradient2(low = '#2166AC', mid = '#FFFFFF', high = '#B2182B', midpoint = 0, limits = c(-1, 1), name = 'Correlation') +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(
+          axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 10, face = 'bold'),
+          axis.text.y = ggplot2::element_text(size = 10, face = 'bold'),
+          axis.title = ggplot2::element_blank(),
+          panel.grid = ggplot2::element_blank()
+        ) +
+        ggplot2::labs(title = paste0('Correlation Heatmap (', tools::toTitleCase(method), if (cluster) ', Clustered' else '', ')'))
+      print(p)
+      TRUE
     }
   )
 )

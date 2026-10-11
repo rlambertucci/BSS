@@ -680,3 +680,14 @@ Royston1993:
   issue: 2
   pages: "181-184"
   doi: "10.1002/sim.4780120209"
+
+MurtaghLegendre2014:
+  type: article
+  author: "Murtagh, F., & Legendre, P."
+  year: 2014
+  title: "Ward's hierarchical agglomerative clustering method: which algorithms implement Ward's criterion?"
+  journal: "Journal of Classification"
+  volume: 31
+  issue: 3
+  pages: "274-295"
+  doi: "10.1007/s00357-014-9161-z"

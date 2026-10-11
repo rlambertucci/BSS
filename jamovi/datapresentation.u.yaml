@@ -128,6 +128,28 @@ children:
             stretchFactor: 1
             enable: (showTable)
 
+          - type: CheckBox
+            name: showFormattedTable
+            label: Export-Ready APA 7th HTML Table
+
+          - type: CheckBox
+            name: showCorrMatrix
+            label: Correlation Matrix with Significance Stars
+
+          - type: ComboBox
+            name: corrMethod
+            label: Correlation Method
+            enable: (showCorrMatrix || showCorrHeatmap)
+
+          - type: CheckBox
+            name: showCorrHeatmap
+            label: Correlation Heatmap Plot
+
+          - type: CheckBox
+            name: corrCluster
+            label: Hierarchical Clustering in Heatmap
+            enable: (showCorrHeatmap)
+
   - type: CollapseBox
     label: Plot Theme
     collapsed: true

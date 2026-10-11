@@ -142,3 +142,66 @@ items:
         height: 500
         requiresData: true
         renderFun: .plotGroup
+    - name: formattedTable
+      title: APA 7th Formatted Table (Export Ready)
+      type: Html
+      visible: (showFormattedTable)
+      refs:
+        - APA2020
+      clearWith:
+        - analysisType
+        - deps
+        - group
+        - rm_vars
+        - group_long
+        - cov
+        - cov_long
+        - tableFormat
+        - tableTitle
+        - tableNote
+        - ciWidth
+
+    - name: corrMatrixTable
+      title: Correlation Matrix (APA Style)
+      type: Table
+      visible: (showCorrMatrix)
+      refs:
+        - APA2020
+      clearWith:
+        - analysisType
+        - deps
+        - rm_vars
+        - corrMethod
+      columns:
+        - name: num
+          title: ''
+          type: text
+        - name: var
+          title: Variable
+          type: text
+        - name: mean
+          title: M
+          type: number
+          format: dp:2
+        - name: sd
+          title: SD
+          type: number
+          format: dp:2
+
+    - name: corrHeatmapPlot
+      title: Correlation Heatmap
+      type: Image
+      width: 550
+      height: 450
+      visible: (showCorrHeatmap)
+      requiresData: true
+      renderFun: .plotCorrHeatmap
+      refs:
+        - ggplot2
+        - MurtaghLegendre2014
+      clearWith:
+        - analysisType
+        - deps
+        - rm_vars
+        - corrMethod
+        - corrCluster

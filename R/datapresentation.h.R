@@ -55,7 +55,12 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             barWidth = 0.7,
             barAlpha = 1,
             pointSize = 2,
-            pointAlpha = 0.5, ...) {
+            pointAlpha = 0.5,
+            showFormattedTable = FALSE,
+            showCorrMatrix = FALSE,
+            corrMethod = "pearson",
+            showCorrHeatmap = FALSE,
+            corrCluster = FALSE, ...) {
 
             super$initialize(
                 package="BSS",
@@ -520,6 +525,29 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 min=0,
                 max=1,
                 default=0.5)
+            private$..showFormattedTable <- jmvcore::OptionBool$new(
+                "showFormattedTable",
+                showFormattedTable,
+                default=FALSE)
+            private$..showCorrMatrix <- jmvcore::OptionBool$new(
+                "showCorrMatrix",
+                showCorrMatrix,
+                default=FALSE)
+            private$..corrMethod <- jmvcore::OptionList$new(
+                "corrMethod",
+                corrMethod,
+                options=list(
+                    "pearson",
+                    "spearman"),
+                default="pearson")
+            private$..showCorrHeatmap <- jmvcore::OptionBool$new(
+                "showCorrHeatmap",
+                showCorrHeatmap,
+                default=FALSE)
+            private$..corrCluster <- jmvcore::OptionBool$new(
+                "corrCluster",
+                corrCluster,
+                default=FALSE)
 
             self$.addOption(private$..analysisType)
             self$.addOption(private$..deps)
@@ -571,6 +599,11 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             self$.addOption(private$..barAlpha)
             self$.addOption(private$..pointSize)
             self$.addOption(private$..pointAlpha)
+            self$.addOption(private$..showFormattedTable)
+            self$.addOption(private$..showCorrMatrix)
+            self$.addOption(private$..corrMethod)
+            self$.addOption(private$..showCorrHeatmap)
+            self$.addOption(private$..corrCluster)
         }),
     active = list(
         analysisType = function() private$..analysisType$value,
@@ -622,7 +655,12 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         barWidth = function() private$..barWidth$value,
         barAlpha = function() private$..barAlpha$value,
         pointSize = function() private$..pointSize$value,
-        pointAlpha = function() private$..pointAlpha$value),
+        pointAlpha = function() private$..pointAlpha$value,
+        showFormattedTable = function() private$..showFormattedTable$value,
+        showCorrMatrix = function() private$..showCorrMatrix$value,
+        corrMethod = function() private$..corrMethod$value,
+        showCorrHeatmap = function() private$..showCorrHeatmap$value,
+        corrCluster = function() private$..corrCluster$value),
     private = list(
         ..analysisType = NA,
         ..deps = NA,
@@ -673,7 +711,12 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         ..barWidth = NA,
         ..barAlpha = NA,
         ..pointSize = NA,
-        ..pointAlpha = NA)
+        ..pointAlpha = NA,
+        ..showFormattedTable = NA,
+        ..showCorrMatrix = NA,
+        ..corrMethod = NA,
+        ..showCorrHeatmap = NA,
+        ..corrCluster = NA)
 )
 
 DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -682,7 +725,10 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
     active = list(
         messages = function() private$.items[["messages"]],
         descriptiveTable = function() private$.items[["descriptiveTable"]],
-        plots = function() private$.items[["plots"]]),
+        plots = function() private$.items[["plots"]],
+        formattedTable = function() private$.items[["formattedTable"]],
+        corrMatrixTable = function() private$.items[["corrMatrixTable"]],
+        corrHeatmapPlot = function() private$.items[["corrHeatmapPlot"]]),
     private = list(),
     public=list(
         initialize=function(options) {
@@ -829,7 +875,75 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     width=600,
                     height=500,
                     requiresData=TRUE,
-                    renderFun=".plotGroup")))}))
+                    renderFun=".plotGroup")))
+            self$add(jmvcore::Html$new(
+                options=options,
+                name="formattedTable",
+                title="APA 7th Formatted Table (Export Ready)",
+                visible="(showFormattedTable)",
+                refs=list(
+                    "APA2020"),
+                clearWith=list(
+                    "analysisType",
+                    "deps",
+                    "group",
+                    "rm_vars",
+                    "group_long",
+                    "cov",
+                    "cov_long",
+                    "tableFormat",
+                    "tableTitle",
+                    "tableNote",
+                    "ciWidth")))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="corrMatrixTable",
+                title="Correlation Matrix (APA Style)",
+                visible="(showCorrMatrix)",
+                refs=list(
+                    "APA2020"),
+                clearWith=list(
+                    "analysisType",
+                    "deps",
+                    "rm_vars",
+                    "corrMethod"),
+                columns=list(
+                    list(
+                        `name`="num", 
+                        `title`="", 
+                        `type`="text"),
+                    list(
+                        `name`="var", 
+                        `title`="Variable", 
+                        `type`="text"),
+                    list(
+                        `name`="mean", 
+                        `title`="M", 
+                        `type`="number", 
+                        `format`="dp:2"),
+                    list(
+                        `name`="sd", 
+                        `title`="SD", 
+                        `type`="number", 
+                        `format`="dp:2"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="corrHeatmapPlot",
+                title="Correlation Heatmap",
+                width=550,
+                height=450,
+                visible="(showCorrHeatmap)",
+                requiresData=TRUE,
+                renderFun=".plotCorrHeatmap",
+                refs=list(
+                    "ggplot2",
+                    "MurtaghLegendre2014"),
+                clearWith=list(
+                    "analysisType",
+                    "deps",
+                    "rm_vars",
+                    "corrMethod",
+                    "corrCluster")))}))
 
 DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "DataPresentationBase",
@@ -906,11 +1020,19 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 #' @param barAlpha .
 #' @param pointSize .
 #' @param pointAlpha .
+#' @param showFormattedTable .
+#' @param showCorrMatrix .
+#' @param corrMethod .
+#' @param showCorrHeatmap .
+#' @param corrCluster .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$messages} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$descriptiveTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$plots} \tab \tab \tab \tab \tab One plot per dependent variable \cr
+#'   \code{results$formattedTable} \tab \tab \tab \tab \tab a html \cr
+#'   \code{results$corrMatrixTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$corrHeatmapPlot} \tab \tab \tab \tab \tab an image \cr
 #' }
 #'
 #' Tables can be converted to data frames with \code{asDF} or \code{\link{as.data.frame}}. For example:
@@ -971,7 +1093,12 @@ DataPresentation <- function(
     barWidth = 0.7,
     barAlpha = 1,
     pointSize = 2,
-    pointAlpha = 0.5) {
+    pointAlpha = 0.5,
+    showFormattedTable = FALSE,
+    showCorrMatrix = FALSE,
+    corrMethod = "pearson",
+    showCorrHeatmap = FALSE,
+    corrCluster = FALSE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("DataPresentation requires jmvcore to be installed (restart may be required)")
@@ -1045,7 +1172,12 @@ DataPresentation <- function(
         barWidth = barWidth,
         barAlpha = barAlpha,
         pointSize = pointSize,
-        pointAlpha = pointAlpha)
+        pointAlpha = pointAlpha,
+        showFormattedTable = showFormattedTable,
+        showCorrMatrix = showCorrMatrix,
+        corrMethod = corrMethod,
+        showCorrHeatmap = showCorrHeatmap,
+        corrCluster = corrCluster)
 
     analysis <- DataPresentationClass$new(
         options = options,
