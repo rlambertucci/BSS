@@ -89,6 +89,11 @@ options:
       type: Bool
       default: false
 
+    - name: show_pattern_table_mice_cs
+      title: Missing Data Patterns Table
+      type: Bool
+      default: false
+
     - name: show_correlation_plot_mice_cs
       title: Missingness Correlation Heatmap
       type: Bool
@@ -106,6 +111,11 @@ options:
 
     - name: show_strip_plot_mice_cs
       title: Strip Plot by Variable
+      type: Bool
+      default: false
+
+    - name: show_pooled_summary_mice_cs
+      title: Pooled Parameter Summary (Rubin's Rules)
       type: Bool
       default: false
 
@@ -237,6 +247,11 @@ options:
       type: Bool
       default: false
 
+    - name: show_pattern_table_mice_long
+      title: Missing Data Patterns Table
+      type: Bool
+      default: false
+
     - name: show_correlation_plot_mice_long
       title: Missingness Correlation Heatmap
       type: Bool
@@ -254,6 +269,11 @@ options:
 
     - name: show_strip_plot_mice_long
       title: Strip Plot by Variable
+      type: Bool
+      default: false
+
+    - name: show_pooled_summary_mice_long
+      title: Pooled Parameter Summary (Rubin's Rules)
       type: Bool
       default: false
 
@@ -332,8 +352,28 @@ options:
       type: Bool
       default: false
 
+    - name: show_pattern_table_mr
+      title: Missing Data Patterns Table
+      type: Bool
+      default: false
+
     - name: show_correlation_plot_mr
       title: Missingness Correlation Heatmap
+      type: Bool
+      default: false
+
+    - name: show_density_plot_mr
+      title: Observed vs Imputed Distribution
+      type: Bool
+      default: false
+
+    - name: show_strip_plot_mr
+      title: Strip Plot by Variable
+      type: Bool
+      default: false
+
+    - name: show_pooled_summary_mr
+      title: Pooled Parameter Summary
       type: Bool
       default: false
 

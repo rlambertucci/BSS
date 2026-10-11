@@ -58,7 +58,7 @@ children:
                     label: Run Imputation
 
           - type: CollapseBox
-            label: Diagnostic Plots
+            label: Diagnostic Plots & Summaries
             collapsed: true
             stretchFactor: 1
             children:
@@ -69,6 +69,8 @@ children:
                   - type: CheckBox
                     name: show_pattern_plot_mice_cs
                   - type: CheckBox
+                    name: show_pattern_table_mice_cs
+                  - type: CheckBox
                     name: show_correlation_plot_mice_cs
                   - type: CheckBox
                     name: show_trace_plot_mice_cs
@@ -78,6 +80,9 @@ children:
                     enable: (run_imputation_mice_cs)
                   - type: CheckBox
                     name: show_strip_plot_mice_cs
+                    enable: (run_imputation_mice_cs)
+                  - type: CheckBox
+                    name: show_pooled_summary_mice_cs
                     enable: (run_imputation_mice_cs)
 
           - type: CollapseBox
@@ -192,7 +197,7 @@ children:
                     label: Run Imputation
 
           - type: CollapseBox
-            label: Diagnostic Plots
+            label: Diagnostic Plots & Summaries
             collapsed: true
             stretchFactor: 1
             children:
@@ -203,6 +208,8 @@ children:
                   - type: CheckBox
                     name: show_pattern_plot_mice_long
                   - type: CheckBox
+                    name: show_pattern_table_mice_long
+                  - type: CheckBox
                     name: show_correlation_plot_mice_long
                   - type: CheckBox
                     name: show_trace_plot_mice_long
@@ -212,6 +219,9 @@ children:
                     enable: (run_imputation_mice_long)
                   - type: CheckBox
                     name: show_strip_plot_mice_long
+                    enable: (run_imputation_mice_long)
+                  - type: CheckBox
+                    name: show_pooled_summary_mice_long
                     enable: (run_imputation_mice_long)
 
           - type: CollapseBox
@@ -285,7 +295,7 @@ children:
                     label: Run Imputation
 
           - type: CollapseBox
-            label: Diagnostic Plots
+            label: Diagnostic Plots & Summaries
             collapsed: true
             stretchFactor: 1
             children:
@@ -296,7 +306,18 @@ children:
                   - type: CheckBox
                     name: show_pattern_plot_mr
                   - type: CheckBox
+                    name: show_pattern_table_mr
+                  - type: CheckBox
                     name: show_correlation_plot_mr
+                  - type: CheckBox
+                    name: show_density_plot_mr
+                    enable: (run_imputation_mr)
+                  - type: CheckBox
+                    name: show_strip_plot_mr
+                    enable: (run_imputation_mr)
+                  - type: CheckBox
+                    name: show_pooled_summary_mr
+                    enable: (run_imputation_mr)
 
           - type: CollapseBox
             label: Save to Worksheet

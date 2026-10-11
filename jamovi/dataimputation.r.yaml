@@ -34,6 +34,31 @@ items:
         title: Method Applied
         type: text
 
+  - name: patternTable_mice_cs
+    title: Missing Data Patterns (Cross-sectional)
+    type: Table
+    visible: (mode == 'mice_cs' && show_pattern_table_mice_cs)
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+    columns:
+      - name: pattern
+        title: Pattern
+        type: text
+      - name: n_cases
+        title: Cases (N)
+        type: integer
+      - name: pct_cases
+        title: Cases (%)
+        type: number
+        format: dp:1
+      - name: n_observed
+        title: Observed Vars
+        type: integer
+      - name: missing_vars
+        title: Missing Variables
+        type: text
+
   - name: imputedData_mice_cs
     title: Imputed Values (Pooled)
     type: Table
@@ -62,6 +87,68 @@ items:
       - name: rowNumber
         title: Row
         type: integer
+
+  - name: pooledSummaryTable_mice_cs
+    title: Pooled Parameter Estimates (Rubin's Rules)
+    type: Table
+    visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_pooled_summary_mice_cs)
+    refs:
+      - Rubin1987
+      - mice
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - run_imputation_mice_cs
+      - imputation_method_mice_cs
+      - num_imputations_mice_cs
+      - maxiter_mice_cs
+      - seed_mice_cs
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+      - name: n_obs
+        title: Observed (N)
+        type: integer
+      - name: n_miss
+        title: Missing (N)
+        type: integer
+      - name: mean_obs
+        title: Observed Mean
+        type: number
+        format: dp:3
+      - name: sd_obs
+        title: Observed SD
+        type: number
+        format: dp:3
+      - name: mean_pooled
+        title: Pooled Mean
+        type: number
+        format: dp:3
+      - name: se_pooled
+        title: Pooled SE
+        type: number
+        format: dp:3
+      - name: var_within
+        title: Within-Var (U)
+        type: number
+        format: dp:4
+      - name: var_between
+        title: Between-Var (B)
+        type: number
+        format: dp:4
+      - name: fmi
+        title: FMI
+        type: number
+        format: dp:3
+      - name: ci_lower
+        title: 95% CI Lower
+        type: number
+        format: dp:3
+      - name: ci_upper
+        title: 95% CI Upper
+        type: number
+        format: dp:3
 
   - name: patternPlot_mice_cs
     title: Missing Data Pattern (md.pattern)
@@ -194,6 +281,33 @@ items:
         title: Method Applied
         type: text
 
+  - name: patternTable_mice_long
+    title: Missing Data Patterns (Longitudinal)
+    type: Table
+    visible: (mode == 'mice_long' && show_pattern_table_mice_long)
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - wave_vars_mice_long
+      - data_format_mice_long
+    columns:
+      - name: pattern
+        title: Pattern
+        type: text
+      - name: n_cases
+        title: Cases (N)
+        type: integer
+      - name: pct_cases
+        title: Cases (%)
+        type: number
+        format: dp:1
+      - name: n_observed
+        title: Observed Vars
+        type: integer
+      - name: missing_vars
+        title: Missing Variables
+        type: text
+
   - name: imputedData_mice_long
     title: Imputed Values (Pooled)
     type: Table
@@ -229,6 +343,75 @@ items:
       - name: rowNumber
         title: Row
         type: integer
+
+  - name: pooledSummaryTable_mice_long
+    title: Pooled Parameter Estimates (Rubin's Rules)
+    type: Table
+    visible: (mode == 'mice_long' && run_imputation_mice_long && show_pooled_summary_mice_long)
+    refs:
+      - Rubin1987
+      - mice
+      - miceadds
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - run_imputation_mice_long
+      - imputation_method_mice_long
+      - num_imputations_mice_long
+      - maxiter_mice_long
+      - seed_mice_long
+      - data_format_mice_long
+      - wave_vars_mice_long
+      - subject_id_var_mice_long
+      - time_var_mice_long
+      - group_var_mice_long
+      - fixed_covariates_mice_long
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+      - name: n_obs
+        title: Observed (N)
+        type: integer
+      - name: n_miss
+        title: Missing (N)
+        type: integer
+      - name: mean_obs
+        title: Observed Mean
+        type: number
+        format: dp:3
+      - name: sd_obs
+        title: Observed SD
+        type: number
+        format: dp:3
+      - name: mean_pooled
+        title: Pooled Mean
+        type: number
+        format: dp:3
+      - name: se_pooled
+        title: Pooled SE
+        type: number
+        format: dp:3
+      - name: var_within
+        title: Within-Var (U)
+        type: number
+        format: dp:4
+      - name: var_between
+        title: Between-Var (B)
+        type: number
+        format: dp:4
+      - name: fmi
+        title: FMI
+        type: number
+        format: dp:3
+      - name: ci_lower
+        title: 95% CI Lower
+        type: number
+        format: dp:3
+      - name: ci_upper
+        title: 95% CI Upper
+        type: number
+        format: dp:3
 
   - name: patternPlot_mice_long
     title: Missing Data Pattern (md.pattern)
@@ -390,6 +573,31 @@ items:
         title: Method Applied
         type: text
 
+  - name: patternTable_mr
+    title: Missing Data Patterns (missRanger)
+    type: Table
+    visible: (mode == 'missranger' && show_pattern_table_mr)
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+    columns:
+      - name: pattern
+        title: Pattern
+        type: text
+      - name: n_cases
+        title: Cases (N)
+        type: integer
+      - name: pct_cases
+        title: Cases (%)
+        type: number
+        format: dp:1
+      - name: n_observed
+        title: Observed Vars
+        type: integer
+      - name: missing_vars
+        title: Missing Variables
+        type: text
+
   - name: imputedData_mr
     title: Imputed Values (missRanger)
     type: Table
@@ -421,6 +629,53 @@ items:
         title: Row
         type: integer
 
+  - name: pooledSummaryTable_mr
+    title: Imputation Parameter Summary (missRanger)
+    type: Table
+    visible: (mode == 'missranger' && run_imputation_mr && show_pooled_summary_mr)
+    refs:
+      - missRanger
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+      - run_imputation_mr
+      - use_multiple_imputation_mr
+      - num_imputations_mr
+      - maxiter_mr
+      - num_trees_mr
+      - pmm_k_mr
+      - seed_mr
+    columns:
+      - name: variable
+        title: Variable
+        type: text
+      - name: n_obs
+        title: Observed (N)
+        type: integer
+      - name: n_miss
+        title: Missing (N)
+        type: integer
+      - name: mean_obs
+        title: Observed Mean
+        type: number
+        format: dp:3
+      - name: sd_obs
+        title: Observed SD
+        type: number
+        format: dp:3
+      - name: mean_imputed
+        title: Final/Pooled Mean
+        type: number
+        format: dp:3
+      - name: sd_imputed
+        title: Final/Pooled SD
+        type: number
+        format: dp:3
+      - name: diff_mean
+        title: Mean Difference
+        type: number
+        format: dp:3
+
   - name: patternPlot_mr
     title: Missing Data Pattern (md.pattern)
     type: Image
@@ -449,6 +704,48 @@ items:
       - vars_mr
       - predictor_vars_mr
 
+  - name: densityPlot_mr
+    title: Observed vs Imputed Distribution
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderDensityPlotMR
+    visible: (mode == 'missranger' && run_imputation_mr && show_density_plot_mr)
+    requiresData: true
+    refs:
+      - missRanger
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+      - run_imputation_mr
+      - use_multiple_imputation_mr
+      - num_imputations_mr
+      - maxiter_mr
+      - num_trees_mr
+      - pmm_k_mr
+      - seed_mr
+
+  - name: stripPlot_mr
+    title: Strip Plot by Variable
+    type: Image
+    width: 700
+    height: 500
+    renderFun: .renderStripPlotMR
+    visible: (mode == 'missranger' && run_imputation_mr && show_strip_plot_mr)
+    requiresData: true
+    refs:
+      - missRanger
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+      - run_imputation_mr
+      - use_multiple_imputation_mr
+      - num_imputations_mr
+      - maxiter_mr
+      - num_trees_mr
+      - pmm_k_mr
+      - seed_mr
+
   - name: imputedColsOutput_mr
     type: Output
     title: Imputed Variables (missRanger)
@@ -457,10 +754,10 @@ items:
       - data
       - vars_mr
       - predictor_vars_mr
+      - run_imputation_mr
       - use_multiple_imputation_mr
       - num_imputations_mr
       - maxiter_mr
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
-      - run_imputation_mr
