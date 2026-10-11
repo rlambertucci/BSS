@@ -169,6 +169,34 @@ children:
             format: number
             enable: (ci_method == 'bootstrap')
 
+  - type: CollapseBox
+    label: Conversions, Interpretation & Forest Plot
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        children:
+          - type: ComboBox
+            name: benchmark_standard
+            label: Interpretation Benchmark
+          - type: CheckBox
+            name: show_conversions
+            label: Multi-Metric Effect Size Conversions (d, r, η², OR, AUC)
+          - type: CheckBox
+            name: show_es_plot
+            label: Effect Size Forest Plot
+          - type: TextBox
+            name: plot_width
+            label: Plot Width
+            format: number
+            enable: (show_es_plot)
+          - type: TextBox
+            name: plot_height
+            label: Plot Height
+            format: number
+            enable: (show_es_plot)
+
   - type: LayoutBox
     margin: large
     children:

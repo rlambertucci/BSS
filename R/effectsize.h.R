@@ -29,7 +29,12 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             es_glm = "glm_gaussian",
             ci_method = "analytical",
             n_bootstrap = 1000,
-            ci_level = "ci_95", ...) {
+            ci_level = "ci_95",
+            show_conversions = FALSE,
+            benchmark_standard = "cohen",
+            show_es_plot = FALSE,
+            plot_width = 650,
+            plot_height = 450, ...) {
 
             super$initialize(
                 package="BSS",
@@ -200,6 +205,29 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ci_90",
                     "ci_99"),
                 default="ci_95")
+            private$..show_conversions <- jmvcore::OptionBool$new(
+                "show_conversions",
+                show_conversions,
+                default=FALSE)
+            private$..benchmark_standard <- jmvcore::OptionList$new(
+                "benchmark_standard",
+                benchmark_standard,
+                options=list(
+                    "cohen",
+                    "sawilowsky"),
+                default="cohen")
+            private$..show_es_plot <- jmvcore::OptionBool$new(
+                "show_es_plot",
+                show_es_plot,
+                default=FALSE)
+            private$..plot_width <- jmvcore::OptionInteger$new(
+                "plot_width",
+                plot_width,
+                default=650)
+            private$..plot_height <- jmvcore::OptionInteger$new(
+                "plot_height",
+                plot_height,
+                default=450)
 
             self$.addOption(private$..mode)
             self$.addOption(private$..dep_vars_cs)
@@ -225,6 +253,11 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..ci_method)
             self$.addOption(private$..n_bootstrap)
             self$.addOption(private$..ci_level)
+            self$.addOption(private$..show_conversions)
+            self$.addOption(private$..benchmark_standard)
+            self$.addOption(private$..show_es_plot)
+            self$.addOption(private$..plot_width)
+            self$.addOption(private$..plot_height)
         }),
     active = list(
         mode = function() private$..mode$value,
@@ -250,7 +283,12 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         es_glm = function() private$..es_glm$value,
         ci_method = function() private$..ci_method$value,
         n_bootstrap = function() private$..n_bootstrap$value,
-        ci_level = function() private$..ci_level$value),
+        ci_level = function() private$..ci_level$value,
+        show_conversions = function() private$..show_conversions$value,
+        benchmark_standard = function() private$..benchmark_standard$value,
+        show_es_plot = function() private$..show_es_plot$value,
+        plot_width = function() private$..plot_width$value,
+        plot_height = function() private$..plot_height$value),
     private = list(
         ..mode = NA,
         ..dep_vars_cs = NA,
@@ -275,7 +313,12 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..es_glm = NA,
         ..ci_method = NA,
         ..n_bootstrap = NA,
-        ..ci_level = NA)
+        ..ci_level = NA,
+        ..show_conversions = NA,
+        ..benchmark_standard = NA,
+        ..show_es_plot = NA,
+        ..plot_width = NA,
+        ..plot_height = NA)
 )
 
 effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -288,6 +331,8 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         effectSizeTableLongBetween = function() private$.items[["effectSizeTableLongBetween"]],
         clesTable = function() private$.items[["clesTable"]],
         clesLongTable = function() private$.items[["clesLongTable"]],
+        conversionTable = function() private$.items[["conversionTable"]],
+        esPlot = function() private$.items[["esPlot"]],
         text = function() private$.items[["text"]]),
     private = list(),
     public=list(
@@ -529,6 +574,96 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `title`="CLES (paired)", 
                         `type`="number", 
                         `format`="dp:3"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="conversionTable",
+                title="Multi-Metric Effect Size Conversions",
+                visible="(run_analysis && show_conversions)",
+                refs=list(
+                    "Borenstein2009",
+                    "Cohen1988"),
+                clearWith=list(
+                    "mode",
+                    "dep_vars_cs",
+                    "indep_vars_cs",
+                    "dep_vars_long",
+                    "indep_vars_long",
+                    "include_interactions",
+                    "es_method",
+                    "es_method_long",
+                    "long_format",
+                    "time_var",
+                    "wave_vars",
+                    "subject_id_var",
+                    "run_analysis",
+                    "show_conversions"),
+                columns=list(
+                    list(
+                        `name`="dv", 
+                        `title`="DV / Wave", 
+                        `type`="text", 
+                        `combineBelow`=TRUE),
+                    list(
+                        `name`="comparison", 
+                        `title`="Comparison", 
+                        `type`="text"),
+                    list(
+                        `name`="cohen_d", 
+                        `title`="Cohen's d", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="correlation_r", 
+                        `title`="Point-Biserial r", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="eta_squared", 
+                        `title`="Eta-squared (\u03B7\u00B2)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="odds_ratio", 
+                        `title`="Odds Ratio (OR)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="auc", 
+                        `title`="AUC / Prob. Superiority", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="interpretation", 
+                        `title`="Interpretation", 
+                        `type`="text"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="esPlot",
+                title="Effect Size Forest Plot",
+                width=650,
+                height=450,
+                renderFun=".renderESPlot",
+                visible="(run_analysis && show_es_plot)",
+                requiresData=TRUE,
+                refs=list(
+                    "ggplot2"),
+                clearWith=list(
+                    "mode",
+                    "dep_vars_cs",
+                    "indep_vars_cs",
+                    "dep_vars_long",
+                    "indep_vars_long",
+                    "include_interactions",
+                    "es_method",
+                    "es_method_long",
+                    "long_format",
+                    "time_var",
+                    "wave_vars",
+                    "subject_id_var",
+                    "run_analysis",
+                    "show_es_plot",
+                    "plot_width",
+                    "plot_height")))
             self$add(jmvcore::Preformatted$new(
                 options=options,
                 name="text",
@@ -605,6 +740,11 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param ci_method .
 #' @param n_bootstrap .
 #' @param ci_level .
+#' @param show_conversions .
+#' @param benchmark_standard .
+#' @param show_es_plot .
+#' @param plot_width .
+#' @param plot_height .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$analysisInfo} \tab \tab \tab \tab \tab a html \cr
@@ -613,6 +753,8 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$effectSizeTableLongBetween} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clesTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clesLongTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$conversionTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$esPlot} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$text} \tab \tab \tab \tab \tab a preformatted \cr
 #' }
 #'
@@ -648,7 +790,12 @@ effectSize <- function(
     es_glm = "glm_gaussian",
     ci_method = "analytical",
     n_bootstrap = 1000,
-    ci_level = "ci_95") {
+    ci_level = "ci_95",
+    show_conversions = FALSE,
+    benchmark_standard = "cohen",
+    show_es_plot = FALSE,
+    plot_width = 650,
+    plot_height = 450) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("effectSize requires jmvcore to be installed (restart may be required)")
@@ -700,7 +847,12 @@ effectSize <- function(
         es_glm = es_glm,
         ci_method = ci_method,
         n_bootstrap = n_bootstrap,
-        ci_level = ci_level)
+        ci_level = ci_level,
+        show_conversions = show_conversions,
+        benchmark_standard = benchmark_standard,
+        show_es_plot = show_es_plot,
+        plot_width = plot_width,
+        plot_height = plot_height)
 
     analysis <- effectSizeClass$new(
         options = options,

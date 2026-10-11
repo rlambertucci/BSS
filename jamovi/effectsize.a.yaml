@@ -217,3 +217,33 @@ options:
         - title: 99%
           name: ci_99
       default: ci_95
+
+    - name: show_conversions
+      title: 'Show Effect Size Conversions (d, r, ?², OR, AUC)'
+      type: Bool
+      default: false
+
+    - name: benchmark_standard
+      title: 'Benchmark for Qualitative Interpretation'
+      type: List
+      options:
+        - title: "Cohen (1988) — Small: .2, Med: .5, Large: .8"
+          name: cohen
+        - title: "Sawilowsky (2009) — Very Small: .01, Small: .2, Med: .5, Large: .8, Very Large: 1.2, Huge: 2.0"
+          name: sawilowsky
+      default: cohen
+
+    - name: show_es_plot
+      title: 'Effect Size Forest Plot'
+      type: Bool
+      default: false
+
+    - name: plot_width
+      title: 'Plot Width'
+      type: Integer
+      default: 650
+
+    - name: plot_height
+      title: 'Plot Height'
+      type: Integer
+      default: 450

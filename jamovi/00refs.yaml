@@ -542,3 +542,23 @@ Benjamini1995:
   issue: 1
   pages: "289-300"
   doi: "10.1111/j.2517-6161.1995.tb02031.x"
+
+Sawilowsky2009:
+  type: article
+  author: "Sawilowsky, S. S."
+  year: 2009
+  title: "New Effect Size Rules of Thumb"
+  journal: "Journal of Modern Applied Statistical Methods"
+  volume: 8
+  issue: 2
+  pages: "597-599"
+  doi: "10.22237/jmasm/1257035100"
+
+Borenstein2009:
+  type: book
+  author: "Borenstein, M., Hedges, L. V., Higgins, J. P. T., & Rothstein, H. R."
+  year: 2009
+  title: "Introduction to Meta-Analysis"
+  publisher: "John Wiley & Sons"
+  address: "Chichester, UK"
+  doi: "10.1002/9780470743386"

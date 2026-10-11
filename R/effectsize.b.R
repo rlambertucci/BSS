@@ -31,9 +31,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         '<li><b>Longitudinal:</b> Compare effect sizes across time points (Repeated Measures).</li>',
         '</ul>',
         '<hr style="margin:8px 0;"/>',
-        '<p><b>&#9654; Interpretation Benchmarks</b> (Cohen, 1988)</p>',
+        '<p><b>&#9654; Interpretation Benchmarks</b></p>',
         '<ul style="margin-top:0px; padding-left:20px;">',
-        '<li><b>Cohen / Hedges / Glass:</b> &lt; 0.2 (Negligible) | &ge; 0.2 (Small) | &ge; 0.5 (Medium) | &ge; 0.8 (Large)</li>',
+        '<li><b>Cohen (1988):</b> &lt; 0.2 (Negligible) | &ge; 0.2 (Small) | &ge; 0.5 (Medium) | &ge; 0.8 (Large)</li>',
+        '<li><b>Sawilowsky (2009):</b> &lt; 0.01 (Negligible) | 0.2 (Very small) | 0.5 (Small) | 0.8 (Medium) | 1.2 (Large) | 2.0 (Very large) | &ge; 2.0 (Huge)</li>',
         '<li><b>Rank Biserial (Correlation):</b> &lt; 0.1 (Negligible) | &ge; 0.1 (Small) | &ge; 0.3 (Medium) | &ge; 0.5 (Large)</li>',
         '</ul>',
         '</div>'
@@ -45,7 +46,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         '<h4 style="margin-top:0; margin-bottom:6px;">&#128161; AME (Average Marginal Effect) Interpretation</h4>',
         '<p style="margin-bottom:0;">The AME represents the discrete difference in the dependent variable\'s original metric between the two groups on the response scale. ',
         'For the <b>Interpretation</b> column, the AME is internally standardized (divided by the standard deviation of the DV) ',
-        'so that Cohen\'s (1988) benchmarks can be applied.</p>',
+        'so that effect size benchmarks can be applied.</p>',
         '</div>'
       )
       self$results$ameBenchmark$setContent(ame_html)
@@ -56,6 +57,12 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       mode                 <- self$options$mode
       run_analysis         <- self$options$run_analysis
       include_interactions <- self$options$include_interactions
+      benchmark_std        <- if (!is.null(self$options$benchmark_standard)) self$options$benchmark_standard else "cohen"
+      show_conversions     <- isTRUE(self$options$show_conversions)
+      show_es_plot         <- isTRUE(self$options$show_es_plot)
+      plot_w               <- if (!is.null(self$options$plot_width)) self$options$plot_width else 650
+      plot_h               <- if (!is.null(self$options$plot_height)) self$options$plot_height else 450
+      
       table <- self$results$effectSizeTable
       
       if (mode == "cross_sectional") {
@@ -147,11 +154,13 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       table_long_between <- self$results$effectSizeTableLongBetween
       clesTable          <- self$results$clesTable
       clesLongTable      <- self$results$clesLongTable
+      conversionTable    <- self$results$conversionTable
       
       if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
       if (table_long_between$rowCount > 0) try(table_long_between$deleteRows(), silent = TRUE)
       if (clesTable$rowCount > 0) try(clesTable$deleteRows(), silent = TRUE)
       if (clesLongTable$rowCount > 0) try(clesLongTable$deleteRows(), silent = TRUE)
+      if (conversionTable$rowCount > 0) try(conversionTable$deleteRows(), silent = TRUE)
       
       try(table$deleteNote("covariate_note"), silent = TRUE)
       try(table_long_between$deleteNote("covariate_note"), silent = TRUE)
@@ -164,6 +173,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       n_cles <- 0
       n_rows_long_between <- 0
       n_cles_long <- 0
+      n_conv <- 0
+      
+      # Tracking for Forest Plot
+      plot_entries <- list()
       
       grouping_factors <- list()
       if (private$.is_defined(indep_vars)) {
@@ -216,7 +229,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               
               if (isTRUE(use_glm)) {
                 result <- tryCatch({
-                  private$.compute_glm(iv_col, dv_col, gp[[1]], gp[[2]], es_glm_dist, ci_method, ci_level, n_bootstrap, cov_col)
+                  private$.compute_glm(iv_col, dv_col, gp[[1]], gp[[2]], es_glm_dist, ci_method, ci_level, n_bootstrap, cov_col, benchmark = benchmark_std)
                 }, error = function(e) {
                   list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = "AME (error)", interpretation = paste0("GLM error: ", e$message))
                 })
@@ -226,7 +239,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   if (nchar(rg) > 0 && rg %in% c(gp[[1]], gp[[2]])) rg else gp[[2]]
                 } else gp[[2]]
                 result <- tryCatch({
-                  private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], ref_grp, es_method, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
+                  private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], ref_grp, es_method, ci_method, ci_level, n_bootstrap, cov_a, cov_b, benchmark = benchmark_std)
                 }, error = function(e) {
                   list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method, interpretation = paste0("Computation error: ", e$message))
                 })
@@ -235,10 +248,11 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               interp_note <- result$interpretation
               if (es_method == "glass_delta" && !isTRUE(use_glm)) interp_note <- paste0(interp_note, " ", groups_note)
               n_rows <- n_rows + 1
+              comp_str <- paste0(gp[[1]], " vs ", gp[[2]])
               table$addRow(rowKey = n_rows, values = list(
                 dv             = dv,
                 iv             = iv_name,
-                comparison     = paste0(gp[[1]], " vs ", gp[[2]]),
+                comparison     = comp_str,
                 method         = result$method,
                 es_value       = result$es_value,
                 ci_lower       = result$ci_lower,
@@ -246,6 +260,34 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 interpretation = interp_note,
                 n_obs          = n_obs
               ))
+              
+              # Conversions
+              if (show_conversions && is.finite(result$es_value)) {
+                conv_res <- private$.convert_metrics(result$es_value, result$method, benchmark_std)
+                n_conv <- n_conv + 1
+                conversionTable$addRow(rowKey = n_conv, values = list(
+                  dv             = paste0(dv, " (", iv_name, ")"),
+                  comparison     = comp_str,
+                  cohen_d        = conv_res$cohen_d,
+                  correlation_r  = conv_res$correlation_r,
+                  eta_squared    = conv_res$eta_squared,
+                  odds_ratio     = conv_res$odds_ratio,
+                  auc            = conv_res$auc,
+                  interpretation = conv_res$interpretation
+                ))
+              }
+              
+              # Forest plot entry
+              if (show_es_plot && is.finite(result$es_value)) {
+                plot_entries[[length(plot_entries) + 1]] <- list(
+                  label    = paste0(dv, " [", iv_name, ": ", comp_str, "]"),
+                  estimate = result$es_value,
+                  ci_lower = result$ci_lower,
+                  ci_upper = result$ci_upper,
+                  method   = result$method
+                )
+              }
+              
               if (isTRUE(show_cles)) {
                 cles_result <- private$.compute_cles_independent(ga, gb)
                 n_cles <- n_cles + 1
@@ -254,7 +296,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   values = list(
                     dv         = dv,
                     iv         = iv_name,
-                    comparison = paste0(gp[[1]], " vs ", gp[[2]]),
+                    comparison = comp_str,
                     cles       = cles_result$cles
                   )
                 )
@@ -311,16 +353,17 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               } else w1
               
               result <- tryCatch({
-                private$.compute_dependent_paired(col1, col2, w1, w2, ref_wave, es_method_long, ci_method, ci_level, n_bootstrap, cov_col)
+                private$.compute_dependent_paired(col1, col2, w1, w2, ref_wave, es_method_long, ci_method, ci_level, n_bootstrap, cov_col, benchmark = benchmark_std)
               }, error = function(e) {
                 list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Paired error: ", e$message))
               })
               
               n_rows <- n_rows + 1
+              comp_str <- paste0(w1, " vs ", w2)
               table$addRow(rowKey = n_rows, values = list(
-                dv             = paste0(w1, " vs ", w2),
+                dv             = comp_str,
                 iv             = sub$label,
-                comparison     = paste0(w1, " vs ", w2),
+                comparison     = comp_str,
                 method         = result$method,
                 es_value       = result$es_value,
                 ci_lower       = result$ci_lower,
@@ -328,6 +371,32 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 interpretation = result$interpretation,
                 n_obs          = n_pair
               ))
+              
+              if (show_conversions && is.finite(result$es_value)) {
+                conv_res <- private$.convert_metrics(result$es_value, result$method, benchmark_std)
+                n_conv <- n_conv + 1
+                conversionTable$addRow(rowKey = n_conv, values = list(
+                  dv             = sub$label,
+                  comparison     = comp_str,
+                  cohen_d        = conv_res$cohen_d,
+                  correlation_r  = conv_res$correlation_r,
+                  eta_squared    = conv_res$eta_squared,
+                  odds_ratio     = conv_res$odds_ratio,
+                  auc            = conv_res$auc,
+                  interpretation = conv_res$interpretation
+                ))
+              }
+              
+              if (show_es_plot && is.finite(result$es_value)) {
+                plot_entries[[length(plot_entries) + 1]] <- list(
+                  label    = paste0(comp_str, " (", sub$label, ")"),
+                  estimate = result$es_value,
+                  ci_lower = result$ci_lower,
+                  ci_upper = result$ci_upper,
+                  method   = result$method
+                )
+              }
+              
               if (isTRUE(show_cles_long)) {
                 cles_result <- private$.compute_cles_paired(col1, col2)
                 n_cles_long <- n_cles_long + 1
@@ -335,7 +404,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   rowKey = n_cles_long,
                   values = list(
                     dv         = sub$label,
-                    comparison = paste0(w1, " vs ", w2),
+                    comparison = comp_str,
                     cles       = cles_result$cles
                   )
                 )
@@ -374,15 +443,16 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                                           rank_biserial_paired = "rank_biserial",
                                           es_method)
                   result <- tryCatch({
-                    private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[2]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
+                    private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[2]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b, benchmark = benchmark_std)
                   }, error = function(e) {
                     list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method_to_use, interpretation = paste0("Error: ", e$message))
                   })
                   n_rows_long_between <- n_rows_long_between + 1
+                  comp_str <- paste0(gp[[1]], " vs ", gp[[2]])
                   table_long_between$addRow(rowKey = n_rows_long_between, values = list(
                     dv             = wave,
                     iv             = iv_name,
-                    comparison     = paste0(gp[[1]], " vs ", gp[[2]]),
+                    comparison     = comp_str,
                     method         = result$method,
                     es_value       = result$es_value,
                     ci_lower       = result$ci_lower,
@@ -455,15 +525,16 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                     if (nchar(rg) > 0 && rg %in% c(t1, t2)) rg else t1
                   } else t1
                   result <- tryCatch({
-                    private$.compute_dependent_paired(col1, col2, t1, t2, ref_wave, es_method_long, ci_method, ci_level, n_bootstrap, cov_col)
+                    private$.compute_dependent_paired(col1, col2, t1, t2, ref_wave, es_method_long, ci_method, ci_level, n_bootstrap, cov_col, benchmark = benchmark_std)
                   }, error = function(e) {
                     list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Paired error: ", e$message))
                   })
                   n_rows <- n_rows + 1
+                  comp_str <- paste0(t1, " vs ", t2)
                   table$addRow(rowKey = n_rows, values = list(
                     dv             = dv,
                     iv             = sub$label,
-                    comparison     = paste0(t1, " vs ", t2),
+                    comparison     = comp_str,
                     method         = result$method,
                     es_value       = result$es_value,
                     ci_lower       = result$ci_lower,
@@ -471,6 +542,32 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                     interpretation = result$interpretation,
                     n_obs          = n_pair
                   ))
+                  
+                  if (show_conversions && is.finite(result$es_value)) {
+                    conv_res <- private$.convert_metrics(result$es_value, result$method, benchmark_std)
+                    n_conv <- n_conv + 1
+                    conversionTable$addRow(rowKey = n_conv, values = list(
+                      dv             = paste0(dv, " (", sub$label, ")"),
+                      comparison     = comp_str,
+                      cohen_d        = conv_res$cohen_d,
+                      correlation_r  = conv_res$correlation_r,
+                      eta_squared    = conv_res$eta_squared,
+                      odds_ratio     = conv_res$odds_ratio,
+                      auc            = conv_res$auc,
+                      interpretation = conv_res$interpretation
+                    ))
+                  }
+                  
+                  if (show_es_plot && is.finite(result$es_value)) {
+                    plot_entries[[length(plot_entries) + 1]] <- list(
+                      label    = paste0(dv, " [", sub$label, ": ", comp_str, "]"),
+                      estimate = result$es_value,
+                      ci_lower = result$ci_lower,
+                      ci_upper = result$ci_upper,
+                      method   = result$method
+                    )
+                  }
+                  
                   if (isTRUE(show_cles_long)) {
                     cles_result <- private$.compute_cles_paired(col1, col2)
                     n_cles_long <- n_cles_long + 1
@@ -478,7 +575,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                       rowKey = n_cles_long,
                       values = list(
                         dv         = if (sub$label == "Overall Sample") dv else paste0(dv, " (", sub$label, ")"),
-                        comparison = paste0(t1, " vs ", t2),
+                        comparison = comp_str,
                         cles       = cles_result$cles
                       )
                     )
@@ -505,15 +602,16 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                                                    rank_biserial_paired = "rank_biserial",
                                                    es_method_long)
                   result <- tryCatch({
-                    private$.compute_2groups(g1, g2, t1, t2, t1, method_to_use_unpaired, ci_method, ci_level, n_bootstrap, cov_g1, cov_g2)
+                    private$.compute_2groups(g1, g2, t1, t2, t1, method_to_use_unpaired, ci_method, ci_level, n_bootstrap, cov_g1, cov_g2, benchmark = benchmark_std)
                   }, error = function(e) {
                     list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method_to_use_unpaired, interpretation = paste0("Error: ", e$message))
                   })
                   n_rows <- n_rows + 1
+                  comp_str <- paste0(t1, " vs ", t2, " (unpaired)")
                   table$addRow(rowKey = n_rows, values = list(
                     dv             = dv,
                     iv             = sub$label,
-                    comparison     = paste0(t1, " vs ", t2, " (unpaired)"),
+                    comparison     = comp_str,
                     method         = result$method,
                     es_value       = result$es_value,
                     ci_lower       = result$ci_lower,
@@ -521,6 +619,32 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                     interpretation = result$interpretation,
                     n_obs          = n_pair
                   ))
+                  
+                  if (show_conversions && is.finite(result$es_value)) {
+                    conv_res <- private$.convert_metrics(result$es_value, result$method, benchmark_std)
+                    n_conv <- n_conv + 1
+                    conversionTable$addRow(rowKey = n_conv, values = list(
+                      dv             = paste0(dv, " (", sub$label, ")"),
+                      comparison     = comp_str,
+                      cohen_d        = conv_res$cohen_d,
+                      correlation_r  = conv_res$correlation_r,
+                      eta_squared    = conv_res$eta_squared,
+                      odds_ratio     = conv_res$odds_ratio,
+                      auc            = conv_res$auc,
+                      interpretation = conv_res$interpretation
+                    ))
+                  }
+                  
+                  if (show_es_plot && is.finite(result$es_value)) {
+                    plot_entries[[length(plot_entries) + 1]] <- list(
+                      label    = paste0(dv, " [", sub$label, ": ", comp_str, "]"),
+                      estimate = result$es_value,
+                      ci_lower = result$ci_lower,
+                      ci_upper = result$ci_upper,
+                      method   = result$method
+                    )
+                  }
+                  
                   if (isTRUE(show_cles_long)) {
                     cles_result <- private$.compute_cles_independent(g1, g2)
                     n_cles <- n_cles + 1
@@ -529,7 +653,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                       values = list(
                         dv         = dv,
                         iv         = sub$label,
-                        comparison = paste0(t1, " vs ", t2, " (unpaired)"),
+                        comparison = comp_str,
                         cles       = cles_result$cles
                       )
                     )
@@ -567,15 +691,16 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                                             rank_biserial_paired = "rank_biserial",
                                             es_method)
                     result <- tryCatch({
-                      private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[2]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b)
+                      private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], gp[[2]], method_to_use, ci_method, ci_level, n_bootstrap, cov_a, cov_b, benchmark = benchmark_std)
                     }, error = function(e) {
                       list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method_to_use, interpretation = paste0("Error: ", e$message))
                     })
                     n_rows_long_between <- n_rows_long_between + 1
+                    comp_str <- paste0(gp[[1]], " vs ", gp[[2]])
                     table_long_between$addRow(rowKey = n_rows_long_between, values = list(
                       dv             = paste0(dv, " (At Time: ", t1, ")"),
                       iv             = iv_name,
-                      comparison     = paste0(gp[[1]], " vs ", gp[[2]]),
+                      comparison     = comp_str,
                       method         = result$method,
                       es_value       = result$es_value,
                       ci_lower       = result$ci_lower,
@@ -591,6 +716,18 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
+      # Forest Plot Setup
+      if (show_es_plot) {
+        image <- self$results$esPlot
+        image$setSize(plot_w, plot_h)
+        if (length(plot_entries) > 0) {
+          plot_df <- do.call(rbind, lapply(plot_entries, as.data.frame, stringsAsFactors = FALSE))
+          image$setState(plot_df)
+        } else {
+          image$setState(NULL)
+        }
+      }
+      
       if (n_rows == 0) {
         self$results$text$setContent("No valid pairs found. Check variable assignments, types, and missing data.")
       } else {
@@ -601,21 +738,67 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       self$results$text$setVisible(TRUE)
     },
     
-    .interpret = function(value, method) {
+    .interpret = function(value, method, benchmark = "cohen") {
       if (is.na(value) || !is.finite(value)) return("—")
       abs_val <- abs(value)
-      thresholds <- switch(method,
-                           cohens_d = , hedges_g = , glass_delta = ,
-                           cohens_dz = , hedges_gz = , glass_dz =
-                             list(small = 0.2, medium = 0.5, large = 0.8),
-                           rank_biserial = , rank_biserial_paired =
-                             list(small = 0.1, medium = 0.3, large = 0.5),
-                           list(small = 0.2, medium = 0.5, large = 0.8)
-      )
-      if (abs_val < thresholds$small)  return("Negligible")
-      if (abs_val < thresholds$medium) return("Small")
-      if (abs_val < thresholds$large)  return("Medium")
+      
+      # Rank biserial always uses correlation thresholds
+      if (method %in% c("rank_biserial", "rank_biserial_paired")) {
+        if (abs_val < 0.1) return("Negligible")
+        if (abs_val < 0.3) return("Small")
+        if (abs_val < 0.5) return("Medium")
+        return("Large")
+      }
+      
+      # Standard Cohen (1988)
+      if (benchmark == "cohen") {
+        if (abs_val < 0.2) return("Negligible")
+        if (abs_val < 0.5) return("Small")
+        if (abs_val < 0.8) return("Medium")
+        return("Large")
+      }
+      
+      # Sawilowsky (2009) expanded benchmark
+      if (benchmark == "sawilowsky") {
+        if (abs_val < 0.01) return("Negligible (< 0.01)")
+        if (abs_val < 0.20) return("Very small (0.01 - 0.2)")
+        if (abs_val < 0.50) return("Small (0.2 - 0.5)")
+        if (abs_val < 0.80) return("Medium (0.5 - 0.8)")
+        if (abs_val < 1.20) return("Large (0.8 - 1.2)")
+        if (abs_val < 2.00) return("Very large (1.2 - 2.0)")
+        return("Huge (≥ 2.0)")
+      }
+      
+      if (abs_val < 0.2) return("Negligible")
+      if (abs_val < 0.5) return("Small")
+      if (abs_val < 0.8) return("Medium")
       return("Large")
+    },
+    
+    .convert_metrics = function(es_val, method, benchmark = "cohen") {
+      # Determine Cohen's d equivalent
+      d <- if (method %in% c("rank_biserial", "rank_biserial_paired")) {
+        r_clamped <- max(min(es_val, 0.999), -0.999)
+        (2 * r_clamped) / sqrt(1 - r_clamped^2)
+      } else {
+        es_val
+      }
+      
+      # Asymptotic conversions (Borenstein et al., 2009; Rosenthal, 1994)
+      r <- d / sqrt(d^2 + 4)
+      eta_sq <- r^2
+      or_val <- exp(1.813799 * d)
+      auc_val <- stats::pnorm(d / sqrt(2))
+      interp <- private$.interpret(d, "cohens_d", benchmark)
+      
+      list(
+        cohen_d       = d,
+        correlation_r = r,
+        eta_squared   = eta_sq,
+        odds_ratio    = or_val,
+        auc           = auc_val,
+        interpretation= interp
+      )
     },
     
     .compute_cles_independent = function(ga, gb) {
@@ -629,11 +812,11 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       diff_vec <- col1 - col2
       valid_diff <- na.omit(diff_vec)
       if (length(valid_diff) == 0) return(list(cles = NA_real_))
-      p <- mean(valid_diff > 0) + 0.5 * mean(valid_diff == 0)
+      p <- mean(diff_vec > 0) + 0.5 * mean(diff_vec == 0)
       list(cles = p)
     },
     
-    .compute_2groups = function(ga, gb, name_a, name_b, ref_grp, method, ci_method, ci_level, n_bootstrap, cov_a = NULL, cov_b = NULL) {
+    .compute_2groups = function(ga, gb, name_a, name_b, ref_grp, method, ci_method, ci_level, n_bootstrap, cov_a = NULL, cov_b = NULL, benchmark = "cohen") {
       es_val <- NA_real_; ci_lo <- NA_real_; ci_hi <- NA_real_
       has_cov <- !is.null(cov_a) && !is.null(cov_b)
       n1 <- length(ga)
@@ -710,7 +893,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             } else if (method == "glass_delta") {
               s_ref <- if (ref_grp == name_a) s1 else s2
               if (is.na(s_ref) || s_ref == 0) return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in reference group"))
-              # Glass's delta: (non-ref - ref) / s_ref
               diff_glass <- if (ref_grp == name_a) -adj_diff else adj_diff
               lo_glass   <- if (ref_grp == name_a) -ci_hi_diff else ci_lo_diff
               hi_glass   <- if (ref_grp == name_a) -ci_lo_diff else ci_hi_diff
@@ -810,7 +992,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
         
-        # Bootstrap without covariate: fast replicate (ci = NULL)
+        # Bootstrap without covariate
         if (ci_method == "bootstrap") {
           boot_fn <- function() {
             b1 <- sample(ga, n1, replace = TRUE); b2 <- sample(gb, n2, replace = TRUE)
@@ -836,10 +1018,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
       }
-      list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = method, interpretation = private$.interpret(es_val, method))
+      list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = method, interpretation = private$.interpret(es_val, method, benchmark))
     },
     
-    .compute_dependent_paired = function(col1, col2, name1, name2, ref_wave, method, ci_method, ci_level, n_bootstrap, cov_col = NULL) {
+    .compute_dependent_paired = function(col1, col2, name1, name2, ref_wave, method, ci_method, ci_level, n_bootstrap, cov_col = NULL, benchmark = "cohen") {
       es_val <- NA_real_; ci_lo <- NA_real_; ci_hi <- NA_real_
       has_cov <- !is.null(cov_col)
       n <- length(col1)
@@ -964,7 +1146,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                  cohens_dz            = effectsize::cohens_d(col1, col2, paired = TRUE, ci = ci_level),
                  hedges_gz            = effectsize::hedges_g(col1, col2, paired = TRUE, ci = ci_level),
                  glass_dz             = {
-                   # Becker's d (method = "b" uses second variable as reference/control)
                    if (ref_wave == name1) {
                      effectsize::repeated_measures_d(col2, col1, method = "b", ci = ci_level)
                    } else {
@@ -982,7 +1163,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
         
-        # Bootstrap paired without covariate: fast replicate (ci = NULL)
+        # Bootstrap paired without covariate
         if (ci_method == "bootstrap") {
           boot_fn <- function() {
             idx <- sample(seq_len(n), n, replace = TRUE)
@@ -1012,10 +1193,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
       }
-      list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = method, interpretation = private$.interpret(es_val, method))
+      list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = method, interpretation = private$.interpret(es_val, method, benchmark))
     },
     
-    .compute_glm = function(iv_col, dv_col, name_a, name_b, dist, ci_method, ci_level, n_bootstrap, cov_col = NULL) {
+    .compute_glm = function(iv_col, dv_col, name_a, name_b, dist, ci_method, ci_level, n_bootstrap, cov_col = NULL, benchmark = "cohen") {
       family_fn <- switch(dist, 
                           glm_gaussian     = gaussian(link = "identity"),
                           glm_gamma        = Gamma(link = "log"), 
@@ -1053,7 +1234,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       emm <- emmeans::emmeans(fit, "x", type = "response")
       pairs_df <- as.data.frame(pairs(emmeans::regrid(emm)))
       
-      # pairs gives name_a - name_b on the response scale
       ame <- pairs_df$estimate[1]
       se_ame <- pairs_df$SE[1]
       alpha <- 1 - ci_level
@@ -1082,7 +1262,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       sd_dv <- sd(dv_sub, na.rm = TRUE)
-      interp_val <- if (is.finite(sd_dv) && sd_dv > 0) private$.interpret(abs(ame) / sd_dv, "cohens_d") else "—"
+      interp_val <- if (is.finite(sd_dv) && sd_dv > 0) private$.interpret(abs(ame) / sd_dv, "cohens_d", benchmark) else "—"
       list(
         es_value = ame,
         ci_lower = ci_lo,
@@ -1090,6 +1270,32 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         method = paste0("AME (", dist, ")"),
         interpretation = interp_val
       )
+    },
+    
+    .renderESPlot = function(image, ggtheme, theme, ...) {
+      plot_df <- image$state
+      if (is.null(plot_df) || nrow(plot_df) == 0) return(FALSE)
+      
+      # Reverse factor levels so first computed row appears at top of plot
+      plot_df$label <- factor(plot_df$label, levels = rev(unique(plot_df$label)))
+      
+      p <- ggplot2::ggplot(plot_df, ggplot2::aes(y = label, x = estimate)) +
+        ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey60", linewidth = 0.7) +
+        ggplot2::geom_errorbarh(ggplot2::aes(xmin = ci_lower, xmax = ci_upper), height = 0.25, color = "#2c3e50", linewidth = 0.8) +
+        ggplot2::geom_point(color = "#2980b9", size = 3) +
+        ggplot2::labs(
+          x = "Effect Size & Confidence Interval",
+          y = "Comparison",
+          title = "Forest Plot of Effect Sizes"
+        ) +
+        ggtheme +
+        ggplot2::theme(
+          axis.text.y = ggplot2::element_text(size = 9, face = "bold"),
+          panel.grid.minor = ggplot2::element_blank()
+        )
+      
+      print(p)
+      TRUE
     }
   )
 )

@@ -210,6 +210,89 @@ items:
           type: number
           format: dp:3
 
+    - name: conversionTable
+      title: Multi-Metric Effect Size Conversions
+      type: Table
+      visible: (run_analysis && show_conversions)
+      refs:
+        - Borenstein2009
+        - Cohen1988
+      clearWith:
+        - mode
+        - dep_vars_cs
+        - indep_vars_cs
+        - dep_vars_long
+        - indep_vars_long
+        - include_interactions
+        - es_method
+        - es_method_long
+        - long_format
+        - time_var
+        - wave_vars
+        - subject_id_var
+        - run_analysis
+        - show_conversions
+
+      columns:
+        - name: dv
+          title: DV / Wave
+          type: text
+          combineBelow: true
+        - name: comparison
+          title: Comparison
+          type: text
+        - name: cohen_d
+          title: "Cohen's d"
+          type: number
+          format: dp:3
+        - name: correlation_r
+          title: "Point-Biserial r"
+          type: number
+          format: dp:3
+        - name: eta_squared
+          title: "Eta-squared (η²)"
+          type: number
+          format: dp:3
+        - name: odds_ratio
+          title: "Odds Ratio (OR)"
+          type: number
+          format: dp:3
+        - name: auc
+          title: "AUC / Prob. Superiority"
+          type: number
+          format: dp:3
+        - name: interpretation
+          title: Interpretation
+          type: text
+
+    - name: esPlot
+      title: Effect Size Forest Plot
+      type: Image
+      width: 650
+      height: 450
+      renderFun: .renderESPlot
+      visible: (run_analysis && show_es_plot)
+      requiresData: true
+      refs:
+        - ggplot2
+      clearWith:
+        - mode
+        - dep_vars_cs
+        - indep_vars_cs
+        - dep_vars_long
+        - indep_vars_long
+        - include_interactions
+        - es_method
+        - es_method_long
+        - long_format
+        - time_var
+        - wave_vars
+        - subject_id_var
+        - run_analysis
+        - show_es_plot
+        - plot_width
+        - plot_height
+
     - name: text
       title: Analysis Summary
       type: Preformatted
