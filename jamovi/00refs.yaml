@@ -381,3 +381,38 @@ Zou2007:
   issue: 4
   pages: "399-413"
   doi: "10.1037/1082-989X.12.4.399"
+
+APA2020:
+  type: book
+  author: "American Psychological Association"
+  year: 2020
+  title: "Publication Manual of the American Psychological Association"
+  edition: "7th"
+  publisher: "American Psychological Association"
+  address: "Washington, DC"
+  doi: "10.1037/0000165-000"
+
+ABNT2011:
+  type: manual
+  author: "Associação Brasileira de Normas Técnicas"
+  year: 2011
+  title: "NBR 14724: Informação e documentação — Trabalhos acadêmicos — Apresentação"
+  publisher: "ABNT"
+  address: "Rio de Janeiro"
+
+ICMJE2023:
+  type: manual
+  author: "International Committee of Medical Journal Editors"
+  year: 2023
+  title: "Recommendations for the Conduct, Reporting, Editing, and Publication of Scholarly Work in Medical Journals (Vancouver Style)"
+  url: "http://www.icmje.org/recommendations/"
+
+Chicago2017:
+  type: book
+  author: "University of Chicago Press"
+  year: 2017
+  title: "The Chicago Manual of Style"
+  edition: "17th"
+  publisher: "University of Chicago Press"
+  address: "Chicago, IL"
+  doi: "10.7208/cmos17"

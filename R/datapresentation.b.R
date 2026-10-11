@@ -1,7 +1,33 @@
+
 DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6Class(
   "DataPresentationClass",
   inherit = DataPresentationBase,
   private = list(
+    
+    .to_numeric_vec = function(x) {
+      if (is.null(x)) return(NULL)
+      if (is.numeric(x)) return(as.numeric(x))
+      if (is.factor(x)) {
+        num_try <- suppressWarnings(as.numeric(as.character(x)))
+        if (!all(is.na(num_try)) || all(is.na(x))) return(num_try)
+        return(as.numeric(x))
+      }
+      if (is.character(x)) {
+        return(suppressWarnings(as.numeric(x)))
+      }
+      suppressWarnings(as.numeric(x))
+    },
+    
+    .get_rm_dim_name = function(fit, rm_vars) {
+      tryCatch({
+        rg <- emmeans::ref_grid(fit)
+        for (vname in names(rg@levels)) {
+          if (all(rm_vars %in% rg@levels[[vname]])) return(vname)
+        }
+        'rep.meas'
+      }, error = function(e) 'rep.meas')
+    },
+    
     .init = function() {
       plots <- self$results$plots
       if (self$options$analysisType == 'cross_sectional') {
@@ -12,6 +38,25 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       
       if (length(keys) > 0) {
         for (k in keys) plots$addItem(key = k)
+      }
+    },
+    
+    .syncTableColumns = function(table, grouping_vars) {
+      get_col_names <- function(tbl) {
+        tryCatch(sapply(tbl$columns, function(col) col$name), error = function(e) character(0))
+      }
+      base_cols <- c("variable", "n", "mean", "sd", "se", "ci_lower", "ci_upper", "median", "min", "max")
+      current_cols <- get_col_names(table)
+      cols_to_remove <- setdiff(current_cols, c(base_cols, grouping_vars))
+      for (col_name in cols_to_remove) {
+        try(table$deleteColumn(name = col_name), silent = TRUE)
+      }
+      current_cols_after_remove <- get_col_names(table)
+      for (i in seq_along(grouping_vars)) {
+        g_var <- grouping_vars[[i]]
+        if (!g_var %in% current_cols_after_remove) {
+          table$addColumn(name = g_var, title = g_var, type = 'text', combineBelow = TRUE, index = i + 1)
+        }
       }
     },
     
@@ -51,6 +96,9 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         }
         self$results$messages$setVisible(FALSE)
         
+        # Coercao defensiva de DVs e covariavel (BSS-STAT-033)
+        for (dep in deps) data[[dep]] <- private$.to_numeric_vec(data[[dep]])
+        if (has_cov) data[[cov_var]] <- private$.to_numeric_vec(data[[cov_var]])
         for (v in groups_vars) data[[v]] <- as.factor(data[[v]])
         
         for (dep in deps) {
@@ -93,7 +141,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 emm_df <- as.data.frame(emm)
                 
                 raw_summary <- df_clean %>%
-                  dplyr::group_by(dplyr::across(all_of(groups_vars))) %>%
+                  dplyr::group_by(dplyr::across(dplyr::all_of(groups_vars))) %>%
                   dplyr::summarise(
                     sd = sd(y, na.rm = TRUE),
                     .groups = 'drop'
@@ -143,6 +191,13 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         }
         self$results$messages$setVisible(FALSE)
         
+        # Coercao defensiva das variaveis longitudinais e covariavel (BSS-STAT-033)
+        for (v in rm_vars) data[[v]] <- private$.to_numeric_vec(data[[v]])
+        if (has_cov) data[[cov_var]] <- private$.to_numeric_vec(data[[cov_var]])
+        if (length(group_long) > 0) {
+          for (v in group_long) data[[v]] <- as.factor(data[[v]])
+        }
+        
         cols_needed <- rm_vars
         if (length(group_long) > 0) {
           cols_needed <- c(cols_needed, group_long)
@@ -157,7 +212,6 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         stacked$x_var <- factor(stacked$x_var, levels = rm_vars)
         
         if (length(group_long) > 0) {
-          for (v in group_long) data_clean[[v]] <- as.factor(data_clean[[v]])
           info_df <- data_clean[rep(seq_len(nrow(data_clean)), times = length(rm_vars)), group_long, drop = FALSE]
           df_temp <- cbind(stacked, info_df)
           
@@ -175,8 +229,6 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         plot_df_list[["Repeated_Measures"]] <- df_temp[complete.cases(df_temp), ]
         
         if (has_cov) {
-          for (v in group_long) data_clean[[v]] <- as.factor(data_clean[[v]])
-          
           if (length(group_long) > 0) {
             formula_str <- paste0("cbind(", paste(rm_vars, collapse = ", "), ") ~ ", paste(group_long, collapse = " * "), " + ", cov_var)
           } else {
@@ -188,10 +240,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
           }, error = function(e) NULL)
           
           if (!is.null(fit)) {
+            rm_dim_name <- private$.get_rm_dim_name(fit, rm_vars)
             if (length(group_long) > 0) {
-              specs_formula <- as.formula(paste("~ multivariate_response |", paste(group_long, collapse = " + ")))
+              specs_formula <- as.formula(paste("~", rm_dim_name, "|", paste(group_long, collapse = " + ")))
             } else {
-              specs_formula <- ~ multivariate_response
+              specs_formula <- as.formula(paste("~", rm_dim_name))
             }
             
             emm <- tryCatch({
@@ -211,13 +264,15 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
               if (!is.null(rm_col_name)) {
                 emm_df$variable <- factor(emm_df[[rm_col_name]], levels = rm_vars)
               } else {
-                emm_df$variable <- factor(emm_df$multivariate_response, levels = rm_vars)
+                emm_df$variable <- factor(emm_df[[rm_dim_name]], levels = rm_vars)
               }
               
+              group_cols_summary <- if (length(group_long) > 0) c("variable", group_long) else "variable"
+              
               raw_summary <- data_clean %>%
-                tidyr::pivot_longer(cols = all_of(rm_vars), names_to = "variable", values_to = "value") %>%
+                tidyr::pivot_longer(cols = dplyr::all_of(rm_vars), names_to = "variable", values_to = "value") %>%
                 dplyr::mutate(variable = factor(variable, levels = rm_vars)) %>%
-                dplyr::group_by(dplyr::across(all_of(c("variable", group_long)))) %>%
+                dplyr::group_by(dplyr::across(dplyr::all_of(group_cols_summary))) %>%
                 dplyr::summarise(
                   sd = sd(value, na.rm = TRUE),
                   .groups = 'drop'
@@ -263,25 +318,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         table$deleteRows()
         
         grouping_vars <- if (analysisType == 'cross_sectional') self$options$group else self$options$group_long
-        
-        get_col_names <- function(tbl) {
-          tryCatch(sapply(tbl$columns, function(col) col$name), error = function(e) character(0))
-        }
-        base_cols <- c("variable", "n", "mean", "sd", "se", "ci_lower", "ci_upper", "median", "min", "max")
-        current_cols <- get_col_names(table)
-        cols_to_remove <- setdiff(current_cols, c(base_cols, grouping_vars))
-        for (col_name in cols_to_remove) {
-          try(table$deleteColumn(name = col_name), silent = TRUE)
-        }
-        
-        current_cols_after_remove <- get_col_names(table)
-        for (i in seq_along(grouping_vars)) {
-          g_var <- grouping_vars[[i]]
-          if (!g_var %in% current_cols_after_remove) {
-            table$addColumn(name = g_var, title = g_var, type = 'text', combineBelow = TRUE, index = i + 1)
-          }
-        }
-        
+        private$.syncTableColumns(table, grouping_vars)
         private$.formatTableByNorm(table)
         
         if (has_cov) {
@@ -309,7 +346,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                   emm_df <- as.data.frame(emm)
                   
                   raw_summary <- df_temp %>%
-                    dplyr::group_by(dplyr::across(all_of(groups_vars))) %>%
+                    dplyr::group_by(dplyr::across(dplyr::all_of(groups_vars))) %>%
                     dplyr::summarise(
                       n = sum(!is.na(y)),
                       sd = sd(y, na.rm = TRUE),
@@ -353,7 +390,9 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
             cols_needed <- c(cols_needed, cov_var)
             
             data_clean <- data[complete.cases(data[, cols_needed, drop = FALSE]), , drop = FALSE]
-            for (v in group_long) data_clean[[v]] <- as.factor(data_clean[[v]])
+            if (length(group_long) > 0) {
+              for (v in group_long) data_clean[[v]] <- as.factor(data_clean[[v]])
+            }
             
             if (length(group_long) > 0) {
               formula_str <- paste0("cbind(", paste(rm_vars, collapse = ", "), ") ~ ", paste(group_long, collapse = " * "), " + ", cov_var)
@@ -366,10 +405,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
             }, error = function(e) NULL)
             
             if (!is.null(fit)) {
+              rm_dim_name <- private$.get_rm_dim_name(fit, rm_vars)
               if (length(group_long) > 0) {
-                specs_formula <- as.formula(paste("~ multivariate_response |", paste(group_long, collapse = " + ")))
+                specs_formula <- as.formula(paste("~", rm_dim_name, "|", paste(group_long, collapse = " + ")))
               } else {
-                specs_formula <- ~ multivariate_response
+                specs_formula <- as.formula(paste("~", rm_dim_name))
               }
               
               emm <- tryCatch({
@@ -389,13 +429,15 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 if (!is.null(rm_col_name)) {
                   emm_df$variable <- factor(emm_df[[rm_col_name]], levels = rm_vars)
                 } else {
-                  emm_df$variable <- factor(emm_df$multivariate_response, levels = rm_vars)
+                  emm_df$variable <- factor(emm_df[[rm_dim_name]], levels = rm_vars)
                 }
                 
+                group_cols_summary <- if (length(group_long) > 0) c("variable", group_long) else "variable"
+                
                 raw_summary <- data_clean %>%
-                  tidyr::pivot_longer(cols = all_of(rm_vars), names_to = "variable", values_to = "value") %>%
+                  tidyr::pivot_longer(cols = dplyr::all_of(rm_vars), names_to = "variable", values_to = "value") %>%
                   dplyr::mutate(variable = factor(variable, levels = rm_vars)) %>%
-                  dplyr::group_by(dplyr::across(all_of(c("variable", group_long)))) %>%
+                  dplyr::group_by(dplyr::across(dplyr::all_of(group_cols_summary))) %>%
                   dplyr::summarise(
                     n = sum(!is.na(value)),
                     sd = sd(value, na.rm = TRUE),
@@ -414,9 +456,9 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 
                 merged_df$variable <- factor(merged_df$variable, levels = rm_vars)
                 if (length(group_long) > 0) {
-                  merged_df <- merged_df[order(merged_df$variable, merged_df[[group_long[1]]]), ]
+                  merged_df <- merged_df[order(match(as.character(merged_df$variable), rm_vars), merged_df[[group_long[1]]]), ]
                 } else {
-                  merged_df <- merged_df[order(merged_df$variable), ]
+                  merged_df <- merged_df[order(match(as.character(merged_df$variable), rm_vars)), ]
                 }
                 
                 lower_col <- grep("lower|LCL", names(merged_df), value = TRUE, ignore.case = TRUE)[1]
@@ -454,8 +496,8 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 grouping_cols <- c(grouping_cols, grouping_vars)
               }
               summary_df <- data %>%
-                tidyr::pivot_longer(cols = all_of(deps), names_to = "variable", values_to = "value") %>%
-                dplyr::group_by(dplyr::across(all_of(grouping_cols))) %>%
+                tidyr::pivot_longer(cols = dplyr::all_of(deps), names_to = "variable", values_to = "value") %>%
+                dplyr::group_by(dplyr::across(dplyr::all_of(grouping_cols))) %>%
                 dplyr::summarise(
                   n = sum(!is.na(value)),
                   mean = mean(value, na.rm = TRUE),
@@ -474,9 +516,9 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 grouping_cols <- c(grouping_cols, grouping_vars)
               }
               summary_df <- data %>%
-                tidyr::pivot_longer(cols = all_of(rm_vars), names_to = "variable", values_to = "value") %>%
+                tidyr::pivot_longer(cols = dplyr::all_of(rm_vars), names_to = "variable", values_to = "value") %>%
                 dplyr::mutate(variable = factor(variable, levels = rm_vars)) %>%
-                dplyr::group_by(dplyr::across(all_of(grouping_cols))) %>%
+                dplyr::group_by(dplyr::across(dplyr::all_of(grouping_cols))) %>%
                 dplyr::summarise(
                   n = sum(!is.na(value)),
                   mean = mean(value, na.rm = TRUE),
@@ -490,24 +532,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
           }
           
           if (!is.null(summary_df) && nrow(summary_df) > 0) {
-            get_col_names <- function(tbl) {
-              tryCatch(sapply(tbl$columns, function(col) col$name), error = function(e) character(0))
-            }
-            base_cols <- c("variable", "n", "mean", "sd", "se", "ci_lower", "ci_upper", "median", "min", "max")
-            current_cols <- get_col_names(table)
-            cols_to_remove <- setdiff(current_cols, c(base_cols, grouping_vars))
-            for (col_name in cols_to_remove) {
-              try(table$deleteColumn(name = col_name), silent = TRUE)
-            }
-            
-            current_cols_after_remove <- get_col_names(table)
-            for (i in seq_along(grouping_vars)) {
-              g_var <- grouping_vars[[i]]
-              if (!g_var %in% current_cols_after_remove) {
-                table$addColumn(name = g_var, title = g_var, type = 'text', combineBelow = TRUE, index = i + 1)
-              }
-            }
-            
+            private$.syncTableColumns(table, grouping_vars)
             private$.formatTableByNorm(table)
             for (i in 1:nrow(summary_df)) {
               row_data <- as.list(summary_df[i, ])
@@ -756,6 +781,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         mc <- unlist(manual)
         mc <- mc[mc != '' & mc != 'none']
         if (length(mc) > 0) return(rep(mc, length.out = n))
+        palette <- 'set1'
       }
       pals <- list(
         set1 = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF"),
