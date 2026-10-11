@@ -604,3 +604,35 @@ McNemar1947:
   issue: 2
   pages: "153-157"
   doi: "10.1007/BF02295996"
+
+Mahalanobis1936:
+  type: article
+  author: "Mahalanobis, P. C."
+  year: 1936
+  title: "On the generalised distance in statistics"
+  journal: "Proceedings of the National Institute of Sciences of India"
+  volume: 2
+  issue: 1
+  pages: "49-55"
+
+Rousseeuw1999:
+  type: article
+  author: "Rousseeuw, P. J., & Van Driessen, K."
+  year: 1999
+  title: "A fast algorithm for the minimum covariance determinant estimator"
+  journal: "Technometrics"
+  volume: 41
+  issue: 3
+  pages: "212-223"
+  doi: "10.1080/00401706.1999.10485670"
+
+Hubert2008:
+  type: article
+  author: "Hubert, M., & Vandervieren, E."
+  year: 2008
+  title: "An adjusted boxplot for skewed distributions"
+  journal: "Computational Statistics & Data Analysis"
+  volume: 52
+  issue: 12
+  pages: "5186-5201"
+  doi: "10.1016/j.csda.2007.11.008"

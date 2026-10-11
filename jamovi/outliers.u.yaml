@@ -170,6 +170,9 @@ children:
                     name: iqrMultiplier_iqr
                     label: IQR Multiplier Range
                   - type: CheckBox
+                    name: adj_box_iqr
+                    label: Adjusted Boxplot (Hubert & Vandervieren, 2008)
+                  - type: CheckBox
                     name: dispBox_iqr
                     label: Display Boxplot
 
@@ -202,3 +205,48 @@ children:
                 children:
                   - type: Output
                     name: treatedData_iqr
+
+      - type: Content
+        name: mahalanobis
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables
+                children:
+                  - type: VariablesListBox
+                    name: vars_mah
+                    isTarget: true
+
+          - type: CollapseBox
+            label: Estimation & Cutoff Settings
+            collapsed: false
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: ComboBox
+                    name: method_mah
+                    label: Estimation Method
+                  - type: ComboBox
+                    name: alpha_mah
+                    label: Significance Level (Cutoff)
+                  - type: CheckBox
+                    name: dispPlot_mah
+                    label: Display Chi-Square QQ-Plot
+
+          - type: CollapseBox
+            label: Save Output
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: Output
+                    name: treatedData_mah

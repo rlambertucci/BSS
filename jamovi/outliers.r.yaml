@@ -186,6 +186,7 @@ items:
       refs:
         - Tukey1977
         - Hoaglin1987
+        - Hubert2008
       title: IQR Outliers Summary
       type: Table
       visible: (mode == 'iqr')
@@ -234,5 +235,91 @@ items:
         - vars_iqr
         - group_iqr
         - iqrMultiplier_iqr
+        - adj_box_iqr
         - treatment_iqr
         - trimPercent_iqr
+
+    # Multivariate Outliers (Mahalanobis & MCD) (BSS-FEAT-019..021)
+    - name: mahInfo
+      title: About Multivariate Outlier Detection
+      type: Html
+      visible: (mode == 'mahalanobis')
+
+    - name: mahTable
+      refs:
+        - Mahalanobis1936
+        - Rousseeuw1999
+      title: Multivariate Outliers Summary (Mahalanobis / MCD)
+      type: Table
+      rows: 1
+      visible: (mode == 'mahalanobis')
+      clearWith:
+        - vars_mah
+        - method_mah
+        - alpha_mah
+      columns:
+          - name: method
+            title: Method
+            type: text
+          - name: numVars
+            title: Variables (p)
+            type: integer
+          - name: n_analyzed
+            title: Analyzed N
+            type: integer
+          - name: critCutoff
+            title: "Critical χ²"
+            type: number
+            format: dp:3
+          - name: numOutliers
+            title: Outliers Detected
+            type: integer
+          - name: pctOutliers
+            title: "% Outliers"
+            type: number
+            format: dp:2
+
+    - name: mahOutlierList
+      title: Identified Multivariate Outliers
+      type: Table
+      visible: (mode == 'mahalanobis')
+      clearWith:
+        - vars_mah
+        - method_mah
+        - alpha_mah
+      columns:
+          - name: rowNumber
+            title: Row
+            type: integer
+          - name: d_squared
+            title: "Mahalanobis D²"
+            type: number
+            format: dp:3
+          - name: p_value
+            title: "p-value (χ²)"
+            type: number
+            format: zto,pvalue
+
+    - name: mahPlot
+      title: Mahalanobis Distance vs. Theoretical Chi-Square QQ-Plot
+      type: Image
+      width: 500
+      height: 400
+      renderFun: .plotMahalanobis
+      visible: (mode == 'mahalanobis' && dispPlot_mah)
+      refs:
+        - ggplot2
+      clearWith:
+        - vars_mah
+        - method_mah
+        - alpha_mah
+        - dispPlot_mah
+
+    - name: treatedData_mah
+      title: Multivariate Outlier Indicator
+      type: Output
+      initInRun: true
+      clearWith:
+        - vars_mah
+        - method_mah
+        - alpha_mah

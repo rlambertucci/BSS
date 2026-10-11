@@ -3,7 +3,7 @@ name: outliers
 title: Outliers detection and treatment
 menuGroup: BSS
 menuSubgroup: Data Preparation & Screening
-menuSubtitle: Multi-method outlier detection and treatment (Dixon’s Q Test, IQR, and modified Z-score)
+menuSubtitle: Multi-method outlier detection and treatment (Dixon’s Q Test, IQR, modified Z-score, Mahalanobis & MCD)
 version: '1.0.0'
 jas: '1.2'
 
@@ -21,6 +21,8 @@ options:
           name: modz
         - title: IQR (Interquartile Range)
           name: iqr
+        - title: Multivariate (Mahalanobis & Robust MCD)
+          name: mahalanobis
       default: iqr
 
     - name: var_dixon
@@ -165,6 +167,11 @@ options:
           title: '3.0 x IQR (Extreme)'
       default: iqr15
 
+    - name: adj_box_iqr
+      title: Adjusted Boxplot for Skewed Distributions (Hubert & Vandervieren, 2008)
+      type: Bool
+      default: false
+
     - name: treatment_iqr
       title: Treatment Method
       type: List
@@ -195,4 +202,44 @@ options:
 
     - name: treatedData_iqr
       title: Save treated variables to dataset
+      type: Output
+
+    # Multivariate Outliers: Mahalanobis & MCD (BSS-FEAT-019..021)
+    - name: vars_mah
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: method_mah
+      title: Estimation Method
+      type: List
+      options:
+        - name: classic
+          title: Classical Mahalanobis Distance
+        - name: robust_mcd
+          title: Robust Minimum Covariance Determinant (MCD)
+      default: classic
+
+    - name: alpha_mah
+      title: Significance Level (Cutoff)
+      type: List
+      options:
+        - name: p001
+          title: p < .001 (Conservative / Recommended)
+        - name: p01
+          title: p < .01
+        - name: p05
+          title: p < .05
+      default: p001
+
+    - name: dispPlot_mah
+      title: Display Chi-Square QQ-Plot
+      type: Bool
+      default: true
+
+    - name: treatedData_mah
+      title: Save Mahalanobis outlier flag / distance to dataset
       type: Output

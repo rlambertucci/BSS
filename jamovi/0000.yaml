@@ -32,8 +32,8 @@ analyses:
     menuTitle: Outliers detection and treatment
     menuSubgroup: Data Preparation & Screening
     menuSubtitle: >-
-      Multi-method outlier detection and treatment (Dixon’s Q Test, IQR, and
-      modified Z-score)
+      Multi-method outlier detection and treatment (Dixon’s Q Test, IQR,
+      modified Z-score, Mahalanobis & MCD)
   - title: Missing data analysis and imputation
     name: dataimputation
     ns: BSS

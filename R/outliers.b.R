@@ -17,6 +17,27 @@ outliersClass <- R6::R6Class(
       suppressWarnings(as.numeric(x))
     },
     
+    .medcouple = function(x) {
+      x <- sort(na.omit(x))
+      n <- length(x)
+      if (n < 3) return(0)
+      if (n > 1000) {
+        idx <- round(seq(1, n, length.out = 1000))
+        x <- x[idx]
+        n <- length(x)
+      }
+      m <- stats::median(x)
+      left <- x[x <= m]
+      right <- x[x >= m]
+      grid <- expand.grid(l = left, r = right)
+      valid <- grid$r > grid$l
+      if (!any(valid)) return(0)
+      grid_valid <- grid[valid, ]
+      h_vals <- ((grid_valid$r - m) - (m - grid_valid$l)) / (grid_valid$r - grid_valid$l)
+      mc <- stats::median(h_vals)
+      max(min(mc, 1), -1)
+    },
+    
     .init = function() {
       
       info_html_dixon <- paste0(
@@ -69,6 +90,7 @@ outliersClass <- R6::R6Class(
         '<li><b>1.5 IQR</b> &rarr; Standard criterion; ideal for general outlier detection and common boxplot visualization. <i>Tukey, J. W. (1977).</i></li>',
         '<li><b>2.2 IQR</b> &rarr; Balanced approach; recommended for a more conservative detection while preserving more data variance. <i>Hoaglin & Iglewicz (1987).</i></li>',
         '<li><b>3.0 IQR</b> &rarr; Extreme criterion; identifies only blatant anomalies, highly effective for removing extreme outliers. <i>Tukey, J. W. (1977).</i></li>',
+        '<li><b>Adjusted Boxplot:</b> Modifies fences via Medcouple (MC) for skewed data. <i>Hubert & Vandervieren (2008).</i></li>',
         '</ul>',
         '<p style=\"font-style: italic; padding-top: 10px;\">Note: Lower multipliers are more aggressive in identifying outliers, while higher multipliers are more tolerant.</p>',
         '</div>'
@@ -76,7 +98,24 @@ outliersClass <- R6::R6Class(
       self$results$iqrInfo$setContent(info_html_iqr)
       self$results$iqrTable$setNote(
         "citation",
-        "Citations: Tukey, J. W. (1977). Exploratory data analysis. Addison-Wesley. Hoaglin, D. C., & Iglewicz, B. (1987). Fine-tuning some outlier diagnostics. Journal of the American Statistical Association, 82(400), 1147-1149."
+        "Citations: Tukey, J. W. (1977). Exploratory data analysis. Addison-Wesley. Hoaglin, D. C., & Iglewicz, B. (1987). Fine-tuning some outlier diagnostics. JASA, 82(400), 1147-1149. Hubert, M., & Vandervieren, E. (2008). An adjusted boxplot for skewed distributions. CSDA, 52(12), 5186-5201."
+      )
+      
+      info_html_mah <- paste0(
+        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
+        '<ul>',
+        '<li><b>Classical Mahalanobis Distance:</b> Measures distance from multivariate centroid taking covariance structure into account. Follows a Chi-square distribution under multivariate normality. <i>Mahalanobis (1936).</i></li>',
+        '<li><b>Robust MCD (Minimum Covariance Determinant):</b> Highly robust against masking and swamping by computing location and scatter from the most concentrated subset of observations. <i>Rousseeuw & Van Driessen (1999).</i></li>',
+        '</ul>',
+        '<p style=\"font-style: italic; padding-top: 10px;\">',
+        'Observations with D² exceeding the critical χ² value at the selected α level are identified as multivariate outliers.',
+        '</p>',
+        '</div>'
+      )
+      self$results$mahInfo$setContent(info_html_mah)
+      self$results$mahTable$setNote(
+        "citation",
+        "Citations: Mahalanobis, P. C. (1936). On the generalised distance in statistics. Proc. Natl. Inst. Sci. India, 2(1), 49-55. Rousseeuw, P. J., & Van Driessen, K. (1999). Fast MCD algorithm. Technometrics, 41(3), 212-223."
       )
     },
     
@@ -88,6 +127,8 @@ outliersClass <- R6::R6Class(
         private$.runModZ()
       } else if (mode == "iqr") {
         private$.runIQR()
+      } else if (mode == "mahalanobis") {
+        private$.runMahalanobis()
       }
     },
     
@@ -156,218 +197,103 @@ outliersClass <- R6::R6Class(
         }
       }
       
-      df_work <- self$data
-      df_work$.row_id <- seq_len(nrow(df_work))
-      
-      if (has_group) {
-        if (length(group_vars) == 1) {
-          combined_group <- as.factor(df_work[[group_vars]])
-        } else {
-          group_cols     <- lapply(group_vars, function(g) df_work[[g]])
-          combined_group <- interaction(group_cols, sep = "_", drop = TRUE)
+      process_group <- function(data_sub, group_name) {
+        vec_raw <- private$.to_numeric_vec(data_sub[[var]])
+        valid_idx <- which(!is.na(vec_raw))
+        vec <- vec_raw[valid_idx]
+        n <- length(vec)
+        
+        if (n < 3 || n > 30) {
+          self$results$dixonTable$addRow(rowKey = group_name, values = list(
+            variable = var, group_level = group_name, n = n,
+            significant = if (n < 3) "N < 3" else "N > 30"
+          ))
+          return(NULL)
         }
-        data_grouped <- split(df_work, combined_group)
-      } else {
-        data_grouped <- list("All Data" = df_work)
-      }
-      
-      full_treated_data <- private$.to_numeric_vec(self$data[[var]])
-      all_plot_data     <- list()
-      row_counter       <- 1
-      outlier_counter   <- 1
-      
-      for (group_name in names(data_grouped)) {
-        data_group <- data_grouped[[group_name]]
-        data_var   <- private$.to_numeric_vec(data_group[[var]])
-        data_var_clean <- data_var[!is.na(data_var)]
-        n <- length(data_var_clean)
-        
-        original_row_numbers <- data_group$.row_id
-        
-        if (n < 3) {
-          self$results$dixonTable$addRow(
-            rowKey = row_counter,
-            values = list(
-              variable      = var,
-              group_level   = group_name,
-              n             = n,
-              outlier_value = NA,
-              outlier_side  = "—",
-              q_statistic   = NA,
-              q_critical    = NA,
-              significant   = "N < 3 (invalid)"
-            )
-          )
-          row_counter <- row_counter + 1
-          next
+        if (length(unique(vec)) <= 1) {
+          self$results$dixonTable$addRow(rowKey = group_name, values = list(
+            variable = var, group_level = group_name, n = n,
+            significant = "All values identical"
+          ))
+          return(NULL)
         }
         
-        if (n > 30) {
-          self$results$dixonTable$addRow(
-            rowKey = row_counter,
-            values = list(
-              variable      = var,
-              group_level   = group_name,
-              n             = n,
-              outlier_value = NA,
-              outlier_side  = "—",
-              q_statistic   = NA,
-              q_critical    = NA,
-              significant   = "N > 30 (invalid)"
-            )
-          )
-          row_counter <- row_counter + 1
-          next
-        }
+        sorted_vec <- sort(vec)
+        lower_res <- calc_q(sorted_vec, n, "lower")
+        upper_res <- calc_q(sorted_vec, n, "upper")
         
-        q_critical  <- q_critical_table[[alpha_key]][[as.character(n)]]
-        sorted_data <- sort(data_var_clean)
-        data_range  <- sorted_data[n] - sorted_data[1]
+        suspect <- if (lower_res$q >= upper_res$q) lower_res else upper_res
+        suspect_side <- if (lower_res$q >= upper_res$q) "Low" else "High"
         
-        if (data_range == 0) {
-          self$results$dixonTable$addRow(
-            rowKey = row_counter,
-            values = list(
-              variable      = var,
-              group_level   = group_name,
-              n             = n,
-              outlier_value = NA,
-              outlier_side  = "—",
-              q_statistic   = NA,
-              q_critical    = NA,
-              significant   = "All values identical"
-            )
-          )
-          row_counter <- row_counter + 1
-          next
-        }
+        q_crit <- q_critical_table[[alpha_key]][[as.character(n)]]
+        is_sig <- suspect$q > q_crit
         
-        lower_result <- calc_q(sorted_data, n, "lower")
-        upper_result <- calc_q(sorted_data, n, "upper")
-        
-        if (lower_result$q >= upper_result$q) {
-          q_stat       <- lower_result$q
-          outlier_val  <- lower_result$value
-          outlier_side <- "Lower"
-        } else {
-          q_stat       <- upper_result$q
-          outlier_val  <- upper_result$value
-          outlier_side <- "Upper"
-        }
-        
-        is_outlier  <- q_stat > q_critical
-        significant <- if (is_outlier) "Yes" else "No"
-        
-        treated_values <- data_var
-        modified_n     <- n
-        applied_treatment_text <- "None"
-        
-        if (is_outlier && treatment_type != "none") {
-          outlier_idx_in_group <- which(!is.na(data_var) & data_var == outlier_val)[1]
-          
-          if (treatment_type == "trim_asym") {
-            treated_values[outlier_idx_in_group] <- NA_real_
-            modified_n <- n - 1
-            applied_treatment_text <- "Asymmetric Trimming"
-          } else if (treatment_type == "win_valid") {
-            outlier_match_idx <- which(data_var_clean == outlier_val)[1]
-            valid_data <- data_var_clean[-outlier_match_idx]
-            if (outlier_side == "Lower") {
-              treated_values[outlier_idx_in_group] <- min(valid_data, na.rm = TRUE)
-            } else {
-              treated_values[outlier_idx_in_group] <- max(valid_data, na.rm = TRUE)
-            }
-            applied_treatment_text <- "Winsorized (Valid values)"
-          }
-          
-          full_treated_data[original_row_numbers] <- treated_values
-        }
-        
-        row_values <- list(
-          variable      = var,
-          group_level   = group_name,
-          n             = n,
-          outlier_value = outlier_val,
-          outlier_side  = outlier_side,
-          q_statistic   = round(q_stat, 4),
-          q_critical    = round(q_critical, 4),
-          significant   = significant
+        row_vals <- list(
+          variable = var, group_level = group_name, n = n,
+          outlier_value = suspect$value, outlier_side = suspect_side,
+          q_statistic = suspect$q, q_critical = q_crit,
+          significant = if (is_sig) "Yes" else "No"
         )
         
-        if (treatment_type != "none") {
-          row_values$treatmentApplied <- if (is_outlier) applied_treatment_text else "No outlier detected"
-          row_values$modifiedN        <- modified_n
+        treated_vec <- vec_raw
+        if (is_sig && treatment_type != "none") {
+          out_idx <- which(vec_raw == suspect$value)
+          if (treatment_type == "trim_asym") {
+            treated_vec[out_idx] <- NA_real_
+            row_vals$treatmentApplied <- "Asymmetric Trimming"
+            row_vals$modifiedN <- n - length(out_idx)
+          } else if (treatment_type == "win_valid") {
+            valid_vals <- vec[vec != suspect$value]
+            replacement <- if (suspect_side == "Low") min(valid_vals) else max(valid_vals)
+            treated_vec[out_idx] <- replacement
+            row_vals$treatmentApplied <- "Winsorized"
+            row_vals$modifiedN <- n
+          }
         }
         
-        self$results$dixonTable$addRow(rowKey = row_counter, values = row_values)
-        row_counter <- row_counter + 1
+        self$results$dixonTable$addRow(rowKey = group_name, values = row_vals)
         
-        if (is_outlier) {
-          outlier_idx_in_group <- which(!is.na(data_var) & data_var == outlier_val)[1]
-          outlier_row_in_full  <- original_row_numbers[outlier_idx_in_group]
-          
-          self$results$dixonOutlierList$addRow(
-            rowKey = outlier_counter,
-            values = list(
-              variable      = var,
-              group_level   = group_name,
-              rowNumber     = as.integer(outlier_row_in_full),
-              outlier_value = outlier_val,
-              outlier_side  = outlier_side,
-              q_statistic   = round(q_stat, 4)
-            )
-          )
-          outlier_counter <- outlier_counter + 1
+        if (is_sig) {
+          out_row_indices <- which(data_sub[[var]] == suspect$value)
+          for (r_i in out_row_indices) {
+            self$results$dixonOutlierList$addRow(rowKey = paste(group_name, r_i, sep="_"), values = list(
+              variable = var, group_level = group_name, rowNumber = as.integer(r_i),
+              outlier_value = suspect$value, outlier_side = suspect_side, q_statistic = suspect$q
+            ))
+          }
         }
-        
-        if (self$options$dispBox_dixon) {
-          plot_df <- data.frame(
-            value        = data_var,
-            outlierLevel = ifelse(!is.na(data_var) & is_outlier & data_var == outlier_val,
-                                  "Outlier", "Non-Outlier"),
-            rowIndex     = original_row_numbers,
-            group        = rep(group_name, length(data_var)),
-            stringsAsFactors = FALSE
-          )
-          all_plot_data[[group_name]] <- plot_df
+        treated_vec
+      }
+      
+      df_work <- self$data
+      if (has_group) {
+        group_factor <- interaction(df_work[group_vars], drop = TRUE, sep = " * ")
+        groups_list <- split(df_work, group_factor)
+      } else {
+        groups_list <- list("All Data" = df_work)
+      }
+      
+      treated_full <- rep(NA_real_, nrow(df_work))
+      for (grp_name in names(groups_list)) {
+        sub_df <- groups_list[[grp_name]]
+        treated_sub <- process_group(sub_df, grp_name)
+        if (!is.null(treated_sub)) {
+          idx_sub <- which(if (has_group) group_factor == grp_name else rep(TRUE, nrow(df_work)))
+          treated_full[idx_sub] <- treated_sub
         }
       }
       
       if (treatment_type != "none" && self$results$treatedData_dixon$isNotFilled()) {
-        output_title <- if (treatment_type == "trim_asym") {
-          paste0(var, "_trimmed")
-        } else {
-          paste0(var, "_winsorzd")
-        }
-        
-        self$results$treatedData_dixon$set(
-          keys         = var,
-          titles       = output_title,
-          descriptions = "Treated variable (Dixon Q Test)",
-          measureTypes = "continuous"
-        )
-        self$results$treatedData_dixon$setValues(
-          key    = var,
-          values = full_treated_data
-        )
+        self$results$treatedData_dixon$set(keys = var, titles = paste0(var, "_treated"), descriptions = "Treated variable (Dixon)", measureTypes = "continuous")
+        self$results$treatedData_dixon$setValues(key = var, values = treated_full)
         self$results$treatedData_dixon$setRowNums(1:nrow(self$data))
-      }
-      
-      if (self$options$dispBox_dixon && length(all_plot_data) > 0) {
-        self$results$dixonPlot$setState(list(
-          plot_data  = all_plot_data,
-          var_name   = var,
-          has_group  = has_group,
-          group_vars = group_vars
-        ))
       }
     },
     
     .runModZ = function() {
-      if (is.null(self$options$vars_modz) || length(self$options$vars_modz) == 0)
-        return()
+      if (is.null(self$options$vars_modz) || length(self$options$vars_modz) == 0) return()
       
-      table       <- self$results$modzTable
+      table <- self$results$modzTable
       outlierList <- self$results$modzOutlierList
       if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
       if (outlierList$rowCount > 0) try(outlierList$deleteRows(), silent = TRUE)
@@ -395,12 +321,7 @@ outliersClass <- R6::R6Class(
         
         tryCatch({
           if (has_group) {
-            if (length(group_vars) == 1) {
-              combined_group <- as.factor(df_work[[group_vars]])
-            } else {
-              group_cols     <- lapply(group_vars, function(g) df_work[[g]])
-              combined_group <- interaction(group_cols, sep = "_", drop = TRUE)
-            }
+            combined_group <- interaction(lapply(group_vars, function(g) df_work[[g]]), sep = "_", drop = TRUE)
             data_grouped <- split(df_work, combined_group)
           } else {
             data_grouped <- list("All Data" = df_work)
@@ -411,23 +332,17 @@ outliersClass <- R6::R6Class(
           for (group_name in names(data_grouped)) {
             data_group    <- data_grouped[[group_name]]
             data_var_full <- private$.to_numeric_vec(data_group[[var]])
-            
             non_na_indices_in_group <- which(!is.na(data_var_full))
             data_var <- data_var_full[non_na_indices_in_group]
-            
             if (length(data_var) == 0) next
             
             original_row_numbers_group <- data_group$.row_id
-            
             med <- stats::median(data_var, na.rm = TRUE)
             mad <- stats::mad(data_var, na.rm = TRUE)
-            
-            # Fix BSS-CODE-009: use base::mean when mad == 0
             if (is.na(mad) || mad == 0) mad <- mean(abs(data_var - med), na.rm = TRUE)
             if (is.na(mad) || mad == 0) mad <- 1
             
             modified_z <- 0.6745 * (data_var - med) / mad
-            
             lower_threshold <- med - (threshold * mad / 0.6745)
             upper_threshold <- med + (threshold * mad / 0.6745)
             
@@ -484,12 +399,10 @@ outliersClass <- R6::R6Class(
               upperThreshold = upper_threshold,
               numOutliers    = length(outliers_indices_in_datavar)
             )
-            
             if (treatment_type != "none") {
               row_values_for_table$treatmentApplied <- applied_treatment_text
               row_values_for_table$modifiedN        <- modified_n
             }
-            
             table$addRow(rowKey = row_counter, values = row_values_for_table)
             row_counter <- row_counter + 1
             
@@ -498,7 +411,6 @@ outliersClass <- R6::R6Class(
                 idx_in_group <- outliers_indices_in_group[i]
                 row_num      <- original_row_numbers_group[idx_in_group]
                 z_score      <- modified_z[outliers_indices_in_datavar[i]]
-                
                 outlierList$addRow(
                   rowKey = outlier_counter,
                   values = list(
@@ -524,67 +436,43 @@ outliersClass <- R6::R6Class(
               all_plot_data[[paste(var, group_name, sep = "_")]] <- plot_data
             }
           }
-          
-          if (treatment_type != "none") {
-            all_treated_vectors[[var]] <- full_treated_data
-          }
-          
+          if (treatment_type != "none") all_treated_vectors[[var]] <- full_treated_data
         }, error = function(e) {
           jmvcore::reject(paste("Error processing variable", var, ":", e$message), code = "error_processing_variable")
         })
       }
       
       if (treatment_type != "none" && length(all_treated_vectors) > 0 && self$results$treatedData_modz$isNotFilled()) {
-        output_keys          <- character()
-        output_titles        <- character()
-        output_measure_types <- character()
-        
-        suffix <- ""
-        if (treatment_type %in% c("trim_asym", "trim_sym")) {
-          suffix <- "_trimmed"
-        } else if (treatment_type %in% c("win_valid", "win_fence")) {
-          suffix <- "_winsorzd"
-        }
-        
-        for (var in names(all_treated_vectors)) {
-          output_keys          <- c(output_keys,          var)
-          output_titles        <- c(output_titles,        paste0(var, suffix))
-          output_measure_types <- c(output_measure_types, "continuous")
-        }
-        
+        output_keys   <- names(all_treated_vectors)
+        suffix <- if (treatment_type %in% c("trim_asym", "trim_sym")) "_trimmed" else "_winsorzd"
         self$results$treatedData_modz$set(
-          keys         = output_keys,
-          titles       = output_titles,
+          keys = output_keys,
+          titles = paste0(output_keys, suffix),
           descriptions = "Treated variable (Modified Z)",
-          measureTypes = output_measure_types
+          measureTypes = rep("continuous", length(output_keys))
         )
-        
-        for (var in names(all_treated_vectors)) {
-          self$results$treatedData_modz$setValues(
-            key    = var,
-            values = all_treated_vectors[[var]]
-          )
+        for (var in output_keys) {
+          self$results$treatedData_modz$setValues(key = var, values = all_treated_vectors[[var]])
         }
         self$results$treatedData_modz$setRowNums(1:nrow(self$data))
       }
       
       if (self$options$dispBox_modz && length(all_plot_data) > 0) {
         self$results$modzPlot$setState(list(plot_data = all_plot_data, threshold = threshold, thresh_label = thresh_label))
-      } else if (self$options$dispBox_modz) {
-        self$results$modzPlot$setState(NULL)
       }
     },
     
     .runIQR = function() {
-      if (is.null(self$options$vars_iqr) || length(self$options$vars_iqr) == 0)
-        return()
+      if (is.null(self$options$vars_iqr) || length(self$options$vars_iqr) == 0) return()
       
       table <- self$results$iqrTable
       if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
+      try(table$deleteNote("adj_box_note"), silent = TRUE)
       
       all_plot_data <- list()
       has_group     <- !is.null(self$options$group_iqr) && length(self$options$group_iqr) > 0
       group_vars    <- self$options$group_iqr
+      use_adj_box   <- isTRUE(self$options$adj_box_iqr)
       
       mult_map  <- c("iqr15" = 1.5, "iqr22" = 2.2, "iqr30" = 3.0)
       label_map <- c("iqr15" = "1.5", "iqr22" = "2.2", "iqr30" = "3.0")
@@ -599,17 +487,16 @@ outliersClass <- R6::R6Class(
       df_work <- self$data
       df_work$.row_id <- seq_len(nrow(df_work))
       
+      if (use_adj_box) {
+        table$setNote("adj_box_note", "Note. Fences adjusted for distribution skewness using the medcouple (Hubert & Vandervieren, 2008).")
+      }
+      
       for (var in self$options$vars_iqr) {
         if (!var %in% names(self$data)) next
         
         tryCatch({
           if (has_group) {
-            if (length(group_vars) == 1) {
-              combined_group <- as.factor(df_work[[group_vars]])
-            } else {
-              group_cols     <- lapply(group_vars, function(g) df_work[[g]])
-              combined_group <- interaction(group_cols, sep = "_", drop = TRUE)
-            }
+            combined_group <- interaction(lapply(group_vars, function(g) df_work[[g]]), sep = "_", drop = TRUE)
             data_grouped <- split(df_work, combined_group)
           } else {
             data_grouped <- list("All Data" = df_work)
@@ -620,10 +507,8 @@ outliersClass <- R6::R6Class(
           for (group_name in names(data_grouped)) {
             data_group    <- data_grouped[[group_name]]
             data_var_full <- private$.to_numeric_vec(data_group[[var]])
-            
             non_na_indices_in_group <- which(!is.na(data_var_full))
             data_var <- data_var_full[non_na_indices_in_group]
-            
             if (length(data_var) == 0) next
             
             original_row_numbers_group <- data_group$.row_id
@@ -632,8 +517,19 @@ outliersClass <- R6::R6Class(
             q3 <- stats::quantile(data_var, 0.75, na.rm = TRUE)
             iqr_value <- q3 - q1
             
-            lower_fence <- q1 - (iqr_mult * iqr_value)
-            upper_fence <- q3 + (iqr_mult * iqr_value)
+            if (use_adj_box) {
+              mc <- private$.medcouple(data_var)
+              if (mc >= 0) {
+                lower_fence <- q1 - (iqr_mult * exp(-4 * mc) * iqr_value)
+                upper_fence <- q3 + (iqr_mult * exp(3 * mc) * iqr_value)
+              } else {
+                lower_fence <- q1 - (iqr_mult * exp(-3 * mc) * iqr_value)
+                upper_fence <- q3 + (iqr_mult * exp(4 * mc) * iqr_value)
+              }
+            } else {
+              lower_fence <- q1 - (iqr_mult * iqr_value)
+              upper_fence <- q3 + (iqr_mult * iqr_value)
+            }
             
             outliers_indices_in_datavar <- which(data_var < lower_fence | data_var > upper_fence)
             outliers_indices_in_group   <- non_na_indices_in_group[outliers_indices_in_datavar]
@@ -688,12 +584,10 @@ outliersClass <- R6::R6Class(
               upperFence  = upper_fence,
               numOutliers = length(outliers_indices_in_datavar)
             )
-            
             if (treatment_type != "none") {
               row_values_for_table$treatmentApplied <- applied_treatment_text
               row_values_for_table$modifiedN        <- modified_n
             }
-            
             table$addRow(rowKey = row_counter, values = row_values_for_table)
             row_counter <- row_counter + 1
             
@@ -709,55 +603,159 @@ outliersClass <- R6::R6Class(
               all_plot_data[[paste(var, group_name, sep = "_")]] <- plot_data
             }
           }
-          
-          if (treatment_type != "none") {
-            all_treated_vectors[[var]] <- full_treated_data
-          }
-          
+          if (treatment_type != "none") all_treated_vectors[[var]] <- full_treated_data
         }, error = function(e) {
           jmvcore::reject(paste("Error processing variable", var, ":", e$message), code = "error_processing_variable")
         })
       }
       
       if (treatment_type != "none" && length(all_treated_vectors) > 0 && self$results$treatedData_iqr$isNotFilled()) {
-        output_keys          <- character()
-        output_titles        <- character()
-        output_measure_types <- character()
-        
-        suffix <- ""
-        if (treatment_type %in% c("trim_asym", "trim_sym")) {
-          suffix <- "_trimmed"
-        } else if (treatment_type %in% c("win_valid", "win_fence")) {
-          suffix <- "_winsorzd"
-        }
-        
-        for (var in names(all_treated_vectors)) {
-          output_keys          <- c(output_keys,          var)
-          output_titles        <- c(output_titles,        paste0(var, suffix))
-          output_measure_types <- c(output_measure_types, "continuous")
-        }
-        
+        output_keys   <- names(all_treated_vectors)
+        suffix <- if (treatment_type %in% c("trim_asym", "trim_sym")) "_trimmed" else "_winsorzd"
         self$results$treatedData_iqr$set(
-          keys         = output_keys,
-          titles       = output_titles,
+          keys = output_keys,
+          titles = paste0(output_keys, suffix),
           descriptions = "Treated variable (IQR)",
-          measureTypes = output_measure_types
+          measureTypes = rep("continuous", length(output_keys))
         )
-        
-        for (var in names(all_treated_vectors)) {
-          self$results$treatedData_iqr$setValues(
-            key    = var,
-            values = all_treated_vectors[[var]]
-          )
+        for (var in output_keys) {
+          self$results$treatedData_iqr$setValues(key = var, values = all_treated_vectors[[var]])
         }
         self$results$treatedData_iqr$setRowNums(1:nrow(self$data))
       }
       
       if (self$options$dispBox_iqr && length(all_plot_data) > 0) {
         self$results$iqrPlot$setState(list(plot_data = all_plot_data, iqr_mult = iqr_mult, iqr_label = iqr_label))
-      } else if (self$options$dispBox_iqr) {
-        self$results$iqrPlot$setState(NULL)
       }
+    },
+    
+    # Multivariate Outliers: Mahalanobis & Robust MCD (BSS-FEAT-019..021)
+    .runMahalanobis = function() {
+      vars <- self$options$vars_mah
+      if (is.null(vars) || length(vars) < 2) return()
+      
+      table       <- self$results$mahTable
+      outlierList <- self$results$mahOutlierList
+      table$setRow(rowNo = 1, values = list())
+      if (outlierList$rowCount > 0) try(outlierList$deleteRows(), silent = TRUE)
+      
+      method    <- self$options$method_mah
+      alpha_opt <- self$options$alpha_mah
+      alpha     <- switch(alpha_opt, p001 = 0.001, p01 = 0.01, p05 = 0.05, 0.001)
+      
+      # Extract matrix of complete cases
+      df_sub <- self$data[vars]
+      complete_idx <- which(stats::complete.cases(df_sub))
+      if (length(complete_idx) <= length(vars)) {
+        table$setRow(rowNo = 1, values = list(
+          method = if (method == "classic") "Classical" else "Robust MCD",
+          numVars = length(vars),
+          n_analyzed = length(complete_idx),
+          critCutoff = NA_real_,
+          numOutliers = NA_integer_,
+          pctOutliers = NA_real_
+        ))
+        return()
+      }
+      
+      X <- as.matrix(df_sub[complete_idx, , drop = FALSE])
+      n <- nrow(X)
+      p <- ncol(X)
+      
+      d2 <- NULL
+      method_label <- "Classical Mahalanobis"
+      if (method == "classic") {
+        cov_mat <- stats::cov(X)
+        center_vec <- colMeans(X)
+        inv_cov <- tryCatch(solve(cov_mat), error = function(e) MASS::ginv(cov_mat))
+        d2 <- stats::mahalanobis(X, center = center_vec, cov = inv_cov, inverted = TRUE)
+      } else if (method == "robust_mcd") {
+        method_label <- "Robust MCD (FastMCD)"
+        fit_mcd <- tryCatch(MASS::cov.rob(X, method = "mcd"), error = function(e) NULL)
+        if (is.null(fit_mcd)) {
+          fit_mcd <- MASS::cov.rob(X, method = "classical")
+          method_label <- "MCD Fallback (Cov.rob classical)"
+        }
+        inv_cov <- tryCatch(solve(fit_mcd$cov), error = function(e) MASS::ginv(fit_mcd$cov))
+        d2 <- stats::mahalanobis(X, center = fit_mcd$center, cov = inv_cov, inverted = TRUE)
+      }
+      
+      crit_val     <- stats::qchisq(1 - alpha, df = p)
+      p_vals       <- 1 - stats::pchisq(d2, df = p)
+      outlier_mask <- (d2 > crit_val)
+      n_outliers   <- sum(outlier_mask)
+      pct_outliers <- (n_outliers / n) * 100
+      
+      table$setRow(rowNo = 1, values = list(
+        method      = method_label,
+        numVars     = as.integer(p),
+        n_analyzed  = as.integer(n),
+        critCutoff  = crit_val,
+        numOutliers = as.integer(n_outliers),
+        pctOutliers = pct_outliers
+      ))
+      
+      if (n_outliers > 0) {
+        out_indices <- which(outlier_mask)
+        for (i in seq_along(out_indices)) {
+          orig_row <- complete_idx[out_indices[i]]
+          outlierList$addRow(rowKey = i, values = list(
+            rowNumber = as.integer(orig_row),
+            d_squared = d2[out_indices[i]],
+            p_value   = p_vals[out_indices[i]]
+          ))
+        }
+      }
+      
+      # Chi-Square QQ-Plot
+      if (isTRUE(self$options$dispPlot_mah)) {
+        theo_quant <- stats::qchisq((seq_len(n) - 0.5) / n, df = p)
+        emp_quant  <- sort(d2)
+        qq_df <- data.frame(theoretical = theo_quant, empirical = emp_quant)
+        self$results$mahPlot$setState(list(df = qq_df, crit = crit_val, p = p, method = method_label))
+      }
+      
+      # Save flag variable
+      if (self$results$treatedData_mah$isNotFilled()) {
+        self$results$treatedData_mah$set(
+          keys = "mah_outlier",
+          titles = "mah_outlier",
+          descriptions = "Multivariate outlier flag (1 = Outlier, 0 = Normal)",
+          measureTypes = "nominal"
+        )
+        flag_vec <- rep(NA_integer_, nrow(self$data))
+        flag_vec[complete_idx] <- as.integer(outlier_mask)
+        self$results$treatedData_mah$setValues(key = "mah_outlier", values = flag_vec)
+        self$results$treatedData_mah$setRowNums(1:nrow(self$data))
+      }
+    },
+    
+    .plotMahalanobis = function(image, ggtheme, theme, ...) {
+      state <- image$state
+      if (is.null(state) || is.null(state$df)) return(FALSE)
+      
+      df   <- state$df
+      crit <- state$crit
+      p_df <- state$p
+      
+      p <- ggplot2::ggplot(df, ggplot2::aes(x = theoretical, y = empirical)) +
+        ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "grey50", linewidth = 0.8) +
+        ggplot2::geom_hline(yintercept = crit, linetype = "dotted", color = "#c0392b", linewidth = 0.9) +
+        ggplot2::geom_point(color = "#2c3e50", size = 2.5, alpha = 0.8) +
+        ggplot2::labs(
+          title = paste0("Chi-Square QQ-Plot (Mahalanobis D², df = ", p_df, ")"),
+          x = "Theoretical Chi-Square Quantiles",
+          y = "Empirical Mahalanobis D²",
+          caption = paste0("Dotted red line: Critical χ² cutoff = ", round(crit, 2))
+        ) +
+        ggtheme +
+        ggplot2::theme(
+          plot.title = ggplot2::element_text(face = "bold", size = 12),
+          panel.grid.minor = ggplot2::element_blank()
+        )
+      
+      print(p)
+      TRUE
     },
     
     .plot = function(image, ...) {
@@ -849,34 +847,25 @@ outliersClass <- R6::R6Class(
       
       for (var in self$options$vars_modz) {
         all_data_for_var <- NULL
-        
         for (var_group_name in names(image$state$plot_data)) {
           plotData <- image$state$plot_data[[var_group_name]]
           if (plotData$variable[1] == var) {
             all_data_for_var <- rbind(all_data_for_var, plotData)
           }
         }
-        
         if (is.null(all_data_for_var)) next
-        
         has_group <- "group" %in% names(all_data_for_var) && length(unique(all_data_for_var$group)) > 1
-        
-        if (!has_group) {
-          all_data_for_var$x_axis_label <- "Data"
-        }
+        if (!has_group) all_data_for_var$x_axis_label <- "Data"
         
         active_levels <- c("Non-Outlier", thresh_label)
         active_colors <- colors[active_levels]
         active_shapes <- shapes[active_levels]
-        
         outliers_data <- subset(all_data_for_var, outlierLevel != "Non-Outlier")
-        
         legend_breaks <- thresh_label
         legend_labels <- paste0("Outlier (|Z*| > ", thresh_label, ")")
         
         if (has_group) {
           x_axis_title <- paste(group_vars, collapse = " x ")
-          
           p <- ggplot2::ggplot(all_data_for_var, ggplot2::aes(x = group, y = value)) +
             ggplot2::geom_boxplot(ggplot2::aes(group = group), outlier.shape = NA) +
             ggplot2::geom_point(data = outliers_data,
@@ -936,34 +925,25 @@ outliersClass <- R6::R6Class(
       
       for (var in self$options$vars_iqr) {
         all_data_for_var <- NULL
-        
         for (var_group_name in names(image$state$plot_data)) {
           plotData <- image$state$plot_data[[var_group_name]]
           if (plotData$variable[1] == var) {
             all_data_for_var <- rbind(all_data_for_var, plotData)
           }
         }
-        
         if (is.null(all_data_for_var)) next
-        
         has_group <- "group" %in% names(all_data_for_var) && length(unique(all_data_for_var$group)) > 1
-        
-        if (!has_group) {
-          all_data_for_var$x_axis_label <- "Data"
-        }
+        if (!has_group) all_data_for_var$x_axis_label <- "Data"
         
         active_levels <- c("Non-Outlier", iqr_label)
         active_colors <- colors[active_levels]
         active_shapes <- shapes[active_levels]
-        
         outliers_data <- subset(all_data_for_var, outlierLevel != "Non-Outlier")
-        
         legend_breaks <- iqr_label
         legend_labels <- paste0("Outlier (", iqr_label, " IQR)")
         
         if (has_group) {
           x_axis_title <- paste(group_vars, collapse = " x ")
-          
           p <- ggplot2::ggplot(all_data_for_var, ggplot2::aes(x = group, y = value)) +
             ggplot2::geom_boxplot(ggplot2::aes(group = group), outlier.shape = NA) +
             ggplot2::geom_point(data = outliers_data,

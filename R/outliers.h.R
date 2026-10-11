@@ -21,9 +21,14 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             vars_iqr = NULL,
             group_iqr = NULL,
             iqrMultiplier_iqr = "iqr15",
+            adj_box_iqr = FALSE,
             treatment_iqr = "none",
             trimPercent_iqr = 5,
-            dispBox_iqr = TRUE, ...) {
+            dispBox_iqr = TRUE,
+            vars_mah = NULL,
+            method_mah = "classic",
+            alpha_mah = "p001",
+            dispPlot_mah = TRUE, ...) {
 
             super$initialize(
                 package="BSS",
@@ -37,7 +42,8 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 options=list(
                     "dixon",
                     "modz",
-                    "iqr"),
+                    "iqr",
+                    "mahalanobis"),
                 default="iqr")
             private$..var_dixon <- jmvcore::OptionVariable$new(
                 "var_dixon",
@@ -145,6 +151,10 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "iqr22",
                     "iqr30"),
                 default="iqr15")
+            private$..adj_box_iqr <- jmvcore::OptionBool$new(
+                "adj_box_iqr",
+                adj_box_iqr,
+                default=FALSE)
             private$..treatment_iqr <- jmvcore::OptionList$new(
                 "treatment_iqr",
                 treatment_iqr,
@@ -167,6 +177,34 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 default=TRUE)
             private$..treatedData_iqr <- jmvcore::OptionOutput$new(
                 "treatedData_iqr")
+            private$..vars_mah <- jmvcore::OptionVariables$new(
+                "vars_mah",
+                vars_mah,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"))
+            private$..method_mah <- jmvcore::OptionList$new(
+                "method_mah",
+                method_mah,
+                options=list(
+                    "classic",
+                    "robust_mcd"),
+                default="classic")
+            private$..alpha_mah <- jmvcore::OptionList$new(
+                "alpha_mah",
+                alpha_mah,
+                options=list(
+                    "p001",
+                    "p01",
+                    "p05"),
+                default="p001")
+            private$..dispPlot_mah <- jmvcore::OptionBool$new(
+                "dispPlot_mah",
+                dispPlot_mah,
+                default=TRUE)
+            private$..treatedData_mah <- jmvcore::OptionOutput$new(
+                "treatedData_mah")
 
             self$.addOption(private$..mode)
             self$.addOption(private$..var_dixon)
@@ -185,10 +223,16 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..vars_iqr)
             self$.addOption(private$..group_iqr)
             self$.addOption(private$..iqrMultiplier_iqr)
+            self$.addOption(private$..adj_box_iqr)
             self$.addOption(private$..treatment_iqr)
             self$.addOption(private$..trimPercent_iqr)
             self$.addOption(private$..dispBox_iqr)
             self$.addOption(private$..treatedData_iqr)
+            self$.addOption(private$..vars_mah)
+            self$.addOption(private$..method_mah)
+            self$.addOption(private$..alpha_mah)
+            self$.addOption(private$..dispPlot_mah)
+            self$.addOption(private$..treatedData_mah)
         }),
     active = list(
         mode = function() private$..mode$value,
@@ -208,10 +252,16 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         vars_iqr = function() private$..vars_iqr$value,
         group_iqr = function() private$..group_iqr$value,
         iqrMultiplier_iqr = function() private$..iqrMultiplier_iqr$value,
+        adj_box_iqr = function() private$..adj_box_iqr$value,
         treatment_iqr = function() private$..treatment_iqr$value,
         trimPercent_iqr = function() private$..trimPercent_iqr$value,
         dispBox_iqr = function() private$..dispBox_iqr$value,
-        treatedData_iqr = function() private$..treatedData_iqr$value),
+        treatedData_iqr = function() private$..treatedData_iqr$value,
+        vars_mah = function() private$..vars_mah$value,
+        method_mah = function() private$..method_mah$value,
+        alpha_mah = function() private$..alpha_mah$value,
+        dispPlot_mah = function() private$..dispPlot_mah$value,
+        treatedData_mah = function() private$..treatedData_mah$value),
     private = list(
         ..mode = NA,
         ..var_dixon = NA,
@@ -230,10 +280,16 @@ outliersOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..vars_iqr = NA,
         ..group_iqr = NA,
         ..iqrMultiplier_iqr = NA,
+        ..adj_box_iqr = NA,
         ..treatment_iqr = NA,
         ..trimPercent_iqr = NA,
         ..dispBox_iqr = NA,
-        ..treatedData_iqr = NA)
+        ..treatedData_iqr = NA,
+        ..vars_mah = NA,
+        ..method_mah = NA,
+        ..alpha_mah = NA,
+        ..dispPlot_mah = NA,
+        ..treatedData_mah = NA)
 )
 
 outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -253,7 +309,12 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         iqrInfo = function() private$.items[["iqrInfo"]],
         iqrTable = function() private$.items[["iqrTable"]],
         iqrPlot = function() private$.items[["iqrPlot"]],
-        treatedData_iqr = function() private$.items[["treatedData_iqr"]]),
+        treatedData_iqr = function() private$.items[["treatedData_iqr"]],
+        mahInfo = function() private$.items[["mahInfo"]],
+        mahTable = function() private$.items[["mahTable"]],
+        mahOutlierList = function() private$.items[["mahOutlierList"]],
+        mahPlot = function() private$.items[["mahPlot"]],
+        treatedData_mah = function() private$.items[["treatedData_mah"]]),
     private = list(),
     public=list(
         initialize=function(options) {
@@ -474,7 +535,8 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 name="iqrTable",
                 refs=list(
                     "Tukey1977",
-                    "Hoaglin1987"),
+                    "Hoaglin1987",
+                    "Hubert2008"),
                 title="IQR Outliers Summary",
                 visible="(mode == 'iqr')",
                 columns=list(
@@ -529,8 +591,102 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "vars_iqr",
                     "group_iqr",
                     "iqrMultiplier_iqr",
+                    "adj_box_iqr",
                     "treatment_iqr",
-                    "trimPercent_iqr")))}))
+                    "trimPercent_iqr")))
+            self$add(jmvcore::Html$new(
+                options=options,
+                name="mahInfo",
+                title="About Multivariate Outlier Detection",
+                visible="(mode == 'mahalanobis')"))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="mahTable",
+                refs=list(
+                    "Mahalanobis1936",
+                    "Rousseeuw1999"),
+                title="Multivariate Outliers Summary (Mahalanobis / MCD)",
+                rows=1,
+                visible="(mode == 'mahalanobis')",
+                clearWith=list(
+                    "vars_mah",
+                    "method_mah",
+                    "alpha_mah"),
+                columns=list(
+                    list(
+                        `name`="method", 
+                        `title`="Method", 
+                        `type`="text"),
+                    list(
+                        `name`="numVars", 
+                        `title`="Variables (p)", 
+                        `type`="integer"),
+                    list(
+                        `name`="n_analyzed", 
+                        `title`="Analyzed N", 
+                        `type`="integer"),
+                    list(
+                        `name`="critCutoff", 
+                        `title`="Critical \u03C7\u00B2", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="numOutliers", 
+                        `title`="Outliers Detected", 
+                        `type`="integer"),
+                    list(
+                        `name`="pctOutliers", 
+                        `title`="% Outliers", 
+                        `type`="number", 
+                        `format`="dp:2"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="mahOutlierList",
+                title="Identified Multivariate Outliers",
+                visible="(mode == 'mahalanobis')",
+                clearWith=list(
+                    "vars_mah",
+                    "method_mah",
+                    "alpha_mah"),
+                columns=list(
+                    list(
+                        `name`="rowNumber", 
+                        `title`="Row", 
+                        `type`="integer"),
+                    list(
+                        `name`="d_squared", 
+                        `title`="Mahalanobis D\u00B2", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p-value (\u03C7\u00B2)", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="mahPlot",
+                title="Mahalanobis Distance vs. Theoretical Chi-Square QQ-Plot",
+                width=500,
+                height=400,
+                renderFun=".plotMahalanobis",
+                visible="(mode == 'mahalanobis' && dispPlot_mah)",
+                refs=list(
+                    "ggplot2"),
+                clearWith=list(
+                    "vars_mah",
+                    "method_mah",
+                    "alpha_mah",
+                    "dispPlot_mah")))
+            self$add(jmvcore::Output$new(
+                options=options,
+                name="treatedData_mah",
+                title="Multivariate Outlier Indicator",
+                initInRun=TRUE,
+                clearWith=list(
+                    "vars_mah",
+                    "method_mah",
+                    "alpha_mah")))}))
 
 outliersBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "outliersBase",
@@ -572,9 +728,14 @@ outliersBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param vars_iqr .
 #' @param group_iqr .
 #' @param iqrMultiplier_iqr .
+#' @param adj_box_iqr .
 #' @param treatment_iqr .
 #' @param trimPercent_iqr .
 #' @param dispBox_iqr .
+#' @param vars_mah .
+#' @param method_mah .
+#' @param alpha_mah .
+#' @param dispPlot_mah .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$dixonInfo} \tab \tab \tab \tab \tab a html \cr
@@ -591,6 +752,11 @@ outliersBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$iqrTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$iqrPlot} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$treatedData_iqr} \tab \tab \tab \tab \tab an output \cr
+#'   \code{results$mahInfo} \tab \tab \tab \tab \tab a html \cr
+#'   \code{results$mahTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$mahOutlierList} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$mahPlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$treatedData_mah} \tab \tab \tab \tab \tab an output \cr
 #' }
 #'
 #' Tables can be converted to data frames with \code{asDF} or \code{\link{as.data.frame}}. For example:
@@ -617,9 +783,14 @@ outliers <- function(
     vars_iqr,
     group_iqr,
     iqrMultiplier_iqr = "iqr15",
+    adj_box_iqr = FALSE,
     treatment_iqr = "none",
     trimPercent_iqr = 5,
-    dispBox_iqr = TRUE) {
+    dispBox_iqr = TRUE,
+    vars_mah,
+    method_mah = "classic",
+    alpha_mah = "p001",
+    dispPlot_mah = TRUE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("outliers requires jmvcore to be installed (restart may be required)")
@@ -630,6 +801,7 @@ outliers <- function(
     if ( ! missing(group_modz)) group_modz <- jmvcore::resolveQuo(jmvcore::enquo(group_modz))
     if ( ! missing(vars_iqr)) vars_iqr <- jmvcore::resolveQuo(jmvcore::enquo(vars_iqr))
     if ( ! missing(group_iqr)) group_iqr <- jmvcore::resolveQuo(jmvcore::enquo(group_iqr))
+    if ( ! missing(vars_mah)) vars_mah <- jmvcore::resolveQuo(jmvcore::enquo(vars_mah))
     if (missing(data))
         data <- jmvcore::marshalData(
             parent.frame(),
@@ -638,7 +810,8 @@ outliers <- function(
             `if`( ! missing(vars_modz), vars_modz, NULL),
             `if`( ! missing(group_modz), group_modz, NULL),
             `if`( ! missing(vars_iqr), vars_iqr, NULL),
-            `if`( ! missing(group_iqr), group_iqr, NULL))
+            `if`( ! missing(group_iqr), group_iqr, NULL),
+            `if`( ! missing(vars_mah), vars_mah, NULL))
 
     for (v in group_dixon) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
     for (v in group_modz) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
@@ -660,9 +833,14 @@ outliers <- function(
         vars_iqr = vars_iqr,
         group_iqr = group_iqr,
         iqrMultiplier_iqr = iqrMultiplier_iqr,
+        adj_box_iqr = adj_box_iqr,
         treatment_iqr = treatment_iqr,
         trimPercent_iqr = trimPercent_iqr,
-        dispBox_iqr = dispBox_iqr)
+        dispBox_iqr = dispBox_iqr,
+        vars_mah = vars_mah,
+        method_mah = method_mah,
+        alpha_mah = alpha_mah,
+        dispPlot_mah = dispPlot_mah)
 
     analysis <- outliersClass$new(
         options = options,
