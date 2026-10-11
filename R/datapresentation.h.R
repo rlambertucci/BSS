@@ -60,7 +60,13 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             showCorrMatrix = FALSE,
             corrMethod = "pearson",
             showCorrHeatmap = FALSE,
-            corrCluster = FALSE, ...) {
+            corrCluster = FALSE,
+            exportPlots = FALSE,
+            exportFormat = "pdf",
+            exportDpi = 300,
+            exportDir = "",
+            exportWidth = 7,
+            exportHeight = 5, ...) {
 
             super$initialize(
                 package="BSS",
@@ -196,7 +202,7 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     "set3",
                     "pastel1",
                     "pastel2",
-                    "dark2",
+                    "grayscale",
                     "viridis",
                     "plasma",
                     "manual"),
@@ -548,6 +554,36 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 "corrCluster",
                 corrCluster,
                 default=FALSE)
+            private$..exportPlots <- jmvcore::OptionBool$new(
+                "exportPlots",
+                exportPlots,
+                default=FALSE)
+            private$..exportFormat <- jmvcore::OptionList$new(
+                "exportFormat",
+                exportFormat,
+                options=list(
+                    "pdf",
+                    "svg",
+                    "both"),
+                default="pdf")
+            private$..exportDpi <- jmvcore::OptionNumber$new(
+                "exportDpi",
+                exportDpi,
+                min=300,
+                max=1200,
+                default=300)
+            private$..exportDir <- jmvcore::OptionString$new(
+                "exportDir",
+                exportDir,
+                default="")
+            private$..exportWidth <- jmvcore::OptionNumber$new(
+                "exportWidth",
+                exportWidth,
+                default=7)
+            private$..exportHeight <- jmvcore::OptionNumber$new(
+                "exportHeight",
+                exportHeight,
+                default=5)
 
             self$.addOption(private$..analysisType)
             self$.addOption(private$..deps)
@@ -604,6 +640,12 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             self$.addOption(private$..corrMethod)
             self$.addOption(private$..showCorrHeatmap)
             self$.addOption(private$..corrCluster)
+            self$.addOption(private$..exportPlots)
+            self$.addOption(private$..exportFormat)
+            self$.addOption(private$..exportDpi)
+            self$.addOption(private$..exportDir)
+            self$.addOption(private$..exportWidth)
+            self$.addOption(private$..exportHeight)
         }),
     active = list(
         analysisType = function() private$..analysisType$value,
@@ -660,7 +702,13 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         showCorrMatrix = function() private$..showCorrMatrix$value,
         corrMethod = function() private$..corrMethod$value,
         showCorrHeatmap = function() private$..showCorrHeatmap$value,
-        corrCluster = function() private$..corrCluster$value),
+        corrCluster = function() private$..corrCluster$value,
+        exportPlots = function() private$..exportPlots$value,
+        exportFormat = function() private$..exportFormat$value,
+        exportDpi = function() private$..exportDpi$value,
+        exportDir = function() private$..exportDir$value,
+        exportWidth = function() private$..exportWidth$value,
+        exportHeight = function() private$..exportHeight$value),
     private = list(
         ..analysisType = NA,
         ..deps = NA,
@@ -716,7 +764,13 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         ..showCorrMatrix = NA,
         ..corrMethod = NA,
         ..showCorrHeatmap = NA,
-        ..corrCluster = NA)
+        ..corrCluster = NA,
+        ..exportPlots = NA,
+        ..exportFormat = NA,
+        ..exportDpi = NA,
+        ..exportDir = NA,
+        ..exportWidth = NA,
+        ..exportHeight = NA)
 )
 
 DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -728,7 +782,8 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         plots = function() private$.items[["plots"]],
         formattedTable = function() private$.items[["formattedTable"]],
         corrMatrixTable = function() private$.items[["corrMatrixTable"]],
-        corrHeatmapPlot = function() private$.items[["corrHeatmapPlot"]]),
+        corrHeatmapPlot = function() private$.items[["corrHeatmapPlot"]],
+        exportNotice = function() private$.items[["exportNotice"]]),
     private = list(),
     public=list(
         initialize=function(options) {
@@ -943,7 +998,12 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     "deps",
                     "rm_vars",
                     "corrMethod",
-                    "corrCluster")))}))
+                    "corrCluster")))
+            self$add(jmvcore::Html$new(
+                options=options,
+                name="exportNotice",
+                title="Vector Figure Export Status",
+                visible="(exportPlots)"))}))
 
 DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "DataPresentationBase",
@@ -1025,6 +1085,12 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 #' @param corrMethod .
 #' @param showCorrHeatmap .
 #' @param corrCluster .
+#' @param exportPlots .
+#' @param exportFormat .
+#' @param exportDpi .
+#' @param exportDir .
+#' @param exportWidth .
+#' @param exportHeight .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$messages} \tab \tab \tab \tab \tab a preformatted \cr
@@ -1033,6 +1099,7 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 #'   \code{results$formattedTable} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$corrMatrixTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$corrHeatmapPlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$exportNotice} \tab \tab \tab \tab \tab a html \cr
 #' }
 #'
 #' Tables can be converted to data frames with \code{asDF} or \code{\link{as.data.frame}}. For example:
@@ -1098,7 +1165,13 @@ DataPresentation <- function(
     showCorrMatrix = FALSE,
     corrMethod = "pearson",
     showCorrHeatmap = FALSE,
-    corrCluster = FALSE) {
+    corrCluster = FALSE,
+    exportPlots = FALSE,
+    exportFormat = "pdf",
+    exportDpi = 300,
+    exportDir = "",
+    exportWidth = 7,
+    exportHeight = 5) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("DataPresentation requires jmvcore to be installed (restart may be required)")
@@ -1177,7 +1250,13 @@ DataPresentation <- function(
         showCorrMatrix = showCorrMatrix,
         corrMethod = corrMethod,
         showCorrHeatmap = showCorrHeatmap,
-        corrCluster = corrCluster)
+        corrCluster = corrCluster,
+        exportPlots = exportPlots,
+        exportFormat = exportFormat,
+        exportDpi = exportDpi,
+        exportDir = exportDir,
+        exportWidth = exportWidth,
+        exportHeight = exportHeight)
 
     analysis <- DataPresentationClass$new(
         options = options,

@@ -174,8 +174,8 @@ options:
           title: Pastel 1
         - name: pastel2
           title: Pastel 2
-        - name: dark2
-          title: Dark 2
+        - name: grayscale
+          title: Grayscale
         - name: viridis
           title: Viridis
         - name: plasma
@@ -448,3 +448,42 @@ options:
       title: Hierarchical Clustering in Heatmap
       type: Bool
       default: false
+
+    - name: exportPlots
+      title: Export Vector Figures (.svg / .pdf)
+      type: Bool
+      default: false
+
+    - name: exportFormat
+      title: Vector Figure Format
+      type: List
+      options:
+        - name: pdf
+          title: PDF (.pdf)
+        - name: svg
+          title: SVG (.svg)
+        - name: both
+          title: Both (.pdf & .svg)
+      default: pdf
+
+    - name: exportDpi
+      title: Figure Resolution (DPI)
+      type: Number
+      min: 300
+      max: 1200
+      default: 300
+
+    - name: exportDir
+      title: Export Directory Path
+      type: String
+      default: ''
+
+    - name: exportWidth
+      title: Export Figure Width (inches)
+      type: Number
+      default: 7.0
+
+    - name: exportHeight
+      title: Export Figure Height (inches)
+      type: Number
+      default: 5.0

@@ -770,6 +770,9 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       p <- p + custom_theme + ggplot2::labs(title = plot_title,
                                             x = label_x, y = if(opts$yLabel != '') opts$yLabel else dep,
                                             fill = plot_data$leg_title[1], color = plot_data$leg_title[1])
+      if (isTRUE(opts$exportPlots)) {
+        private$.exportVectorPlot(p, dep, opts)
+      }
       print(p)
       return(TRUE)
     },
@@ -791,21 +794,26 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         if (length(mc) > 0) return(rep(mc, length.out = n))
         palette <- 'set1'
       }
+      if (palette == 'dark2') palette <- 'grayscale'
+      if (palette == 'grayscale') {
+        if (n <= 1) return('#FFFFFF')
+        gray_ramp <- grDevices::colorRampPalette(c('#E0E0E0', '#404040'))(n - 1)
+        return(c('#FFFFFF', gray_ramp))
+      }
       pals <- list(
-        set1 = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF"),
-        set2 = c("#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F", "#E5C494", "#B3B3B3"),
-        set3 = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5"),
-        pastel1 = c("#FBB4AE", "#B3CDE3", "#CCEBC5", "#DECBE4", "#FED9A6", "#FFFFCC", "#E5D8BD", "#FDDAEC"),
-        pastel2 = c("#B3E2CD", "#FDCDAC", "#CBD5E8", "#F4CAE4", "#E6F5C9", "#FFF2AE", "#F1E2CC", "#CCCCCC"),
-        dark2 = c("#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666"),
-        viridis = c("#440154", "#414487", "#2A788E", "#22A884", "#7AD151", "#FDE725"),
-        plasma = c("#0D0887", "#6A00A8", "#B12A90", "#E16462", "#FCA636", "#F0F921")
+        set1 = c('#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00', '#FFFF33', '#A65628', '#F781BF'),
+        set2 = c('#66C2A5', '#FC8D62', '#8DA0CB', '#E78AC3', '#A6D854', '#FFD92F', '#E5C494', '#B3B3B3'),
+        set3 = c('#8DD3C7', '#FFFFB3', '#BEBADA', '#FB8072', '#80B1D3', '#FDB462', '#B3DE69', '#FCCDE5'),
+        pastel1 = c('#FBB4AE', '#B3CDE3', '#CCEBC5', '#DECBE4', '#FED9A6', '#FFFFCC', '#E5D8BD', '#FDDAEC'),
+        pastel2 = c('#B3E2CD', '#FDCDAC', '#CBD5E8', '#F4CAE4', '#E6F5C9', '#FFF2AE', '#F1E2CC', '#CCCCCC'),
+        grayscale = c('#FFFFFF', '#E0E0E0', '#C8C8C8', '#B0B0B0', '#989898', '#808080', '#686868', '#505050'),
+        viridis = c('#440154', '#414487', '#2A788E', '#22A884', '#7AD151', '#FDE725'),
+        plasma = c('#0D0887', '#6A00A8', '#B12A90', '#E16462', '#FCA636', '#F0F921')
       )
       base <- pals[[palette]]; if (is.null(base)) base <- pals$set1
       if (n <= length(base)) return(base[1:n])
       return(grDevices::colorRampPalette(base)(n))
-    }
-    ,
+    },
     .generateApaHtml = function(table) {
       df <- tryCatch(table$asDF, error = function(e) NULL)
       if (is.null(df) || nrow(df) == 0) return()
@@ -937,6 +945,42 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         ggplot2::labs(title = paste0('Correlation Heatmap (', tools::toTitleCase(method), if (cluster) ', Clustered' else '', ')'))
       print(p)
       TRUE
+    }
+    ,
+    .exportVectorPlot = function(p, dep, opts) {
+      export_dir <- if (!is.null(opts$exportDir) && nzchar(opts$exportDir)) opts$exportDir else getwd()
+      if (!dir.exists(export_dir)) {
+        tryCatch(dir.create(export_dir, recursive = TRUE), error = function(e) NULL)
+      }
+      clean_name <- gsub('[^A-Za-z0-9_-]', '_', dep)
+      fmt <- if (!is.null(opts$exportFormat)) opts$exportFormat else 'pdf'
+      dpi <- if (!is.null(opts$exportDpi) && opts$exportDpi >= 300) opts$exportDpi else 300
+      w <- if (!is.null(opts$exportWidth) && opts$exportWidth > 0) opts$exportWidth else 7.0
+      h <- if (!is.null(opts$exportHeight) && opts$exportHeight > 0) opts$exportHeight else 5.0
+      saved_files <- character()
+      if (fmt %in% c('pdf', 'both')) {
+        pdf_path <- file.path(export_dir, paste0('BSS_figure_', clean_name, '.pdf'))
+        tryCatch({
+          ggplot2::ggsave(filename = pdf_path, plot = p, device = 'pdf', width = w, height = h, dpi = dpi)
+          saved_files <- c(saved_files, pdf_path)
+        }, error = function(e) NULL)
+      }
+      if (fmt %in% c('svg', 'both')) {
+        svg_path <- file.path(export_dir, paste0('BSS_figure_', clean_name, '.svg'))
+        tryCatch({
+          dev_svg <- if (requireNamespace('svglite', quietly = TRUE)) 'svg' else grDevices::svg; ggplot2::ggsave(filename = svg_path, plot = p, device = dev_svg, width = w, height = h, dpi = dpi)
+          saved_files <- c(saved_files, svg_path)
+        }, error = function(e) NULL)
+      }
+      if (length(saved_files) > 0) {
+        msg <- paste0(
+          '<div style="padding: 8px 12px; background-color: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 4px; margin: 10px 0;">',
+          '<p style="color: #2e7d32; font-weight: bold; margin: 0 0 5px 0;">Vector figure(s) exported successfully (', dpi, ' DPI, Publication Quality):</p>',
+          '<ul style="margin: 0; padding-left: 20px;">', paste0('<li><code>', saved_files, '</code></li>', collapse = ''), '</ul>',
+          '</div>'
+        )
+        self$results$exportNotice$setContent(msg)
+      }
     }
   )
 )

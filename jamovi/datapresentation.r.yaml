@@ -205,3 +205,8 @@ items:
         - rm_vars
         - corrMethod
         - corrCluster
+
+    - name: exportNotice
+      title: Vector Figure Export Status
+      type: Html
+      visible: (exportPlots)

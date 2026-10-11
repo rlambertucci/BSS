@@ -394,3 +394,40 @@ children:
             label: Point Transparency (alpha)
             format: number
             enable: (showPoints)
+
+  - type: CollapseBox
+    label: Vector Figure Export (300+ DPI)
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        stretchFactor: 1
+        children:
+          - type: CheckBox
+            name: exportPlots
+            label: Export High-Resolution Vector Figures
+          - type: ComboBox
+            name: exportFormat
+            label: Vector Format (.pdf / .svg)
+            enable: (exportPlots)
+          - type: TextBox
+            name: exportDpi
+            label: Resolution (DPI >= 300)
+            format: number
+            enable: (exportPlots)
+          - type: TextBox
+            name: exportDir
+            label: Export Directory Path (optional)
+            format: string
+            enable: (exportPlots)
+          - type: TextBox
+            name: exportWidth
+            label: Figure Width (inches)
+            format: number
+            enable: (exportPlots)
+          - type: TextBox
+            name: exportHeight
+            label: Figure Height (inches)
+            format: number
+            enable: (exportPlots)
