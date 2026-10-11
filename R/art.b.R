@@ -65,7 +65,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         'It aligns the data before ranking, allowing for the accurate evaluation of main effects and interactions.</p>',
         '<ul style=\"margin-top:0px; padding-left:20px;\">',
         '<li><b>Cross-sectional:</b> For independent samples (Factorial Nonparametric ANOVA).</li>',
-        '<li><b>Longitudinal:</b> For repeated measures or mixed designs. Automatically handles subject tracking.</li>',
+        '<li><b>Longitudinal / Mixed:</b> For repeated measures, mixed designs, or up to 3 pure within-subject factors (A \u00d7 B \u00d7 C).</li>',
         '</ul>',
         '<p style=\"margin-bottom:4px; font-size:0.85em; color:#555;\"><i>Powered by the R package <b>ARTool</b> (Wobbrock et al., 2011).</i></p>',
         '</div>'
@@ -85,6 +85,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       posthoc_correction <- self$options$posthoc_correction
       calc_es <- self$options$calc_es
       es_method <- self$options$es_method
+      calc_nonparam_es <- self$options$calc_nonparametric_es
       show_plot <- self$options$show_plot
       
       if (!isTRUE(run_analysis)) {
@@ -96,16 +97,26 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       if (mode == "cross_sectional") {
         dep_var <- self$options$dep_var_cs
         fixed_factors <- self$options$fixed_factors_cs
+        between_vars_opt <- fixed_factors
+        within_vars_opt <- character()
         long_format <- "long"
         subject_id_var <- NULL
         time_var <- NULL
         wave_vars <- NULL
       } else {
         dep_var <- self$options$dep_var_long
-        fixed_factors <- self$options$fixed_factors_long
+        between_vars_opt <- if (private$.is_defined(self$options$fixed_factors_long)) self$options$fixed_factors_long else character()
         long_format <- self$options$long_format
         subject_id_var <- self$options$subject_id_var
         time_var <- self$options$time_var
+        
+        within_vars_opt <- character()
+        if (private$.is_defined(self$options$within_factors_long)) {
+          within_vars_opt <- c(within_vars_opt, self$options$within_factors_long)
+        }
+        if (private$.is_defined(time_var) && !(time_var %in% within_vars_opt)) {
+          within_vars_opt <- c(within_vars_opt, time_var)
+        }
         wave_vars <- self$options$wave_vars
       }
       
@@ -123,8 +134,8 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             return()
           }
         } else if (long_format == "long") {
-          if (!private$.is_defined(dep_var) || !private$.is_defined(time_var) || !private$.is_defined(subject_id_var)) {
-            self$results$text$setContent("Error: Long format requires a Dependent Variable, a Time Variable, and a Subject ID Variable.")
+          if (!private$.is_defined(dep_var) || length(within_vars_opt) == 0 || !private$.is_defined(subject_id_var)) {
+            self$results$text$setContent("Error: Long format requires a Dependent Variable, at least one Within-Subject Factor (or Time Variable), and a Subject ID Variable.")
             self$results$text$setVisible(TRUE)
             return()
           }
@@ -161,7 +172,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             idvar = subject_id_var
           )
           dep_var <- ".dv_internal"
-          time_var <- ".time_internal"
+          within_vars_opt <- ".time_internal"
         }, error = function(e) {
           reshape_failed <<- TRUE
         })
@@ -173,7 +184,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
-      predictors <- if (mode == "cross_sectional") fixed_factors else c(fixed_factors, time_var)
+      predictors <- if (mode == "cross_sectional") fixed_factors else c(between_vars_opt, within_vars_opt)
       predictors <- Filter(Negate(is.null), predictors)
       predictors <- unique(predictors)
       
@@ -267,7 +278,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       anova_table$setNote(
         "citation",
-        "Note. Computations powered by the R package ARTool (Wobbrock et al., 2011). Partial η² calculated as (F * df) / (F * df + df.res). Partial ω² calculated as df * (F - 1) / (df * (F - 1) + df.res + 1), truncated at 0."
+        "Note. Computations powered by ARTool (Wobbrock et al., 2011). Partial \u03b7\u00b2 calculated as (F * df) / (F * df + df.res). Partial \u03c9\u00b2 calculated as df * (F - 1) / (df * (F - 1) + df.res + 1), truncated at 0."
       )
       
       num_rows_anova <- nrow(anova_res)
@@ -308,7 +319,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         
         posthoc_table$setNote(
           "citation",
-          "Note. Pairwise contrast comparisons computed using the ART-C procedure (Elkin et al., 2021) via the R package ARTool, with p-value adjustments powered by the emmeans package (Lenth, 2024)."
+          "Note. Pairwise contrast comparisons computed using the ART-C procedure (Elkin et al., 2021) via ARTool, with p-value adjustments powered by emmeans (Lenth, 2024). Nonparametric effect sizes: Vargha & Delaney's A (Vargha & Delaney, 2000) and Kerby's rank-biserial correlation r_rb (Kerby, 2014; r_rb = 2A - 1)."
         )
         
         es_table <- self$results$effectSizeTable
@@ -316,15 +327,15 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         
         es_table$setNote(
           "citation",
-          "Note. Pairwise effect sizes (Cohen's d or Hedges' g) approximated from t-ratios and degrees of freedom: d = 2 * t / sqrt(df) for unpaired contrasts, and d = t / sqrt(df) for paired/within-subjects contrasts. Hedges' g includes correction: g = d * (1 - 3 / (4 * df - 1))."
+          "Note. Pairwise effect sizes: Cohen's d / Hedges' g approximated from t-ratios: d = 2*t/sqrt(df) for unpaired contrasts, and d = t/sqrt(df) for paired/within-subjects contrasts. Vargha-Delaney A represents the probability of stochastic superiority; r_rb is the rank-biserial correlation (Kerby, 2014)."
         )
         
         terms_to_test <- anova_res$Term[1:num_rows_anova]
         row_ph <- 1
         row_es <- 1
         
-        between_vars_safe <- unname(safe_name_map[fixed_factors])
-        within_vars_safe <- if (mode == "longitudinal") unname(safe_name_map[time_var]) else character()
+        between_vars_safe <- unname(safe_name_map[between_vars_opt])
+        within_vars_safe <- unname(safe_name_map[within_vars_opt])
         
         adjust_arg <- switch(
           posthoc_correction,
@@ -359,41 +370,109 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             t_r <- private$.safe_extract(ph_df, j, c("t.ratio", "z.ratio", "t value", "z value"))
             p_v <- private$.safe_extract(ph_df, j, c("p.value", "Pr(>|t|)", "Pr(>|z|)"))
             
+            # Nonparametric effect sizes: Vargha-Delaney A and Rank-Biserial r_rb
+            a_val <- NA_real_
+            r_rb_val <- NA_real_
+            sides <- strsplit(comp, " - ")[[1]]
+            is_paired <- private$.is_contrast_paired(comp, term, between_vars_safe, within_vars_safe)
+            
+            if (length(sides) == 2) {
+              g1_levels <- trimws(strsplit(sides[1], ",")[[1]])
+              g2_levels <- trimws(strsplit(sides[2], ",")[[1]])
+              term_safe_factors <- strsplit(term, ":")[[1]]
+              
+              if (length(g1_levels) == length(term_safe_factors) && length(g2_levels) == length(term_safe_factors)) {
+                idx1 <- rep(TRUE, nrow(process_data))
+                idx2 <- rep(TRUE, nrow(process_data))
+                for (f_idx in seq_along(term_safe_factors)) {
+                  f_col <- term_safe_factors[f_idx]
+                  idx1 <- idx1 & (as.character(process_data[[f_col]]) == g1_levels[f_idx])
+                  idx2 <- idx2 & (as.character(process_data[[f_col]]) == g2_levels[f_idx])
+                }
+                y1 <- process_data[[dep_var_safe]][idx1]
+                y2 <- process_data[[dep_var_safe]][idx2]
+                
+                if (is_paired && !is.null(subject_id_safe)) {
+                  s1 <- process_data[[subject_id_safe]][idx1]
+                  s2 <- process_data[[subject_id_safe]][idx2]
+                  m_sub <- intersect(s1, s2)
+                  if (length(m_sub) >= 2) {
+                    y1_paired <- y1[match(m_sub, s1)]
+                    y2_paired <- y2[match(m_sub, s2)]
+                    diffs <- y1_paired - y2_paired
+                    diffs <- diffs[diffs != 0]
+                    if (length(diffs) > 0) {
+                      r_diff <- rank(abs(diffs))
+                      w_pos <- sum(r_diff[diffs > 0])
+                      w_neg <- sum(r_diff[diffs < 0])
+                      w_tot <- w_pos + w_neg
+                      if (w_tot > 0) {
+                        r_rb_val <- (w_pos - w_neg) / w_tot
+                        a_val <- (r_rb_val + 1) / 2
+                      }
+                    }
+                  }
+                } else {
+                  if (length(y1) > 0 && length(y2) > 0) {
+                    comp_mat <- outer(y1, y2, function(a, b) ifelse(a > b, 1, ifelse(a == b, 0.5, 0)))
+                    a_val <- mean(comp_mat)
+                    r_rb_val <- 2 * a_val - 1
+                  }
+                }
+              }
+            }
+            
+            # Fallback analítico se empírico não convergiu
+            if (is.na(a_val) && !is.na(t_r) && !is.na(df) && df > 0) {
+              scale_fac <- if (is_paired) 1 else 2
+              d_approx <- (scale_fac * t_r) / sqrt(df)
+              a_val <- stats::pnorm(d_approx / sqrt(2))
+              r_rb_val <- 2 * a_val - 1
+            }
+            
             posthoc_table$addRow(rowKey = row_ph, values = list(
-              factor = term_display,
+              factor   = term_display,
               contrast = comp,
               estimate = est,
-              se = se,
-              df = df,
-              t_ratio = t_r,
-              p_value = p_v
+              se       = se,
+              df       = df,
+              t_ratio  = t_r,
+              p_value  = p_v,
+              vd_a     = a_val,
+              r_rb     = r_rb_val
             ))
             row_ph <- row_ph + 1
             
             if (isTRUE(calc_es)) {
-              es_final <- NA_real_
-              m_label <- if (es_method == "hedges_g") "Hedges' g" else "Cohen's d"
+              scale_factor <- if (is_paired) 1 else 2
+              d_val <- if (!is.na(t_r) && !is.na(df) && df > 0) (scale_factor * t_r) / sqrt(df) else NA_real_
+              j_corr <- if (!is.na(df) && df > 1) (1 - 3 / (4 * df - 1)) else 1
+              g_val <- if (!is.na(d_val)) d_val * j_corr else NA_real_
               
-              if (!is.na(t_r) && !is.na(df) && df > 0 && is.finite(df)) {
-                is_paired <- private$.is_contrast_paired(comp, term, between_vars_safe, within_vars_safe)
-                scale_factor <- if (is_paired) 1 else 2
-                d_val <- (scale_factor * t_r) / sqrt(df)
-                
-                if (es_method == "hedges_g") {
-                  j_corr <- if (df > 1) (1 - 3 / (4 * df - 1)) else 1
-                  es_final <- d_val * j_corr
-                } else {
-                  es_final <- d_val
-                }
+              add_es_row <- function(m_lbl, val) {
+                es_table$addRow(rowKey = row_es, values = list(
+                  factor = term_display,
+                  contrast = comp,
+                  method = m_lbl,
+                  es_value = val
+                ))
+                row_es <<- row_es + 1
               }
               
-              es_table$addRow(rowKey = row_es, values = list(
-                factor = term_display,
-                contrast = comp,
-                method = m_label,
-                es_value = es_final
-              ))
-              row_es <- row_es + 1
+              if (es_method == "cohens_d") {
+                add_es_row("Cohen's d", d_val)
+              } else if (es_method == "hedges_g") {
+                add_es_row("Hedges' g", g_val)
+              } else if (es_method == "vargha_delaney_a") {
+                add_es_row("Vargha & Delaney's A", a_val)
+              } else if (es_method == "rank_biserial") {
+                add_es_row("Rank-Biserial r_rb", r_rb_val)
+              } else if (es_method == "all") {
+                add_es_row("Cohen's d", d_val)
+                add_es_row("Hedges' g", g_val)
+                add_es_row("Vargha & Delaney's A", a_val)
+                add_es_row("Rank-Biserial r_rb", r_rb_val)
+              }
             }
           }
         }
@@ -401,101 +480,53 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       if (isTRUE(show_plot)) {
         image <- self$results$artPlot
-        w <- self$options$plot_width
-        h <- self$options$plot_height
-        if (!is.null(w) && !is.null(h) && w > 0 && h > 0) {
-          image$setSize(w, h)
+        plot_df <- process_data
+        for (cn in names(safe_name_map)) {
+          names(plot_df)[names(plot_df) == safe_name_map[[cn]]] <- cn
         }
         image$setState(list(
-          data          = process_data,
-          dep_var       = dep_var_safe,
-          dep_var_title = dep_var,
-          predictors    = predictors_safe,
-          reverse_map   = reverse_name_map
+          data = plot_df,
+          dep_var = dep_var,
+          predictors = predictors
         ))
       }
-      
-      display_formula <- paste0("`", dep_var, "` ~ ", paste(paste0("`", predictors, "`"), collapse = " * "))
-      if (mode == "longitudinal" && private$.is_defined(subject_id_var)) {
-        display_formula <- paste0(display_formula, " + (1|`", subject_id_var, "`)\")")
-      }
-      self$results$text$setContent(paste("ART Analysis completed successfully.\nFormula used:", display_formula))
-      self$results$text$setVisible(TRUE)
     },
     
-    .renderArtPlot = function(image, ggtheme, theme, ...) {
+    .renderArtPlot = function(image, ggtheme, ...) {
       state <- image$state
-      if (is.null(state) || is.null(state$data)) return(FALSE)
+      if (is.null(state)) return(FALSE)
       
-      df          <- state$data
-      dep_var     <- state$dep_var
-      dep_title   <- state$dep_var_title
-      predictors  <- state$predictors
-      reverse_map <- state$reverse_map
+      df <- state$data
+      dep_var <- state$dep_var
+      predictors <- state$predictors
       
-      if (is.null(dep_var) || length(predictors) == 0) return(FALSE)
+      if (length(predictors) == 0) return(FALSE)
       
-      pred1 <- predictors[1]
-      pred1_label <- if (!is.null(reverse_map[[pred1]])) reverse_map[[pred1]] else pred1
+      p1 <- predictors[1]
+      p2 <- if (length(predictors) >= 2) predictors[2] else NULL
+      p3 <- if (length(predictors) >= 3) predictors[3] else NULL
       
-      if (length(predictors) == 1) {
-        plot_df <- stats::aggregate(df[[dep_var]], by = list(P1 = df[[pred1]]), FUN = function(x) {
-          c(Mean = mean(x, na.rm = TRUE),
-            SE   = stats::sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
-        })
-        plot_df <- data.frame(
-          P1   = plot_df$P1,
-          Mean = plot_df$x[, "Mean"],
-          SE   = plot_df$x[, "SE"]
-        )
-        plot_df$CI_lower <- plot_df$Mean - 1.96 * plot_df$SE
-        plot_df$CI_upper <- plot_df$Mean + 1.96 * plot_df$SE
-        
-        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = P1, y = Mean, group = 1)) +
-          ggplot2::geom_line(color = "#2b5c8f", linewidth = 0.8) +
-          ggplot2::geom_point(color = "#2b5c8f", size = 3) +
-          ggplot2::geom_errorbar(ggplot2::aes(ymin = CI_lower, ymax = CI_upper), width = 0.15, color = "#2b5c8f", linewidth = 0.7) +
-          ggplot2::labs(title = paste("Marginal Means:", dep_title), x = pred1_label, y = dep_title) +
-          ggplot2::theme_bw() +
-          ggplot2::theme(panel.background = ggplot2::element_rect(fill = "transparent", colour = NA))
-        print(p)
-        return(TRUE)
+      if (is.null(p2)) {
+        p <- ggplot2::ggplot(df, ggplot2::aes_string(x = p1, y = dep_var)) +
+          ggplot2::stat_summary(fun = mean, geom = "point", size = 3, color = "#2c3e50") +
+          ggplot2::stat_summary(fun.data = ggplot2::mean_cl_boot, geom = "errorbar", width = 0.2, color = "#2c3e50") +
+          ggplot2::labs(title = paste("Marginal Means of", dep_var, "by", p1)) +
+          ggtheme
       } else {
-        pred2 <- predictors[2]
-        pred2_label <- if (!is.null(reverse_map[[pred2]])) reverse_map[[pred2]] else pred2
+        p <- ggplot2::ggplot(df, ggplot2::aes_string(x = p1, y = dep_var, color = p2, group = p2)) +
+          ggplot2::stat_summary(fun = mean, geom = "point", size = 3) +
+          ggplot2::stat_summary(fun = mean, geom = "line", linewidth = 0.8) +
+          ggplot2::stat_summary(fun.data = ggplot2::mean_cl_boot, geom = "errorbar", width = 0.2) +
+          ggplot2::labs(title = paste("Interaction of", p1, "and", p2, "on", dep_var)) +
+          ggtheme
         
-        plot_df <- stats::aggregate(df[[dep_var]], by = list(P1 = df[[pred1]], P2 = df[[pred2]]), FUN = function(x) {
-          c(Mean = mean(x, na.rm = TRUE),
-            SE   = stats::sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
-        })
-        plot_df <- data.frame(
-          P1   = plot_df$P1,
-          P2   = plot_df$P2,
-          Mean = plot_df$x[, "Mean"],
-          SE   = plot_df$x[, "SE"]
-        )
-        plot_df$CI_lower <- plot_df$Mean - 1.96 * plot_df$SE
-        plot_df$CI_upper <- plot_df$Mean + 1.96 * plot_df$SE
-        
-        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = P1, y = Mean, color = P2, group = P2)) +
-          ggplot2::geom_line(linewidth = 0.8) +
-          ggplot2::geom_point(size = 3) +
-          ggplot2::geom_errorbar(ggplot2::aes(ymin = CI_lower, ymax = CI_upper), width = 0.15, linewidth = 0.7) +
-          ggplot2::labs(
-            title = paste("Interaction Plot:", pred1_label, "×", pred2_label),
-            x = pred1_label,
-            y = dep_title,
-            color = pred2_label
-          ) +
-          ggplot2::scale_color_brewer(palette = "Set1") +
-          ggplot2::theme_bw() +
-          ggplot2::theme(
-            legend.position  = "right",
-            panel.background = ggplot2::element_rect(fill = "transparent", colour = NA)
-          )
-        print(p)
-        return(TRUE)
+        if (!is.null(p3)) {
+          p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", p3)))
+        }
       }
+      
+      print(p)
+      TRUE
     }
   )
 )

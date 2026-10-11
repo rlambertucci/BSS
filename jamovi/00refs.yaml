@@ -708,3 +708,25 @@ VanDerWaerden1952:
   journal: "Indagationes Mathematicae"
   volume: 14
   pages: "453-458"
+
+VarghaDelaney2000:
+  type: article
+  author: 'Vargha, A., & Delaney, H. D.'
+  year: 2000
+  title: 'A critique and improvement of the CL common language effect size statistics of McGraw and Wong'
+  journal: 'Journal of Educational and Behavioral Statistics'
+  volume: 25
+  issue: 2
+  pages: '101-132'
+  doi: '10.3102/10769986025002101'
+
+Kerby2014:
+  type: article
+  author: 'Kerby, D. S.'
+  year: 2014
+  title: 'The simple difference formula: An approach to teaching nonparametric correlation'
+  journal: 'Comprehensive Psychology'
+  volume: 3
+  pages: '11.IT.3.1'
+  doi: '10.2466/11.IT.3.1'
+

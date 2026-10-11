@@ -19,6 +19,7 @@ items:
         - fixed_factors_cs
         - dep_var_long
         - fixed_factors_long
+        - within_factors_long
         - long_format
         - subject_id_var
         - time_var
@@ -61,18 +62,22 @@ items:
         - ARTool
         - emmeans
         - Benjamini1995
+        - VarghaDelaney2000
+        - Kerby2014
       clearWith:
         - mode
         - dep_var_cs
         - fixed_factors_cs
         - dep_var_long
         - fixed_factors_long
+        - within_factors_long
         - long_format
         - subject_id_var
         - time_var
         - wave_vars
         - run_posthoc
         - posthoc_correction
+        - calc_nonparametric_es
         - run_analysis
       columns:
         - name: factor
@@ -102,6 +107,16 @@ items:
           title: p
           type: number
           format: pvalue
+        - name: vd_a
+          title: A (Vargha-Delaney)
+          type: number
+          format: dp:3
+          visible: (calc_nonparametric_es)
+        - name: r_rb
+          title: r_rb (Rank-biserial)
+          type: number
+          format: dp:3
+          visible: (calc_nonparametric_es)
 
     - name: effectSizeTable
       title: Pairwise Effect Sizes
@@ -110,12 +125,15 @@ items:
       refs:
         - ARTool
         - emmeans
+        - VarghaDelaney2000
+        - Kerby2014
       clearWith:
         - mode
         - dep_var_cs
         - fixed_factors_cs
         - dep_var_long
         - fixed_factors_long
+        - within_factors_long
         - long_format
         - subject_id_var
         - time_var
@@ -156,6 +174,7 @@ items:
         - fixed_factors_cs
         - dep_var_long
         - fixed_factors_long
+        - within_factors_long
         - long_format
         - subject_id_var
         - time_var
@@ -174,6 +193,7 @@ items:
         - fixed_factors_cs
         - dep_var_long
         - fixed_factors_long
+        - within_factors_long
         - long_format
         - subject_id_var
         - time_var

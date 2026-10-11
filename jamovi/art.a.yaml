@@ -29,6 +29,7 @@ options:
         - ordinal
       permitted:
         - numeric
+      default: null
 
     - name: fixed_factors_cs
       title: Fixed Factors (Categorical IVs)
@@ -39,6 +40,7 @@ options:
       permitted:
         - factor
         - numeric
+      default: null
 
     - name: long_format
       title: Data Format
@@ -58,6 +60,7 @@ options:
         - ordinal
       permitted:
         - numeric
+      default: null
 
     - name: fixed_factors_long
       title: Between-Subject Factors (optional)
@@ -68,6 +71,7 @@ options:
       permitted:
         - factor
         - numeric
+      default: null
 
     - name: subject_id_var
       title: Subject ID Variable
@@ -79,6 +83,7 @@ options:
         - factor
         - numeric
         - id
+      default: null
 
     - name: time_var
       title: Time / Wave Factor (Long format)
@@ -89,6 +94,18 @@ options:
       permitted:
         - factor
         - numeric
+      default: null
+
+    - name: within_factors_long
+      title: Within-Subject Factors (Long format - up to 3 factors, e.g. A × B × C)
+      type: Variables
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+      default: null
 
     - name: wave_vars
       title: Wave Columns (Wide format)
@@ -98,6 +115,7 @@ options:
         - ordinal
       permitted:
         - numeric
+      default: null
 
     - name: run_posthoc
       title: Run Pairwise Post-Hoc Tests (art.con)
@@ -133,7 +151,18 @@ options:
           name: cohens_d
         - title: Hedges' g
           name: hedges_g
+        - title: Vargha & Delaney's A
+          name: vargha_delaney_a
+        - title: Rank-Biserial Correlation (r_rb)
+          name: rank_biserial
+        - title: All Effect Sizes (d, g, A, r_rb)
+          name: all
       default: cohens_d
+
+    - name: calc_nonparametric_es
+      title: Integrated Nonparametric Effect Sizes (A & r_rb in Pairwise Table)
+      type: Bool
+      default: false
 
     - name: show_plot
       title: Interaction / Marginal Means Plot

@@ -72,6 +72,14 @@ children:
                     maxItemCount: 1
               
               - type: TargetLayoutBox
+                label: "Within-Subject Factors (Long format - up to 3 factors, e.g. A × B × C)"
+                children:
+                  - type: VariablesListBox
+                    name: within_factors_long
+                    isTarget: true
+                    enable: (long_format == 'long')
+              
+              - type: TargetLayoutBox
                 label: "Time / Wave Factor (for Long format)"
                 children:
                   - type: VariablesListBox
@@ -104,8 +112,12 @@ children:
             label: P-value Correction
             enable: (run_posthoc)
           - type: CheckBox
+            name: calc_nonparametric_es
+            label: "Integrated Nonparametric Effect Sizes in Post-Hoc Table (A & r_rb)"
+            enable: (run_posthoc)
+          - type: CheckBox
             name: calc_es
-            label: Calculate Pairwise Effect Size
+            label: Calculate Pairwise Effect Size Table
             enable: (run_posthoc)
           - type: ComboBox
             name: es_method
