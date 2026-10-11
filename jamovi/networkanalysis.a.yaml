@@ -155,6 +155,63 @@ options:
       type: Integer
       default: 500
 
+    - name: bootStability_net
+      title: Network Stability (bootnet)
+      type: Bool
+      default: FALSE
+
+    - name: bootN_net
+      title: Bootstrap Samples
+      type: Integer
+      default: 100
+      min: 10
+      max: 2000
+
+    - name: bootEdgeCI_net
+      title: Edge Weight Confidence Intervals
+      type: Bool
+      default: TRUE
+
+    - name: bootCS_net
+      title: Centrality Stability Coefficient (CS-coefficient)
+      type: Bool
+      default: TRUE
+
+    - name: nctTest_net
+      title: Network Comparison Test (NCT)
+      type: Bool
+      default: FALSE
+
+    - name: nctPermutations_net
+      title: NCT Permutations
+      type: Integer
+      default: 100
+      min: 20
+      max: 2000
+
+    - name: dagAnalysis_net
+      title: Directed Acyclic Graph (DAG) Estimation
+      type: Bool
+      default: FALSE
+
+    - name: dagAlgorithm_net
+      title: DAG Algorithm
+      type: List
+      options:
+        - name: pc
+          title: Constraint-based (PC Algorithm)
+        - name: hc
+          title: Score-based (Hill-Climbing)
+        - name: temporal
+          title: Temporal (Lag-1 VAR)
+      default: pc
+
+    - name: plotDAG_net
+      title: DAG Plot
+      type: Bool
+      default: FALSE
+
+
     - name: varsCont_mixed
       title: Continuous Variables (Gaussian)
       type: Variables

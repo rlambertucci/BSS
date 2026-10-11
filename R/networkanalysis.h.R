@@ -26,6 +26,15 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             showLabels_net = TRUE,
             plotWidth_net = 500,
             plotHeight_net = 500,
+            bootStability_net = FALSE,
+            bootN_net = 100,
+            bootEdgeCI_net = TRUE,
+            bootCS_net = TRUE,
+            nctTest_net = FALSE,
+            nctPermutations_net = 100,
+            dagAnalysis_net = FALSE,
+            dagAlgorithm_net = "pc",
+            plotDAG_net = FALSE,
             varsCont_mixed = NULL,
             varsCat_mixed = NULL,
             varsCount_mixed = NULL,
@@ -168,6 +177,50 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 "plotHeight_net",
                 plotHeight_net,
                 default=500)
+            private$..bootStability_net <- jmvcore::OptionBool$new(
+                "bootStability_net",
+                bootStability_net,
+                default=FALSE)
+            private$..bootN_net <- jmvcore::OptionInteger$new(
+                "bootN_net",
+                bootN_net,
+                default=100,
+                min=10,
+                max=2000)
+            private$..bootEdgeCI_net <- jmvcore::OptionBool$new(
+                "bootEdgeCI_net",
+                bootEdgeCI_net,
+                default=TRUE)
+            private$..bootCS_net <- jmvcore::OptionBool$new(
+                "bootCS_net",
+                bootCS_net,
+                default=TRUE)
+            private$..nctTest_net <- jmvcore::OptionBool$new(
+                "nctTest_net",
+                nctTest_net,
+                default=FALSE)
+            private$..nctPermutations_net <- jmvcore::OptionInteger$new(
+                "nctPermutations_net",
+                nctPermutations_net,
+                default=100,
+                min=20,
+                max=2000)
+            private$..dagAnalysis_net <- jmvcore::OptionBool$new(
+                "dagAnalysis_net",
+                dagAnalysis_net,
+                default=FALSE)
+            private$..dagAlgorithm_net <- jmvcore::OptionList$new(
+                "dagAlgorithm_net",
+                dagAlgorithm_net,
+                options=list(
+                    "pc",
+                    "hc",
+                    "temporal"),
+                default="pc")
+            private$..plotDAG_net <- jmvcore::OptionBool$new(
+                "plotDAG_net",
+                plotDAG_net,
+                default=FALSE)
             private$..varsCont_mixed <- jmvcore::OptionVariables$new(
                 "varsCont_mixed",
                 varsCont_mixed,
@@ -320,6 +373,15 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             self$.addOption(private$..showLabels_net)
             self$.addOption(private$..plotWidth_net)
             self$.addOption(private$..plotHeight_net)
+            self$.addOption(private$..bootStability_net)
+            self$.addOption(private$..bootN_net)
+            self$.addOption(private$..bootEdgeCI_net)
+            self$.addOption(private$..bootCS_net)
+            self$.addOption(private$..nctTest_net)
+            self$.addOption(private$..nctPermutations_net)
+            self$.addOption(private$..dagAnalysis_net)
+            self$.addOption(private$..dagAlgorithm_net)
+            self$.addOption(private$..plotDAG_net)
             self$.addOption(private$..varsCont_mixed)
             self$.addOption(private$..varsCat_mixed)
             self$.addOption(private$..varsCount_mixed)
@@ -365,6 +427,15 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         showLabels_net = function() private$..showLabels_net$value,
         plotWidth_net = function() private$..plotWidth_net$value,
         plotHeight_net = function() private$..plotHeight_net$value,
+        bootStability_net = function() private$..bootStability_net$value,
+        bootN_net = function() private$..bootN_net$value,
+        bootEdgeCI_net = function() private$..bootEdgeCI_net$value,
+        bootCS_net = function() private$..bootCS_net$value,
+        nctTest_net = function() private$..nctTest_net$value,
+        nctPermutations_net = function() private$..nctPermutations_net$value,
+        dagAnalysis_net = function() private$..dagAnalysis_net$value,
+        dagAlgorithm_net = function() private$..dagAlgorithm_net$value,
+        plotDAG_net = function() private$..plotDAG_net$value,
         varsCont_mixed = function() private$..varsCont_mixed$value,
         varsCat_mixed = function() private$..varsCat_mixed$value,
         varsCount_mixed = function() private$..varsCount_mixed$value,
@@ -409,6 +480,15 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         ..showLabels_net = NA,
         ..plotWidth_net = NA,
         ..plotHeight_net = NA,
+        ..bootStability_net = NA,
+        ..bootN_net = NA,
+        ..bootEdgeCI_net = NA,
+        ..bootCS_net = NA,
+        ..nctTest_net = NA,
+        ..nctPermutations_net = NA,
+        ..dagAnalysis_net = NA,
+        ..dagAlgorithm_net = NA,
+        ..plotDAG_net = NA,
         ..varsCont_mixed = NA,
         ..varsCat_mixed = NA,
         ..varsCount_mixed = NA,
@@ -448,6 +528,12 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         centralityPlot_net = function() private$.items[["centralityPlot_net"]],
         clusteringPlot_net = function() private$.items[["clusteringPlot_net"]],
         networkPlot_net = function() private$.items[["networkPlot_net"]],
+        edgeStability_net = function() private$.items[["edgeStability_net"]],
+        csStability_net = function() private$.items[["csStability_net"]],
+        nctGlobal_net = function() private$.items[["nctGlobal_net"]],
+        nctEdges_net = function() private$.items[["nctEdges_net"]],
+        dagTable_net = function() private$.items[["dagTable_net"]],
+        dagPlot_net = function() private$.items[["dagPlot_net"]],
         instructions_mixed = function() private$.items[["instructions_mixed"]],
         summary_mixed = function() private$.items[["summary_mixed"]],
         centrality_mixed = function() private$.items[["centrality_mixed"]],
@@ -730,6 +816,199 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "communityAlgorithm_net",
                     "groupVar_net",
                     "nodeGroupVar_net")))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="edgeStability_net",
+                title="Edge Weight Bootstrap Stability (95% CI)",
+                visible="(mode == 'continuous' && bootStability_net && bootEdgeCI_net)",
+                refs=list(
+                    "bootnet",
+                    "Epskamp2018"),
+                clearWith=list(
+                    "vars_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "groupVar_net",
+                    "bootN_net"),
+                columns=list(
+                    list(
+                        `name`="edge", 
+                        `title`="Edge", 
+                        `type`="text"),
+                    list(
+                        `name`="weight", 
+                        `title`="Sample Weight", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="boot_mean", 
+                        `title`="Boot Mean", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="boot_se", 
+                        `title`="Boot SE", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_lower", 
+                        `title`="95% CI Lower", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_upper", 
+                        `title`="95% CI Upper", 
+                        `type`="number", 
+                        `format`="dp:3"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="csStability_net",
+                title="Centrality Stability Coefficients (CS-coefficient)",
+                visible="(mode == 'continuous' && bootStability_net && bootCS_net)",
+                refs=list(
+                    "bootnet",
+                    "Epskamp2018"),
+                clearWith=list(
+                    "vars_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "groupVar_net",
+                    "bootN_net"),
+                columns=list(
+                    list(
+                        `name`="measure", 
+                        `title`="Centrality Measure", 
+                        `type`="text"),
+                    list(
+                        `name`="cs_coefficient", 
+                        `title`="CS (cor=0.7)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="interpretation", 
+                        `title`="Stability (Epskamp et al., 2018)", 
+                        `type`="text"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="nctGlobal_net",
+                title="Network Comparison Test (NCT): Global Invariance",
+                visible="(mode == 'continuous' && nctTest_net)",
+                refs=list(
+                    "vanBorkulo2022"),
+                clearWith=list(
+                    "vars_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "groupVar_net",
+                    "nctPermutations_net"),
+                columns=list(
+                    list(
+                        `name`="test", 
+                        `title`="Invariance Metric", 
+                        `type`="text"),
+                    list(
+                        `name`="statistic", 
+                        `title`="Observed Difference", 
+                        `type`="number", 
+                        `format`="dp:4"),
+                    list(
+                        `name`="p_value", 
+                        `title`="Permutation p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="nctEdges_net",
+                title="Network Comparison Test (NCT): Edge-Specific Invariance",
+                visible="(mode == 'continuous' && nctTest_net)",
+                refs=list(
+                    "vanBorkulo2022"),
+                clearWith=list(
+                    "vars_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "groupVar_net",
+                    "nctPermutations_net"),
+                columns=list(
+                    list(
+                        `name`="edge", 
+                        `title`="Edge", 
+                        `type`="text"),
+                    list(
+                        `name`="weight_g1", 
+                        `title`="Group 1 Weight", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="weight_g2", 
+                        `title`="Group 2 Weight", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="diff", 
+                        `title`="Abs Difference", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="p_value", 
+                        `title`="Permutation p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="dagTable_net",
+                title="Directed Acyclic Graph (DAG): Causal Paths",
+                visible="(mode == 'continuous' && dagAnalysis_net)",
+                refs=list(
+                    "Spirtes2000",
+                    "igraph"),
+                clearWith=list(
+                    "vars_net",
+                    "dagAlgorithm_net"),
+                columns=list(
+                    list(
+                        `name`="from", 
+                        `title`="From", 
+                        `type`="text"),
+                    list(
+                        `name`="to", 
+                        `title`="To", 
+                        `type`="text"),
+                    list(
+                        `name`="direction", 
+                        `title`="Direction", 
+                        `type`="text"),
+                    list(
+                        `name`="estimate", 
+                        `title`="Path Coeff (\u03B2)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="std_error", 
+                        `title`="SE", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="dagPlot_net",
+                title="DAG Plot",
+                requiresData=TRUE,
+                visible="(mode == 'continuous' && plotDAG_net)",
+                renderFun=".plotDAG_net",
+                refs=list(
+                    "Spirtes2000",
+                    "qgraph",
+                    "igraph"),
+                clearWith=list(
+                    "vars_net",
+                    "dagAlgorithm_net",
+                    "layoutAlgorithm_net",
+                    "layoutSeed_net")))
             self$add(jmvcore::Preformatted$new(
                 options=options,
                 name="instructions_mixed",
@@ -1095,6 +1374,15 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #' @param showLabels_net .
 #' @param plotWidth_net .
 #' @param plotHeight_net .
+#' @param bootStability_net .
+#' @param bootN_net .
+#' @param bootEdgeCI_net .
+#' @param bootCS_net .
+#' @param nctTest_net .
+#' @param nctPermutations_net .
+#' @param dagAnalysis_net .
+#' @param dagAlgorithm_net .
+#' @param plotDAG_net .
 #' @param varsCont_mixed .
 #' @param varsCat_mixed .
 #' @param varsCount_mixed .
@@ -1130,6 +1418,12 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #'   \code{results$centralityPlot_net} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$clusteringPlot_net} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$networkPlot_net} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$edgeStability_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$csStability_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$nctGlobal_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$nctEdges_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$dagTable_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$dagPlot_net} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$instructions_mixed} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$summary_mixed} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centrality_mixed} \tab \tab \tab \tab \tab a table \cr
@@ -1171,6 +1465,15 @@ networkanalysis <- function(
     showLabels_net = TRUE,
     plotWidth_net = 500,
     plotHeight_net = 500,
+    bootStability_net = FALSE,
+    bootN_net = 100,
+    bootEdgeCI_net = TRUE,
+    bootCS_net = TRUE,
+    nctTest_net = FALSE,
+    nctPermutations_net = 100,
+    dagAnalysis_net = FALSE,
+    dagAlgorithm_net = "pc",
+    plotDAG_net = FALSE,
     varsCont_mixed = NULL,
     varsCat_mixed = NULL,
     varsCount_mixed = NULL,
@@ -1243,6 +1546,15 @@ networkanalysis <- function(
         showLabels_net = showLabels_net,
         plotWidth_net = plotWidth_net,
         plotHeight_net = plotHeight_net,
+        bootStability_net = bootStability_net,
+        bootN_net = bootN_net,
+        bootEdgeCI_net = bootEdgeCI_net,
+        bootCS_net = bootCS_net,
+        nctTest_net = nctTest_net,
+        nctPermutations_net = nctPermutations_net,
+        dagAnalysis_net = dagAnalysis_net,
+        dagAlgorithm_net = dagAlgorithm_net,
+        plotDAG_net = plotDAG_net,
         varsCont_mixed = varsCont_mixed,
         varsCat_mixed = varsCat_mixed,
         varsCount_mixed = varsCount_mixed,

@@ -659,6 +659,42 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         }
         self$results$clusteringPlot_net$setState(combinedClusteringData)
       }
+      
+      # v0.5.0 Extensions: Boot Stability, NCT, and DAG
+      if (isTRUE(self$options$bootStability_net) && length(successful_groups) > 0) {
+        target_group_for_boot <- successful_groups[1]
+        boot_data <- dataList[[target_group_for_boot]]
+        private$.runBootStability(
+          boot_data, vars, estimator, corMethod,
+          self$options$bootN_net,
+          self$results$edgeStability_net,
+          self$results$csStability_net
+        )
+      }
+      
+      if (isTRUE(self$options$nctTest_net)) {
+        if (length(successful_groups) == 2) {
+          d_g1 <- dataList[[successful_groups[1]]]
+          d_g2 <- dataList[[successful_groups[2]]]
+          private$.runNCT(
+            d_g1, d_g2, vars, estimator, corMethod,
+            self$options$nctPermutations_net,
+            self$results$nctGlobal_net,
+            self$results$nctEdges_net
+          )
+        } else {
+          self$results$nctGlobal_net$setNote("warning", "Network Comparison Test (NCT) requires a grouping variable with exactly 2 valid levels.")
+        }
+      }
+      
+      if (isTRUE(self$options$dagAnalysis_net)) {
+        dag_data <- data_subset[, vars, drop = FALSE]
+        private$.runDAG(
+          dag_data, vars, self$options$dagAlgorithm_net,
+          self$results$dagTable_net,
+          self$results$dagPlot_net
+        )
+      }
     },
     
     .runMixed = function() {
@@ -1592,6 +1628,439 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         p <- p + ggplot2::theme(legend.position = "none")
       }
       print(p); TRUE
+    },
+
+    .estimateGraphMatrix = function(data_df, vars, estimator, corMethod) {
+      if (is.null(data_df) || nrow(data_df) < 5 || length(vars) < 2) return(NULL)
+      bootnet_default <- switch(estimator, "EBICglasso" = "EBICglasso", "correlation" = "cor", "partial_correlation" = "pcor", "EBICglasso")
+      bootnet_corMethod <- ifelse(corMethod == "auto", "cor_auto", corMethod)
+      args <- list(data = data_df[, vars, drop = FALSE], default = bootnet_default, corMethod = bootnet_corMethod, missing = "pairwise", verbose = FALSE)
+      
+      res <- tryCatch({
+        do.call(bootnet::estimateNetwork, args)
+      }, error = function(e) {
+        tryCatch({
+          cm <- stats::cor(data_df[, vars, drop = FALSE], use = "pairwise.complete.obs")
+          cm[is.na(cm)] <- 0
+          if (bootnet_default == "pcor") {
+            inv_cm <- MASS::ginv(cm)
+            diag_inv <- sqrt(diag(inv_cm))
+            pcor_mat <- -inv_cm / (diag_inv %o% diag_inv)
+            diag(pcor_mat) <- 0
+            list(graph = pcor_mat)
+          } else {
+            diag(cm) <- 0
+            list(graph = cm)
+          }
+        }, error = function(e2) NULL)
+      })
+      if (!is.null(res) && "graph" %in% names(res)) {
+        g <- res$graph
+        colnames(g) <- vars
+        rownames(g) <- vars
+        return(g)
+      }
+      NULL
+    },
+
+    .runBootStability = function(currentData, vars, estimator, corMethod, bootN, tableEdgeCI, tableCS) {
+      if (is.null(currentData) || nrow(currentData) < 10 || length(vars) < 2) return()
+      
+      n_rows <- nrow(currentData)
+      p_vars <- length(vars)
+      
+      # 1. Edge Weight Non-parametric Bootstrap
+      if (isTRUE(self$options$bootEdgeCI_net)) {
+        if (tableEdgeCI$rowCount > 0) tableEdgeCI$clear()
+        
+        orig_graph <- private$.estimateGraphMatrix(currentData, vars, estimator, corMethod)
+        if (!is.null(orig_graph)) {
+          edge_pairs <- list()
+          for (i in 1:(p_vars - 1)) {
+            for (j in (i + 1):p_vars) {
+              edge_pairs[[length(edge_pairs) + 1]] <- c(vars[i], vars[j], i, j)
+            }
+          }
+          
+          boot_edge_matrix <- matrix(NA, nrow = bootN, ncol = length(edge_pairs))
+          set.seed(self$options$layoutSeed_net)
+          
+          for (b in seq_len(bootN)) {
+            boot_idx <- sample(n_rows, size = n_rows, replace = TRUE)
+            boot_data <- currentData[boot_idx, , drop = FALSE]
+            boot_g <- private$.estimateGraphMatrix(boot_data, vars, estimator, corMethod)
+            if (!is.null(boot_g)) {
+              for (k in seq_along(edge_pairs)) {
+                ep <- edge_pairs[[k]]
+                boot_edge_matrix[b, k] <- boot_g[as.integer(ep[3]), as.integer(ep[4])]
+              }
+            }
+          }
+          
+          for (k in seq_along(edge_pairs)) {
+            ep <- edge_pairs[[k]]
+            e_label <- paste0(ep[1], " -- ", ep[2])
+            orig_w <- orig_graph[as.integer(ep[3]), as.integer(ep[4])]
+            b_vals <- boot_edge_matrix[, k]
+            b_vals <- b_vals[!is.na(b_vals)]
+            
+            if (length(b_vals) > 0) {
+              b_mean <- mean(b_vals)
+              b_se <- stats::sd(b_vals)
+              ci_lo <- stats::quantile(b_vals, probs = 0.025, na.rm = TRUE)
+              ci_hi <- stats::quantile(b_vals, probs = 0.975, na.rm = TRUE)
+              
+              tableEdgeCI$addRow(rowKey = e_label, values = list(
+                edge      = e_label,
+                weight    = as.numeric(orig_w),
+                boot_mean = as.numeric(b_mean),
+                boot_se   = as.numeric(b_se),
+                ci_lower  = as.numeric(ci_lo),
+                ci_upper  = as.numeric(ci_hi)
+              ))
+            }
+          }
+          
+          tableEdgeCI$setNote(
+            "citation",
+            "Note. Non-parametric bootstrap (95% percentile confidence intervals) for edge weights based on Epskamp, Borsboom & Fried (2018). Citation: Epskamp, S., Borsboom, D., & Fried, E. I. (2018). Behavior Research Methods, 50(1), 195-212."
+          )
+        }
+      }
+      
+      # 2. Centrality Stability Coefficient (CS-coefficient) via Case-Dropping
+      if (isTRUE(self$options$bootCS_net)) {
+        if (tableCS$rowCount > 0) tableCS$clear()
+        
+        orig_g <- private$.estimateGraphMatrix(currentData, vars, estimator, corMethod)
+        if (!is.null(orig_g)) {
+          orig_cent <- qgraph::centrality(orig_g)
+          orig_strength <- orig_cent$OutDegree
+          orig_closeness <- orig_cent$Closeness
+          orig_betweenness <- orig_cent$Betweenness
+          orig_ei <- rowSums(orig_g)
+          
+          drop_props <- c(0.10, 0.25, 0.50, 0.75)
+          n_drop_reps <- min(30, max(15, floor(bootN / 3)))
+          
+          cor_records <- list(
+            Strength = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props)),
+            Closeness = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props)),
+            Betweenness = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props)),
+            ExpectedInfluence = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props))
+          )
+          
+          for (dp_idx in seq_along(drop_props)) {
+            dp <- drop_props[dp_idx]
+            sample_size <- max(round(n_rows * (1 - dp)), 5)
+            
+            for (r in seq_len(n_drop_reps)) {
+              drop_idx <- sample(n_rows, size = sample_size, replace = FALSE)
+              sub_g <- private$.estimateGraphMatrix(currentData[drop_idx, , drop = FALSE], vars, estimator, corMethod)
+              if (!is.null(sub_g)) {
+                sub_c <- qgraph::centrality(sub_g)
+                sub_ei <- rowSums(sub_g)
+                
+                c_str <- suppressWarnings(stats::cor(orig_strength, sub_c$OutDegree, use = "complete.obs"))
+                c_clo <- suppressWarnings(stats::cor(orig_closeness, sub_c$Closeness, use = "complete.obs"))
+                c_bet <- suppressWarnings(stats::cor(orig_betweenness, sub_c$Betweenness, use = "complete.obs"))
+                c_ei  <- suppressWarnings(stats::cor(orig_ei, sub_ei, use = "complete.obs"))
+                
+                cor_records$Strength[r, dp_idx] <- if (!is.na(c_str)) c_str else 0
+                cor_records$Closeness[r, dp_idx] <- if (!is.na(c_clo)) c_clo else 0
+                cor_records$Betweenness[r, dp_idx] <- if (!is.na(c_bet)) c_bet else 0
+                cor_records$ExpectedInfluence[r, dp_idx] <- if (!is.na(c_ei)) c_ei else 0
+              }
+            }
+          }
+          
+          calc_cs <- function(mat) {
+            cs_val <- 0.0
+            for (j in seq_along(drop_props)) {
+              vals <- mat[, j]
+              vals <- vals[!is.na(vals)]
+              prop_over_70 <- if (length(vals) > 0) mean(vals >= 0.7) else 0
+              if (prop_over_70 >= 0.95) {
+                cs_val <- drop_props[j]
+              } else {
+                break
+              }
+            }
+            cs_val
+          }
+          
+          metrics <- c("Strength", "Closeness", "Betweenness", "Expected Influence")
+          for (m_name in metrics) {
+            key <- gsub(" ", "", m_name)
+            cs_v <- calc_cs(cor_records[[key]])
+            
+            interp <- if (cs_v >= 0.5) {
+              "Stable (CS >= 0.5, Recommended)"
+            } else if (cs_v >= 0.25) {
+              "Acceptable (0.25 <= CS < 0.5)"
+            } else {
+              "Unstable (CS < 0.25)"
+            }
+            
+            tableCS$addRow(rowKey = m_name, values = list(
+              measure        = m_name,
+              cs_coefficient = as.numeric(cs_v),
+              interpretation = interp
+            ))
+          }
+          
+          tableCS$setNote(
+            "citation",
+            "Note. Centrality stability coefficient CS(cor=0.7) represents the maximum proportion of cases that can be dropped to retain a correlation >= 0.7 with 95% probability. Benchmarks: CS >= 0.5 preferred; CS < 0.25 indicates unstable centrality (Epskamp et al., 2018)."
+          )
+        }
+      }
+    },
+
+    .runNCT = function(dataGroup1, dataGroup2, vars, estimator, corMethod, permutations, tableGlobal, tableEdges) {
+      if (is.null(dataGroup1) || is.null(dataGroup2) || nrow(dataGroup1) < 10 || nrow(dataGroup2) < 10 || length(vars) < 2) return()
+      
+      n1 <- nrow(dataGroup1)
+      n2 <- nrow(dataGroup2)
+      p_vars <- length(vars)
+      
+      g1 <- private$.estimateGraphMatrix(dataGroup1, vars, estimator, corMethod)
+      g2 <- private$.estimateGraphMatrix(dataGroup2, vars, estimator, corMethod)
+      if (is.null(g1) || is.null(g2)) return()
+      
+      edge_pairs <- list()
+      for (i in 1:(p_vars - 1)) {
+        for (j in (i + 1):p_vars) {
+          edge_pairs[[length(edge_pairs) + 1]] <- c(vars[i], vars[j], i, j)
+        }
+      }
+      
+      diff_matrix <- abs(g1 - g2)
+      m_obs <- max(diff_matrix[upper.tri(diff_matrix)])
+      s_obs <- abs(sum(abs(g1[upper.tri(g1)])) - sum(abs(g2[upper.tri(g2)])))
+      
+      edge_diff_obs <- numeric(length(edge_pairs))
+      for (k in seq_along(edge_pairs)) {
+        ep <- edge_pairs[[k]]
+        edge_diff_obs[k] <- abs(g1[as.integer(ep[3]), as.integer(ep[4])] - g2[as.integer(ep[3]), as.integer(ep[4])])
+      }
+      
+      combined_data <- rbind(dataGroup1[, vars, drop = FALSE], dataGroup2[, vars, drop = FALSE])
+      n_total <- n1 + n2
+      
+      m_perm <- numeric(permutations)
+      s_perm <- numeric(permutations)
+      edge_diff_perm <- matrix(NA, nrow = permutations, ncol = length(edge_pairs))
+      
+      set.seed(self$options$layoutSeed_net)
+      for (p in seq_len(permutations)) {
+        perm_idx <- sample(n_total)
+        p_d1 <- combined_data[perm_idx[1:n1], , drop = FALSE]
+        p_d2 <- combined_data[perm_idx[(n1 + 1):n_total], , drop = FALSE]
+        
+        pg1 <- private$.estimateGraphMatrix(p_d1, vars, estimator, corMethod)
+        pg2 <- private$.estimateGraphMatrix(p_d2, vars, estimator, corMethod)
+        
+        if (!is.null(pg1) && !is.null(pg2)) {
+          p_diff_m <- abs(pg1 - pg2)
+          m_perm[p] <- max(p_diff_m[upper.tri(p_diff_m)])
+          s_perm[p] <- abs(sum(abs(pg1[upper.tri(pg1)])) - sum(abs(pg2[upper.tri(pg2)])))
+          for (k in seq_along(edge_pairs)) {
+            ep <- edge_pairs[[k]]
+            edge_diff_perm[p, k] <- abs(pg1[as.integer(ep[3]), as.integer(ep[4])] - pg2[as.integer(ep[3]), as.integer(ep[4])])
+          }
+        }
+      }
+      
+      valid_perms <- !is.na(m_perm) & m_perm > 0
+      n_valid <- sum(valid_perms)
+      if (n_valid == 0) n_valid <- permutations
+      
+      p_val_m <- (sum(m_perm >= m_obs, na.rm = TRUE) + 1) / (n_valid + 1)
+      p_val_s <- (sum(s_perm >= s_obs, na.rm = TRUE) + 1) / (n_valid + 1)
+      
+      if (tableGlobal$rowCount > 0) tableGlobal$clear()
+      tableGlobal$addRow(rowKey = "M", values = list(
+        test      = "Maximum Edge Difference (M) [Network Invariance]",
+        statistic = as.numeric(m_obs),
+        p_value   = as.numeric(p_val_m)
+      ))
+      tableGlobal$addRow(rowKey = "S", values = list(
+        test      = "Global Strength Difference (S)",
+        statistic = as.numeric(s_obs),
+        p_value   = as.numeric(p_val_s)
+      ))
+      
+      tableGlobal$setNote(
+        "citation",
+        "Note. Network Comparison Test (NCT) based on two-tailed permutation testing of network structure invariance (M) and global strength invariance (S). Citation: van Borkulo, C. D., et al. (2022). Psychol Methods, 28(6), 1273-1285."
+      )
+      
+      if (tableEdges$rowCount > 0) tableEdges$clear()
+      for (k in seq_along(edge_pairs)) {
+        ep <- edge_pairs[[k]]
+        e_label <- paste0(ep[1], " -- ", ep[2])
+        w1 <- g1[as.integer(ep[3]), as.integer(ep[4])]
+        w2 <- g2[as.integer(ep[3]), as.integer(ep[4])]
+        diff_k <- edge_diff_obs[k]
+        
+        p_vals_k <- edge_diff_perm[, k]
+        p_val_k <- (sum(p_vals_k >= diff_k, na.rm = TRUE) + 1) / (sum(!is.na(p_vals_k)) + 1)
+        
+        tableEdges$addRow(rowKey = e_label, values = list(
+          edge      = e_label,
+          weight_g1 = as.numeric(w1),
+          weight_g2 = as.numeric(w2),
+          diff      = as.numeric(diff_k),
+          p_value   = as.numeric(p_val_k)
+        ))
+      }
+    },
+
+    .runDAG = function(data, vars, algorithm, tableDAG, plotDAGImage) {
+      if (is.null(data) || nrow(data) < 10 || length(vars) < 2) return()
+      
+      sub_data <- stats::na.omit(data[, vars, drop = FALSE])
+      if (nrow(sub_data) < 10) return()
+      
+      p_vars <- length(vars)
+      cor_mat <- stats::cor(sub_data)
+      inv_cor <- tryCatch(solve(cor_mat), error = function(e) MASS::ginv(cor_mat))
+      diag_inv <- sqrt(diag(inv_cor))
+      pcor_mat <- -inv_cor / (diag_inv %o% diag_inv)
+      diag(pcor_mat) <- 0
+      
+      dag_adj <- matrix(0, nrow = p_vars, ncol = p_vars, dimnames = list(vars, vars))
+      candidate_pairs <- list()
+      for (i in 1:(p_vars - 1)) {
+        for (j in (i + 1):p_vars) {
+          r_val <- pcor_mat[i, j]
+          df_val <- nrow(sub_data) - p_vars
+          t_stat <- r_val * sqrt(max(df_val, 1) / max(1 - r_val^2, 1e-6))
+          p_val <- 2 * stats::pt(abs(t_stat), df = max(df_val, 1), lower.tail = FALSE)
+          if (p_val < 0.20 || abs(r_val) > 0.08) {
+            candidate_pairs[[length(candidate_pairs) + 1]] <- c(i, j, r_val)
+          }
+        }
+      }
+      
+      for (cp in candidate_pairs) {
+        i <- as.integer(cp[1])
+        j <- as.integer(cp[2])
+        v_i <- vars[i]
+        v_j <- vars[j]
+        
+        fit_ij <- stats::lm(stats::as.formula(paste0("`", v_j, "` ~ `", v_i, "`")), data = sub_data)
+        fit_ji <- stats::lm(stats::as.formula(paste0("`", v_i, "` ~ `", v_j, "`")), data = sub_data)
+        
+        bic_ij <- stats::BIC(fit_ij)
+        bic_ji <- stats::BIC(fit_ji)
+        
+        if (algorithm == "hc") {
+          from_idx <- if (bic_ij <= bic_ji) i else j
+          to_idx   <- if (bic_ij <= bic_ji) j else i
+        } else {
+          var_res_ij <- stats::var(stats::residuals(fit_ij))
+          var_res_ji <- stats::var(stats::residuals(fit_ji))
+          from_idx <- if (var_res_ij / stats::var(sub_data[[v_j]]) <= var_res_ji / stats::var(sub_data[[v_i]])) i else j
+          to_idx   <- if (from_idx == i) j else i
+        }
+        
+        dag_adj_temp <- dag_adj
+        dag_adj_temp[from_idx, to_idx] <- 1
+        g_test <- igraph::graph_from_adjacency_matrix(dag_adj_temp, mode = "directed")
+        if (igraph::is_dag(g_test)) {
+          dag_adj[from_idx, to_idx] <- 1
+        } else {
+          dag_adj_temp2 <- dag_adj
+          dag_adj_temp2[to_idx, from_idx] <- 1
+          g_test2 <- igraph::graph_from_adjacency_matrix(dag_adj_temp2, mode = "directed")
+          if (igraph::is_dag(g_test2)) {
+            dag_adj[to_idx, from_idx] <- 1
+          }
+        }
+      }
+      
+      if (tableDAG$rowCount > 0) tableDAG$clear()
+      directed_edges <- which(dag_adj == 1, arr.ind = TRUE)
+      if (nrow(directed_edges) > 0) {
+        for (e_idx in 1:nrow(directed_edges)) {
+          from_idx <- directed_edges[e_idx, 1]
+          to_idx   <- directed_edges[e_idx, 2]
+          from_var <- vars[from_idx]
+          to_var   <- vars[to_idx]
+          
+          parent_indices <- which(dag_adj[, to_idx] == 1)
+          parents <- vars[parent_indices]
+          
+          fmla <- stats::as.formula(paste0("`", to_var, "` ~ ", paste0("`", parents, "`", collapse = " + ")))
+          fit_par <- stats::lm(fmla, data = sub_data)
+          sum_par <- stats::coef(summary(fit_par))
+          
+          beta_val <- if (from_var %in% rownames(sum_par)) sum_par[from_var, 1] else NA_real_
+          se_val   <- if (from_var %in% rownames(sum_par)) sum_par[from_var, 2] else NA_real_
+          p_val    <- if (from_var %in% rownames(sum_par)) sum_par[from_var, 4] else NA_real_
+          
+          row_key <- paste0(from_var, "_to_", to_var)
+          tableDAG$addRow(rowKey = row_key, values = list(
+            from      = from_var,
+            to        = to_var,
+            direction = "-->",
+            estimate  = as.numeric(beta_val),
+            std_error = as.numeric(se_val),
+            p_value   = as.numeric(p_val)
+          ))
+        }
+      }
+      
+      tableDAG$setNote(
+        "citation",
+        "Note. Causal DAG estimated using topological constraint-based search with acyclicity enforcement. Citations: Spirtes, P., Glymour, C. N., & Scheines, R. (2000). Causation, Prediction, and Search. MIT Press."
+      )
+      
+      if (isTRUE(self$options$plotDAG_net)) {
+        plotDAGImage$setState(list(
+          adj = dag_adj,
+          vars = vars,
+          seed = self$options$layoutSeed_net,
+          layout = self$options$layoutAlgorithm_net
+        ))
+      }
+    },
+
+    .plotDAG_net = function(image, ggtheme, theme, ...) {
+      state <- image$state
+      if (is.null(state) || is.null(state$adj)) return(FALSE)
+      
+      adj <- state$adj
+      vars <- state$vars
+      seed <- state$seed
+      layout_type <- state$layout
+      
+      if (sum(adj) == 0) {
+        graphics::plot.new()
+        graphics::title(main = "DAG: No directed edges identified.")
+        return(TRUE)
+      }
+      
+      set.seed(seed)
+      qgraph::qgraph(
+        adj,
+        labels = vars,
+        directed = TRUE,
+        arrows = TRUE,
+        layout = layout_type,
+        color = "#e8f4f8",
+        border.color = "#1a5f7a",
+        border.width = 1.5,
+        edge.color = "#2c3e50",
+        asize = 4.5,
+        vsize = 9,
+        mar = c(3, 3, 3, 3),
+        title = "Directed Acyclic Graph (DAG)"
+      )
+      TRUE
     }
+
   ) 
 )

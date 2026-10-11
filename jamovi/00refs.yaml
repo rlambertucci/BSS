@@ -793,3 +793,23 @@ Lex2014:
   issue: 12
   pages: "1983-1992"
   doi: "10.1109/TVCG.2014.2346248"
+
+vanBorkulo2022:
+  type: article
+  author: "van Borkulo, C. D., Boschloo, L., Borsboom, D., Penninx, B. W. J. H., Waldorp, L. J., & Schoevers, R. A."
+  year: 2022
+  title: "Comparing network structures on three aspects: A permutation test"
+  journal: "Psychological Methods"
+  volume: 28
+  issue: 6
+  pages: "1273-1285"
+  doi: "10.1037/met0000476"
+
+Spirtes2000:
+  type: book
+  author: "Spirtes, P., Glymour, C. N., & Scheines, R."
+  year: 2000
+  title: "Causation, Prediction, and Search"
+  edition: "2nd"
+  publisher: "MIT Press"
+  address: "Cambridge, MA"

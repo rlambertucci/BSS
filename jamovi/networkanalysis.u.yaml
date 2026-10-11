@@ -84,6 +84,65 @@ children:
                     name: plotNetwork_net
 
           - type: CollapseBox
+            label: Network Stability (bootnet)
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: bootStability_net
+                  - type: TextBox
+                    name: bootN_net
+                    label: Bootstrap Samples
+                    format: number
+                    enable: (bootStability_net)
+                  - type: CheckBox
+                    name: bootEdgeCI_net
+                    enable: (bootStability_net)
+                  - type: CheckBox
+                    name: bootCS_net
+                    enable: (bootStability_net)
+
+          - type: CollapseBox
+            label: Network Comparison Test (NCT)
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: nctTest_net
+                    enable: (groupVar_net)
+                  - type: TextBox
+                    name: nctPermutations_net
+                    label: NCT Permutations
+                    format: number
+                    enable: (nctTest_net)
+
+          - type: CollapseBox
+            label: Directed Acyclic Graph (DAG)
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: dagAnalysis_net
+                  - type: ComboBox
+                    name: dagAlgorithm_net
+                    enable: (dagAnalysis_net)
+                  - type: CheckBox
+                    name: plotDAG_net
+                    enable: (dagAnalysis_net)
+
+          - type: CollapseBox
             label: Network Settings
             collapsed: true
             stretchFactor: 1

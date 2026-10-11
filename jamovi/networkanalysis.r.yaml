@@ -241,6 +241,176 @@ items:
       - communityAlgorithm_net
       - groupVar_net
       - nodeGroupVar_net
+  - name: edgeStability_net
+    title: Edge Weight Bootstrap Stability (95% CI)
+    type: Table
+    visible: (mode == 'continuous' && bootStability_net && bootEdgeCI_net)
+    refs:
+      - bootnet
+      - Epskamp2018
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - bootN_net
+    columns:
+      - name: edge
+        title: Edge
+        type: text
+      - name: weight
+        title: Sample Weight
+        type: number
+        format: dp:3
+      - name: boot_mean
+        title: Boot Mean
+        type: number
+        format: dp:3
+      - name: boot_se
+        title: Boot SE
+        type: number
+        format: dp:3
+      - name: ci_lower
+        title: 95% CI Lower
+        type: number
+        format: dp:3
+      - name: ci_upper
+        title: 95% CI Upper
+        type: number
+        format: dp:3
+
+  - name: csStability_net
+    title: Centrality Stability Coefficients (CS-coefficient)
+    type: Table
+    visible: (mode == 'continuous' && bootStability_net && bootCS_net)
+    refs:
+      - bootnet
+      - Epskamp2018
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - bootN_net
+    columns:
+      - name: measure
+        title: Centrality Measure
+        type: text
+      - name: cs_coefficient
+        title: CS (cor=0.7)
+        type: number
+        format: dp:3
+      - name: interpretation
+        title: Stability (Epskamp et al., 2018)
+        type: text
+
+  - name: nctGlobal_net
+    title: 'Network Comparison Test (NCT): Global Invariance'
+    type: Table
+    visible: (mode == 'continuous' && nctTest_net)
+    refs:
+      - vanBorkulo2022
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - nctPermutations_net
+    columns:
+      - name: test
+        title: Invariance Metric
+        type: text
+      - name: statistic
+        title: Observed Difference
+        type: number
+        format: dp:4
+      - name: p_value
+        title: Permutation p
+        type: number
+        format: zto,pvalue
+
+  - name: nctEdges_net
+    title: 'Network Comparison Test (NCT): Edge-Specific Invariance'
+    type: Table
+    visible: (mode == 'continuous' && nctTest_net)
+    refs:
+      - vanBorkulo2022
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - nctPermutations_net
+    columns:
+      - name: edge
+        title: Edge
+        type: text
+      - name: weight_g1
+        title: Group 1 Weight
+        type: number
+        format: dp:3
+      - name: weight_g2
+        title: Group 2 Weight
+        type: number
+        format: dp:3
+      - name: diff
+        title: Abs Difference
+        type: number
+        format: dp:3
+      - name: p_value
+        title: Permutation p
+        type: number
+        format: zto,pvalue
+
+  - name: dagTable_net
+    title: 'Directed Acyclic Graph (DAG): Causal Paths'
+    type: Table
+    visible: (mode == 'continuous' && dagAnalysis_net)
+    refs:
+      - Spirtes2000
+      - igraph
+    clearWith:
+      - vars_net
+      - dagAlgorithm_net
+    columns:
+      - name: from
+        title: From
+        type: text
+      - name: to
+        title: To
+        type: text
+      - name: direction
+        title: Direction
+        type: text
+      - name: estimate
+        title: Path Coeff (β)
+        type: number
+        format: dp:3
+      - name: std_error
+        title: SE
+        type: number
+        format: dp:3
+      - name: p_value
+        title: p
+        type: number
+        format: zto,pvalue
+
+  - name: dagPlot_net
+    title: DAG Plot
+    type: Image
+    requiresData: true
+    visible: (mode == 'continuous' && plotDAG_net)
+    renderFun: .plotDAG_net
+    refs:
+      - Spirtes2000
+      - qgraph
+      - igraph
+    clearWith:
+      - vars_net
+      - dagAlgorithm_net
+      - layoutAlgorithm_net
+      - layoutSeed_net
+
   - name: instructions_mixed
     title: ' '
     type: Preformatted
