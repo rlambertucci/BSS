@@ -20,6 +20,8 @@ items:
         - effectsize
         - emmeans
         - Cohen1988
+        - AlginaKeselmanPenfield2005
+        - AkritasArnold1994
       clearWith:
         - mode
         - dep_vars_cs
@@ -85,6 +87,8 @@ items:
         - effectsize
         - emmeans
         - Cohen1988
+        - AlginaKeselmanPenfield2005
+        - AkritasArnold1994
       clearWith:
         - mode
         - dep_vars_long
@@ -232,7 +236,6 @@ items:
         - subject_id_var
         - run_analysis
         - show_conversions
-
       columns:
         - name: dv
           title: DV / Wave
@@ -263,6 +266,78 @@ items:
           format: dp:3
         - name: interpretation
           title: Interpretation
+          type: text
+
+    - name: categoricalTable
+      title: Categorical Effect Sizes (Association & Risk)
+      type: Table
+      visible: (show_categorical_es)
+      refs:
+        - Cramer1946
+        - Cohen1988
+      clearWith:
+        - cat_var1
+        - cat_var2
+        - ci_method
+        - ci_level
+        - n_bootstrap
+        - show_categorical_es
+      columns:
+        - name: pair
+          title: Variable Pair
+          type: text
+        - name: metric
+          title: Metric
+          type: text
+        - name: value
+          title: Estimate
+          type: number
+          format: dp:3
+        - name: ci_lower
+          title: CI Lower
+          type: number
+          format: dp:3
+        - name: ci_upper
+          title: CI Upper
+          type: number
+          format: dp:3
+        - name: interpretation
+          title: Interpretation
+          type: text
+        - name: n_obs
+          title: N
+          type: integer
+
+    - name: directCalcTable
+      title: Direct Test Statistic Conversions
+      type: Table
+      visible: (calc_from_test_stat)
+      refs:
+        - Cohen1988
+        - Borenstein2009
+      clearWith:
+        - stat_type
+        - stat_val
+        - stat_df1
+        - stat_df2
+        - stat_n
+        - calc_from_test_stat
+      columns:
+        - name: input_stat
+          title: Input Statistic
+          type: text
+        - name: metric
+          title: Effect Size Metric
+          type: text
+        - name: value
+          title: Value
+          type: number
+          format: dp:3
+        - name: interpretation
+          title: Benchmark Interpretation
+          type: text
+        - name: formula_ref
+          title: Primary Formula
           type: text
 
     - name: esPlot
@@ -318,3 +393,7 @@ items:
         - subject_id_var
         - es_method_long
         - reference_group_long
+        - show_categorical_es
+        - cat_var1
+        - cat_var2
+        - calc_from_test_stat

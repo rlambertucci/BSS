@@ -28,6 +28,7 @@ options:
         - continuous
       permitted:
         - numeric
+      default: null
 
     - name: indep_vars_cs
       title: Independent Variables (IVs)
@@ -38,6 +39,7 @@ options:
       permitted:
         - numeric
         - factor
+      default: null
 
     - name: cov
       title: Covariate
@@ -46,6 +48,7 @@ options:
         - continuous
       permitted:
         - numeric
+      default: null
 
     - name: dep_vars_long
       title: Dependent Variables (DVs - Long format only)
@@ -54,6 +57,7 @@ options:
         - continuous
       permitted:
         - numeric
+      default: null
 
     - name: indep_vars_long
       title: Independent Variables (IVs - optional)
@@ -64,6 +68,7 @@ options:
       permitted:
         - numeric
         - factor
+      default: null
 
     - name: cov_long
       title: Covariate
@@ -72,6 +77,7 @@ options:
         - continuous
       permitted:
         - numeric
+      default: null
 
     - name: subject_id_var
       title: Subject ID Variable
@@ -83,6 +89,7 @@ options:
         - numeric
         - factor
         - id
+      default: null
 
     - name: time_var
       title: Time / Wave Variable (long format)
@@ -93,6 +100,7 @@ options:
       permitted:
         - numeric
         - factor
+      default: null
 
     - name: wave_vars
       title: Wave Columns (wide format)
@@ -103,6 +111,7 @@ options:
       permitted:
         - numeric
         - factor
+      default: null
 
     - name: long_format
       title: Data Format
@@ -136,6 +145,10 @@ options:
           name: glass_delta
         - title: Rank Biserial Correlation
           name: rank_biserial
+        - title: Algina-Keselman-Penfield Robust d (Trimmed & Winsorized)
+          name: algina_keselman_d
+        - title: Akritas-Arnold Relative Effect (δ̂)
+          name: akritas_arnold_delta
       default: cohens_d
       
     - name: show_cles
@@ -219,7 +232,7 @@ options:
       default: ci_95
 
     - name: show_conversions
-      title: 'Show Effect Size Conversions (d, r, ?�, OR, AUC)'
+      title: 'Show Effect Size Conversions (d, r, η², OR, AUC)'
       type: Bool
       default: false
 
@@ -227,9 +240,9 @@ options:
       title: 'Benchmark for Qualitative Interpretation'
       type: List
       options:
-        - title: "Cohen (1988) � Small: .2, Med: .5, Large: .8"
+        - title: "Cohen (1988) — Small: .2, Med: .5, Large: .8"
           name: cohen
-        - title: "Sawilowsky (2009) � Very Small: .01, Small: .2, Med: .5, Large: .8, Very Large: 1.2, Huge: 2.0"
+        - title: "Sawilowsky (2009) — Very Small: .01, Small: .2, Med: .5, Large: .8, Very Large: 1.2, Huge: 2.0"
           name: sawilowsky
       default: cohen
 
@@ -247,3 +260,69 @@ options:
       title: 'Plot Height'
       type: Integer
       default: 450
+
+    - name: show_categorical_es
+      title: Categorical Effect Sizes (Cramér's V, Odds Ratio, Relative Risk)
+      type: Bool
+      default: false
+
+    - name: cat_var1
+      title: Categorical Factor 1 (Row / Exposure)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+      default: null
+
+    - name: cat_var2
+      title: Categorical Factor 2 (Column / Outcome)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+      default: null
+
+    - name: calc_from_test_stat
+      title: Direct Test Statistic Calculator (t, F, z, χ²)
+      type: Bool
+      default: false
+
+    - name: stat_type
+      title: Test Statistic Type
+      type: List
+      options:
+        - title: "t-statistic (t, df)"
+          name: stat_t
+        - title: "F-statistic (F, df1, df2)"
+          name: stat_f
+        - title: "z-statistic (z, N)"
+          name: stat_z
+        - title: "Chi-Square (χ², df, N)"
+          name: stat_chisq
+      default: stat_t
+
+    - name: stat_val
+      title: Statistic Value
+      type: Number
+      default: 2.5
+
+    - name: stat_df1
+      title: Degrees of Freedom 1 (df or df1)
+      type: Number
+      default: 30
+
+    - name: stat_df2
+      title: Degrees of Freedom 2 (df2 - for F)
+      type: Number
+      default: 60
+
+    - name: stat_n
+      title: Sample Size N (optional)
+      type: Integer
+      default: 60

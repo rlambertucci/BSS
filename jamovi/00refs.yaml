@@ -730,3 +730,33 @@ Kerby2014:
   pages: '11.IT.3.1'
   doi: '10.2466/11.IT.3.1'
 
+
+AlginaKeselmanPenfield2005:
+  type: article
+  author: 'Algina, J., Keselman, H. J., & Penfield, R. D.'
+  year: 2005
+  title: "An alternative to Cohen's standardized mean difference effect size: A robust parameter and confidence interval in the two independent groups case"
+  journal: 'Psychological Methods'
+  volume: 10
+  issue: 3
+  pages: '317-328'
+  doi: '10.1037/1082-989X.10.3.317'
+
+AkritasArnold1994:
+  type: article
+  author: 'Akritas, M. G., & Arnold, S. F.'
+  year: 1994
+  title: 'Fully nonparametric hypotheses for factorial designs I: Multivariate relative effects'
+  journal: 'Journal of the American Statistical Association'
+  volume: 89
+  issue: 425
+  pages: '336-343'
+  doi: '10.1080/01621459.1994.10476475'
+
+Cramer1946:
+  type: book
+  author: 'Cramér, H.'
+  year: 1946
+  title: 'Mathematical Methods of Statistics'
+  publisher: 'Princeton University Press'
+  address: 'Princeton, NJ'
