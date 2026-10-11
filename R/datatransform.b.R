@@ -3,6 +3,20 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
   inherit = dataTransformBase,
   private = list(
     
+    .to_numeric_vec = function(x) {
+      if (is.null(x)) return(NULL)
+      if (is.numeric(x)) return(as.numeric(x))
+      if (is.factor(x)) {
+        num_try <- suppressWarnings(as.numeric(as.character(x)))
+        if (!all(is.na(num_try)) || all(is.na(x))) return(num_try)
+        return(as.numeric(x))
+      }
+      if (is.character(x)) {
+        return(suppressWarnings(as.numeric(x)))
+      }
+      suppressWarnings(as.numeric(x))
+    },
+    
     .init = function() {
       if (is.null(self$options$vars) || length(self$options$vars) == 0) return()
       
@@ -53,7 +67,8 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       all_treated_vectors <- list()
       
       for (var in vars) {
-        x <- data[[var]]
+        x <- private$.to_numeric_vec(data[[var]])
+        if (is.null(x)) next
         is_valid <- !is.na(x)
         x_clean <- x[is_valid]
         
@@ -68,23 +83,50 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
             if (auto_shift) { 
               shift_val <- abs(min_x) + 0.001
               x_clean <- x_clean + shift_val
+            } else {
+              if (self$options$show_lambda_table) {
+                self$results$lambdaTable$setNote(
+                  "boxcox_warning",
+                  "Warning: Box-Cox transformation requires strictly positive values (X > 0). Enable 'Automatic Shift' or select Yeo-Johnson."
+                )
+                self$results$lambdaTable$setRow(
+                  rowKey=var,
+                  values=list(value=NA, shift_applied="No (Error: non-positive values)", shift_value=0)
+                )
+              }
+              next
             }
-            else jmvcore::reject("Box-Cox requires positive values.")
           }
           bc <- bestNormalize::boxcox(x_clean)
           x_trans_clean <- bc$x.t
           shift_applied <- ifelse(shift_val > 0, "Yes", "No")
-          if(self$options$show_lambda_table) {
+          if (self$options$show_lambda_table) {
             self$results$lambdaTable$setRow(rowKey=var, values=list(value=bc$lambda, shift_applied=shift_applied, shift_value=shift_val))
           }
         } else if (method == "yeojohnson") {
           yj <- bestNormalize::yeojohnson(x_clean)
           x_trans_clean <- yj$x.t
-          if(self$options$show_lambda_table) {
+          if (self$options$show_lambda_table) {
             self$results$lambdaTable$setRow(rowKey=var, values=list(value=yj$lambda, shift_applied="No", shift_value=0))
           }
         } else if (method == "johnson") {
-          jt <- tryCatch(SuppDists::JohnsonFit(x_clean, moment="quant"), error=function(e) SuppDists::JohnsonFit(x_clean, moment="use"))
+          jt <- tryCatch(
+            SuppDists::JohnsonFit(x_clean, moment="quant"),
+            error = function(e) {
+              tryCatch(SuppDists::JohnsonFit(x_clean, moment="use"), error = function(e2) NULL)
+            }
+          )
+          
+          if (is.null(jt)) {
+            if (self$options$show_lambda_table) {
+              self$results$lambdaTable$setNote(
+                "johnson_warning",
+                "Warning: Johnson curve estimation failed to converge for one or more variables. Consider Yeo-Johnson transformation."
+              )
+            }
+            next
+          }
+          
           y <- (x_clean - jt$xi) / jt$lambda
           if (jt$type == "SL") {
             y <- pmax(y, 1e-09)
@@ -92,7 +134,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
             y <- pmin(pmax(y, 1e-09), 1 - 1e-09)
           }
           x_trans_clean <- switch(jt$type, "SN"=jt$gamma+jt$delta*y, "SL"=jt$gamma+jt$delta*log(y), "SU"=jt$gamma+jt$delta*asinh(y), "SB"=jt$gamma+jt$delta*log(y/(1-y)))
-          if(self$options$show_lambda_table) {
+          if (self$options$show_lambda_table) {
             self$results$lambdaTable$setRow(rowKey=paste0(var, "_type"), values=list(value=switch(jt$type,"SU"=1,"SB"=2,"SL"=3,"SN"=4,0)))
             self$results$lambdaTable$setRow(rowKey=paste0(var, "_gamma"), values=list(value=jt$gamma))
             self$results$lambdaTable$setRow(rowKey=paste0(var, "_delta"), values=list(value=jt$delta))
@@ -101,16 +143,18 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           }
         }
         
-        x_trans_full <- rep(NA, length(x))
-        x_trans_full[is_valid] <- x_trans_clean
-        all_treated_vectors[[var]] <- x_trans_full
-        
-        if (self$options$show_normality_table) {
-          private$runShapiro(var, x_clean, "before", alpha_sw)
-          private$runShapiro(var, x_trans_clean, "after", alpha_sw)
+        if (!is.null(x_trans_clean)) {
+          x_trans_full <- rep(NA, length(x))
+          x_trans_full[is_valid] <- x_trans_clean
+          all_treated_vectors[[var]] <- x_trans_full
+          
+          if (self$options$show_normality_table) {
+            private$runShapiro(var, x_clean, "before", alpha_sw)
+            private$runShapiro(var, x_trans_clean, "after", alpha_sw)
+          }
+          if (self$options$show_qq_plot) self$results$qqPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
+          if (self$options$show_hist_plot) self$results$histPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
         }
-        if (self$options$show_qq_plot) self$results$qqPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
-        if (self$options$show_hist_plot) self$results$histPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
       }
       
       if (length(all_treated_vectors) > 0 && self$results$transformedVarsOutput$isNotFilled()) {
@@ -128,7 +172,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
     
     runShapiro = function(var, data_clean, moment, alpha) {
       n <- length(data_clean)
-      if(n<3) return()
+      if (n < 3) return()
       if (n > 5000) {
         if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
           old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -136,15 +180,26 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
         }
         set.seed(12345)
         data_sw <- sample(data_clean, 5000)
+        self$results$normalityTable$setNote(
+          "sample_size_note",
+          "Note. For sample sizes N > 5000, Shapiro-Wilk statistic is computed on a representative random subsample of N = 5000."
+        )
       } else {
         data_sw <- data_clean
       }
       res <- stats::shapiro.test(data_sw)
-      self$results$normalityTable$setRow(rowKey=paste0(var, "_", moment), values=list(W=res$statistic, p=res$p.value, result=ifelse(res$p.value > alpha, "Normal", "Non-Normal")))
+      self$results$normalityTable$setRow(
+        rowKey = paste0(var, "_", moment),
+        values = list(
+          W = res$statistic,
+          p = res$p.value,
+          result = ifelse(res$p.value > alpha, "Normal", "Non-Normal")
+        )
+      )
     },
     
     .qqPlot = function(image, ggtheme, ...) {
-      if (is.null(image$state)) return(FALSE)
+      if (is.null(image$state) || nrow(image$state) == 0) return(FALSE)
       df <- image$state
       p1 <- ggplot2::ggplot(df, ggplot2::aes(sample=before)) + ggplot2::stat_qq(color="#336699") + ggplot2::stat_qq_line(color="red") + ggtheme
       p2 <- ggplot2::ggplot(df, ggplot2::aes(sample=after)) + ggplot2::stat_qq(color="#339966") + ggplot2::stat_qq_line(color="red") + ggtheme
@@ -152,7 +207,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
     },
     
     .histPlot = function(image, ggtheme, ...) {
-      if (is.null(image$state)) return(FALSE)
+      if (is.null(image$state) || nrow(image$state) == 0) return(FALSE)
       df <- image$state
       p1 <- ggplot2::ggplot(df, ggplot2::aes(x=before)) + ggplot2::geom_histogram(fill="#336699", bins=30) + ggtheme
       p2 <- ggplot2::ggplot(df, ggplot2::aes(x=after)) + ggplot2::geom_histogram(fill="#339966", bins=30) + ggtheme
