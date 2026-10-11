@@ -32,6 +32,9 @@ children:
                 name: independent_r2
                 label: Correlation Coefficient (Group 2)
                 format: number
+              - type: CheckBox
+                name: show_ci_plot
+                label: Show Correlation Confidence Interval Plot
 
       - type: Content
         name: dependent
@@ -56,4 +59,67 @@ children:
                 name: dependent_r23
                 label: Correlation Coefficient (r₂₃ — Var 2 vs Var 3)
                 format: number
+              - type: CheckBox
+                name: show_ci_plot
+                label: Show Correlation Confidence Interval Plot
+
+      - type: Content
+        name: dep_nonoverlapping
+        children:
+          - type: LayoutBox
+            margin: large
+            stretchFactor: 1
+            children:
+              - type: TextBox
+                name: dep_non_n
+                label: Sample Size (N)
+                format: number
+              - type: TextBox
+                name: dep_non_r12
+                label: Correlation r₁₂ (Var 1 vs Var 2)
+                format: number
+              - type: TextBox
+                name: dep_non_r34
+                label: Correlation r₃₄ (Var 3 vs Var 4)
+                format: number
+              - type: TextBox
+                name: dep_non_r13
+                label: Intercorrelation r₁₃ (Var 1 vs Var 3)
+                format: number
+              - type: TextBox
+                name: dep_non_r14
+                label: Intercorrelation r₁₄ (Var 1 vs Var 4)
+                format: number
+              - type: TextBox
+                name: dep_non_r23
+                label: Intercorrelation r₂₃ (Var 2 vs Var 3)
+                format: number
+              - type: TextBox
+                name: dep_non_r24
+                label: Intercorrelation r₂₄ (Var 2 vs Var 4)
+                format: number
+              - type: CheckBox
+                name: show_ci_plot
+                label: Show Correlation Confidence Interval Plot
+
+      - type: Content
+        name: jennrich
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: Variables
+                children:
+                  - type: VariablesListBox
+                    name: vars_jennrich
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: Grouping Variable (2 groups)
+                children:
+                  - type: VariablesListBox
+                    name: group_jennrich
+                    maxItemCount: 1
+                    isTarget: true
 ...

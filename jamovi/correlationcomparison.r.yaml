@@ -12,6 +12,24 @@ items:
       title: Correlation Comparison Results
       type: Table
       rows: 1
+      visible: (mode != 'jennrich')
+      clearWith:
+        - mode
+        - independent_n1
+        - independent_n2
+        - independent_r1
+        - independent_r2
+        - dependent_n
+        - dependent_r12
+        - dependent_r13
+        - dependent_r23
+        - dep_non_n
+        - dep_non_r12
+        - dep_non_r34
+        - dep_non_r13
+        - dep_non_r14
+        - dep_non_r23
+        - dep_non_r24
       columns:
           - name: comparisonType
             title: Type
@@ -37,22 +55,27 @@ items:
           - name: n_dep
             title: N
             type: integer
-            visible: (mode:dependent)
+            visible: (mode:dependent || mode:dep_nonoverlapping)
           - name: r12_dep
-            title: r12
+            title: r₁₂
             type: number
             format: zto
-            visible: (mode:dependent)
+            visible: (mode:dependent || mode:dep_nonoverlapping)
           - name: r13_dep
-            title: r13
+            title: r₁₃
             type: number
             format: zto
             visible: (mode:dependent)
           - name: r23_dep
-            title: r23
+            title: r₂₃
             type: number
             format: zto
             visible: (mode:dependent)
+          - name: r34_dep
+            title: r₃₄
+            type: number
+            format: zto
+            visible: (mode:dep_nonoverlapping)
           - name: statistic
             title: Statistic
             type: number
@@ -61,4 +84,70 @@ items:
             title: p
             type: number
             format: zto,pvalue
-...
+
+    - name: ciPlot
+      title: Correlation Confidence Intervals (95% CI)
+      type: Image
+      width: 550
+      height: 350
+      renderFun: .renderCIPlot
+      visible: (mode != 'jennrich' && show_ci_plot)
+      refs:
+        - ggplot2
+      clearWith:
+        - mode
+        - independent_n1
+        - independent_n2
+        - independent_r1
+        - independent_r2
+        - dependent_n
+        - dependent_r12
+        - dependent_r13
+        - dependent_r23
+        - dep_non_n
+        - dep_non_r12
+        - dep_non_r34
+        - dep_non_r13
+        - dep_non_r14
+        - dep_non_r23
+        - dep_non_r24
+        - show_ci_plot
+
+    - name: jennrichTable
+      title: Jennrich Correlation Matrix Equality Test
+      type: Table
+      rows: 1
+      visible: (mode == 'jennrich')
+      refs:
+        - Jennrich1970
+      clearWith:
+        - mode
+        - vars_jennrich
+        - group_jennrich
+      columns:
+          - name: group1
+            title: Group 1
+            type: text
+          - name: group2
+            title: Group 2
+            type: text
+          - name: n1
+            title: N₁
+            type: integer
+          - name: n2
+            title: N₂
+            type: integer
+          - name: numVars
+            title: Variables (p)
+            type: integer
+          - name: chisq
+            title: "χ² Statistic"
+            type: number
+            format: dp:3
+          - name: df
+            title: df
+            type: integer
+          - name: p_value
+            title: p
+            type: number
+            format: zto,pvalue

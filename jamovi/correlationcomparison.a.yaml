@@ -3,7 +3,7 @@ name: correlationComparison
 title: Compare Correlations
 menuGroup: BSS
 menuSubgroup: Associations & Networks
-menuSubtitle: Independent and Dependent
+menuSubtitle: Independent, Dependent and Matrix Equality
 version: '0.0.1'
 jas: '1.2'
 options:
@@ -15,9 +15,13 @@ options:
       type: List
       options:
         - name: independent
-          title: Independent
+          title: Independent Correlations (2 Groups)
         - name: dependent
-          title: Dependent
+          title: Dependent Overlapping (r₁₂ vs r₁₃)
+        - name: dep_nonoverlapping
+          title: Dependent Non-Overlapping (r₁₂ vs r₃₄)
+        - name: jennrich
+          title: Correlation Matrix Equality (Jennrich Test)
       default: independent
 
     - name: independent_n1
@@ -59,3 +63,63 @@ options:
       title: Correlation Coefficient (r23 - Var2 vs Var3)
       type: Number
       default: 0
+
+    # Dependent Non-Overlapping Correlations (BSS-FEAT-023)
+    - name: dep_non_n
+      title: Sample Size (N)
+      type: Integer
+      default: 50
+
+    - name: dep_non_r12
+      title: Correlation r₁₂ (Var 1 vs Var 2)
+      type: Number
+      default: 0.50
+
+    - name: dep_non_r34
+      title: Correlation r₃₄ (Var 3 vs Var 4)
+      type: Number
+      default: 0.20
+
+    - name: dep_non_r13
+      title: Intercorrelation r₁₃ (Var 1 vs Var 3)
+      type: Number
+      default: 0.30
+
+    - name: dep_non_r14
+      title: Intercorrelation r₁₄ (Var 1 vs Var 4)
+      type: Number
+      default: 0.10
+
+    - name: dep_non_r23
+      title: Intercorrelation r₂₃ (Var 2 vs Var 3)
+      type: Number
+      default: 0.20
+
+    - name: dep_non_r24
+      title: Intercorrelation r₂₄ (Var 2 vs Var 4)
+      type: Number
+      default: 0.30
+
+    # Jennrich Matrix Equality Test (BSS-FEAT-022)
+    - name: vars_jennrich
+      title: Variables
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+
+    - name: group_jennrich
+      title: Grouping Variable (2 groups)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+
+    # Forest / Confidence Interval Plot (BSS-FEAT-024)
+    - name: show_ci_plot
+      title: Show Correlation Confidence Interval Plot
+      type: Bool
+      default: true

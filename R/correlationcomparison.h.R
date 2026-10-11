@@ -14,7 +14,17 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
             dependent_n = 20,
             dependent_r12 = 0,
             dependent_r13 = 0,
-            dependent_r23 = 0, ...) {
+            dependent_r23 = 0,
+            dep_non_n = 50,
+            dep_non_r12 = 0.5,
+            dep_non_r34 = 0.2,
+            dep_non_r13 = 0.3,
+            dep_non_r14 = 0.1,
+            dep_non_r23 = 0.2,
+            dep_non_r24 = 0.3,
+            vars_jennrich = NULL,
+            group_jennrich = NULL,
+            show_ci_plot = TRUE, ...) {
 
             super$initialize(
                 package="BSS",
@@ -27,7 +37,9 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 mode,
                 options=list(
                     "independent",
-                    "dependent"),
+                    "dependent",
+                    "dep_nonoverlapping",
+                    "jennrich"),
                 default="independent")
             private$..independent_n1 <- jmvcore::OptionInteger$new(
                 "independent_n1",
@@ -61,6 +73,53 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 "dependent_r23",
                 dependent_r23,
                 default=0)
+            private$..dep_non_n <- jmvcore::OptionInteger$new(
+                "dep_non_n",
+                dep_non_n,
+                default=50)
+            private$..dep_non_r12 <- jmvcore::OptionNumber$new(
+                "dep_non_r12",
+                dep_non_r12,
+                default=0.5)
+            private$..dep_non_r34 <- jmvcore::OptionNumber$new(
+                "dep_non_r34",
+                dep_non_r34,
+                default=0.2)
+            private$..dep_non_r13 <- jmvcore::OptionNumber$new(
+                "dep_non_r13",
+                dep_non_r13,
+                default=0.3)
+            private$..dep_non_r14 <- jmvcore::OptionNumber$new(
+                "dep_non_r14",
+                dep_non_r14,
+                default=0.1)
+            private$..dep_non_r23 <- jmvcore::OptionNumber$new(
+                "dep_non_r23",
+                dep_non_r23,
+                default=0.2)
+            private$..dep_non_r24 <- jmvcore::OptionNumber$new(
+                "dep_non_r24",
+                dep_non_r24,
+                default=0.3)
+            private$..vars_jennrich <- jmvcore::OptionVariables$new(
+                "vars_jennrich",
+                vars_jennrich,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"))
+            private$..group_jennrich <- jmvcore::OptionVariable$new(
+                "group_jennrich",
+                group_jennrich,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor"))
+            private$..show_ci_plot <- jmvcore::OptionBool$new(
+                "show_ci_plot",
+                show_ci_plot,
+                default=TRUE)
 
             self$.addOption(private$..mode)
             self$.addOption(private$..independent_n1)
@@ -71,6 +130,16 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
             self$.addOption(private$..dependent_r12)
             self$.addOption(private$..dependent_r13)
             self$.addOption(private$..dependent_r23)
+            self$.addOption(private$..dep_non_n)
+            self$.addOption(private$..dep_non_r12)
+            self$.addOption(private$..dep_non_r34)
+            self$.addOption(private$..dep_non_r13)
+            self$.addOption(private$..dep_non_r14)
+            self$.addOption(private$..dep_non_r23)
+            self$.addOption(private$..dep_non_r24)
+            self$.addOption(private$..vars_jennrich)
+            self$.addOption(private$..group_jennrich)
+            self$.addOption(private$..show_ci_plot)
         }),
     active = list(
         mode = function() private$..mode$value,
@@ -81,7 +150,17 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
         dependent_n = function() private$..dependent_n$value,
         dependent_r12 = function() private$..dependent_r12$value,
         dependent_r13 = function() private$..dependent_r13$value,
-        dependent_r23 = function() private$..dependent_r23$value),
+        dependent_r23 = function() private$..dependent_r23$value,
+        dep_non_n = function() private$..dep_non_n$value,
+        dep_non_r12 = function() private$..dep_non_r12$value,
+        dep_non_r34 = function() private$..dep_non_r34$value,
+        dep_non_r13 = function() private$..dep_non_r13$value,
+        dep_non_r14 = function() private$..dep_non_r14$value,
+        dep_non_r23 = function() private$..dep_non_r23$value,
+        dep_non_r24 = function() private$..dep_non_r24$value,
+        vars_jennrich = function() private$..vars_jennrich$value,
+        group_jennrich = function() private$..group_jennrich$value,
+        show_ci_plot = function() private$..show_ci_plot$value),
     private = list(
         ..mode = NA,
         ..independent_n1 = NA,
@@ -91,7 +170,17 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
         ..dependent_n = NA,
         ..dependent_r12 = NA,
         ..dependent_r13 = NA,
-        ..dependent_r23 = NA)
+        ..dependent_r23 = NA,
+        ..dep_non_n = NA,
+        ..dep_non_r12 = NA,
+        ..dep_non_r34 = NA,
+        ..dep_non_r13 = NA,
+        ..dep_non_r14 = NA,
+        ..dep_non_r23 = NA,
+        ..dep_non_r24 = NA,
+        ..vars_jennrich = NA,
+        ..group_jennrich = NA,
+        ..show_ci_plot = NA)
 )
 
 correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -99,7 +188,9 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
     inherit = jmvcore::Group,
     active = list(
         comparisonInfo = function() private$.items[["comparisonInfo"]],
-        comparisonTable = function() private$.items[["comparisonTable"]]),
+        comparisonTable = function() private$.items[["comparisonTable"]],
+        ciPlot = function() private$.items[["ciPlot"]],
+        jennrichTable = function() private$.items[["jennrichTable"]]),
     private = list(),
     public=list(
         initialize=function(options) {
@@ -117,6 +208,24 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 name="comparisonTable",
                 title="Correlation Comparison Results",
                 rows=1,
+                visible="(mode != 'jennrich')",
+                clearWith=list(
+                    "mode",
+                    "independent_n1",
+                    "independent_n2",
+                    "independent_r1",
+                    "independent_r2",
+                    "dependent_n",
+                    "dependent_r12",
+                    "dependent_r13",
+                    "dependent_r23",
+                    "dep_non_n",
+                    "dep_non_r12",
+                    "dep_non_r34",
+                    "dep_non_r13",
+                    "dep_non_r14",
+                    "dep_non_r23",
+                    "dep_non_r24"),
                 columns=list(
                     list(
                         `name`="comparisonType", 
@@ -148,30 +257,111 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                         `name`="n_dep", 
                         `title`="N", 
                         `type`="integer", 
-                        `visible`="(mode:dependent)"),
+                        `visible`="(mode:dependent || mode:dep_nonoverlapping)"),
                     list(
                         `name`="r12_dep", 
-                        `title`="r12", 
+                        `title`="r\u2081\u2082", 
                         `type`="number", 
                         `format`="zto", 
-                        `visible`="(mode:dependent)"),
+                        `visible`="(mode:dependent || mode:dep_nonoverlapping)"),
                     list(
                         `name`="r13_dep", 
-                        `title`="r13", 
+                        `title`="r\u2081\u2083", 
                         `type`="number", 
                         `format`="zto", 
                         `visible`="(mode:dependent)"),
                     list(
                         `name`="r23_dep", 
-                        `title`="r23", 
+                        `title`="r\u2082\u2083", 
                         `type`="number", 
                         `format`="zto", 
                         `visible`="(mode:dependent)"),
+                    list(
+                        `name`="r34_dep", 
+                        `title`="r\u2083\u2084", 
+                        `type`="number", 
+                        `format`="zto", 
+                        `visible`="(mode:dep_nonoverlapping)"),
                     list(
                         `name`="statistic", 
                         `title`="Statistic", 
                         `type`="number", 
                         `format`="zto"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="ciPlot",
+                title="Correlation Confidence Intervals (95% CI)",
+                width=550,
+                height=350,
+                renderFun=".renderCIPlot",
+                visible="(mode != 'jennrich' && show_ci_plot)",
+                refs=list(
+                    "ggplot2"),
+                clearWith=list(
+                    "mode",
+                    "independent_n1",
+                    "independent_n2",
+                    "independent_r1",
+                    "independent_r2",
+                    "dependent_n",
+                    "dependent_r12",
+                    "dependent_r13",
+                    "dependent_r23",
+                    "dep_non_n",
+                    "dep_non_r12",
+                    "dep_non_r34",
+                    "dep_non_r13",
+                    "dep_non_r14",
+                    "dep_non_r23",
+                    "dep_non_r24",
+                    "show_ci_plot")))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="jennrichTable",
+                title="Jennrich Correlation Matrix Equality Test",
+                rows=1,
+                visible="(mode == 'jennrich')",
+                refs=list(
+                    "Jennrich1970"),
+                clearWith=list(
+                    "mode",
+                    "vars_jennrich",
+                    "group_jennrich"),
+                columns=list(
+                    list(
+                        `name`="group1", 
+                        `title`="Group 1", 
+                        `type`="text"),
+                    list(
+                        `name`="group2", 
+                        `title`="Group 2", 
+                        `type`="text"),
+                    list(
+                        `name`="n1", 
+                        `title`="N\u2081", 
+                        `type`="integer"),
+                    list(
+                        `name`="n2", 
+                        `title`="N\u2082", 
+                        `type`="integer"),
+                    list(
+                        `name`="numVars", 
+                        `title`="Variables (p)", 
+                        `type`="integer"),
+                    list(
+                        `name`="chisq", 
+                        `title`="\u03C7\u00B2 Statistic", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="df", 
+                        `title`="df", 
+                        `type`="integer"),
                     list(
                         `name`="p_value", 
                         `title`="p", 
@@ -212,10 +402,22 @@ correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::
 #' @param dependent_r12 .
 #' @param dependent_r13 .
 #' @param dependent_r23 .
+#' @param dep_non_n .
+#' @param dep_non_r12 .
+#' @param dep_non_r34 .
+#' @param dep_non_r13 .
+#' @param dep_non_r14 .
+#' @param dep_non_r23 .
+#' @param dep_non_r24 .
+#' @param vars_jennrich .
+#' @param group_jennrich .
+#' @param show_ci_plot .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$comparisonInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$comparisonTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$ciPlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$jennrichTable} \tab \tab \tab \tab \tab a table \cr
 #' }
 #'
 #' Tables can be converted to data frames with \code{asDF} or \code{\link{as.data.frame}}. For example:
@@ -235,15 +437,30 @@ correlationComparison <- function(
     dependent_n = 20,
     dependent_r12 = 0,
     dependent_r13 = 0,
-    dependent_r23 = 0) {
+    dependent_r23 = 0,
+    dep_non_n = 50,
+    dep_non_r12 = 0.5,
+    dep_non_r34 = 0.2,
+    dep_non_r13 = 0.3,
+    dep_non_r14 = 0.1,
+    dep_non_r23 = 0.2,
+    dep_non_r24 = 0.3,
+    vars_jennrich,
+    group_jennrich,
+    show_ci_plot = TRUE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("correlationComparison requires jmvcore to be installed (restart may be required)")
 
+    if ( ! missing(vars_jennrich)) vars_jennrich <- jmvcore::resolveQuo(jmvcore::enquo(vars_jennrich))
+    if ( ! missing(group_jennrich)) group_jennrich <- jmvcore::resolveQuo(jmvcore::enquo(group_jennrich))
     if (missing(data))
         data <- jmvcore::marshalData(
-            parent.frame())
+            parent.frame(),
+            `if`( ! missing(vars_jennrich), vars_jennrich, NULL),
+            `if`( ! missing(group_jennrich), group_jennrich, NULL))
 
+    for (v in group_jennrich) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
 
     options <- correlationComparisonOptions$new(
         mode = mode,
@@ -254,7 +471,17 @@ correlationComparison <- function(
         dependent_n = dependent_n,
         dependent_r12 = dependent_r12,
         dependent_r13 = dependent_r13,
-        dependent_r23 = dependent_r23)
+        dependent_r23 = dependent_r23,
+        dep_non_n = dep_non_n,
+        dep_non_r12 = dep_non_r12,
+        dep_non_r34 = dep_non_r34,
+        dep_non_r13 = dep_non_r13,
+        dep_non_r14 = dep_non_r14,
+        dep_non_r23 = dep_non_r23,
+        dep_non_r24 = dep_non_r24,
+        vars_jennrich = vars_jennrich,
+        group_jennrich = group_jennrich,
+        show_ci_plot = show_ci_plot)
 
     analysis <- correlationComparisonClass$new(
         options = options,

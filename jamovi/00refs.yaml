@@ -636,3 +636,14 @@ Hubert2008:
   issue: 12
   pages: "5186-5201"
   doi: "10.1016/j.csda.2007.11.008"
+
+Jennrich1970:
+  type: article
+  author: "Jennrich, R. I."
+  year: 1970
+  title: "An Asymptotic Chi-Square Test for the Equality of Two Correlation Matrices"
+  journal: "Journal of the American Statistical Association"
+  volume: 65
+  issue: 330
+  pages: "904-912"
+  doi: "10.1080/01621459.1970.10481133"

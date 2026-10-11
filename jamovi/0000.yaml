@@ -64,7 +64,7 @@ analyses:
     menuGroup: BSS
     menuTitle: Compare Correlations
     menuSubgroup: Associations & Networks
-    menuSubtitle: Independent and Dependent
+    menuSubtitle: Independent, Dependent and Matrix Equality
     category: analyses
   - title: Effect Size Calculation
     name: effectSize
