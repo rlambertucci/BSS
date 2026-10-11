@@ -12,7 +12,7 @@ items:
       title: Correlation Comparison Results
       type: Table
       rows: 1
-      visible: (mode != 'jennrich')
+      visible: (mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison')
       clearWith:
         - mode
         - independent_n1
@@ -85,13 +85,123 @@ items:
             type: number
             format: zto,pvalue
 
+    - name: multiGroupTable
+      title: Multi-Group Correlation Estimates (k ≥ 2)
+      type: Table
+      visible: (mode == 'multigroup')
+      refs:
+        - Cochran1954
+      clearWith:
+        - mode
+        - multi_var_x
+        - multi_var_y
+        - multi_group
+      columns:
+          - name: group
+            title: Group
+            type: text
+          - name: n
+            title: N
+            type: integer
+          - name: r
+            title: r
+            type: number
+            format: zto
+          - name: z
+            title: Fisher's z
+            type: number
+            format: dp:3
+          - name: ci_lower
+            title: 95% CI Lower
+            type: number
+            format: zto
+          - name: ci_upper
+            title: 95% CI Upper
+            type: number
+            format: zto
+
+    - name: multiGroupOverallTable
+      title: Multi-Group Homogeneity Test (Fisher's Q / χ²)
+      type: Table
+      rows: 1
+      visible: (mode == 'multigroup')
+      refs:
+        - Cochran1954
+      clearWith:
+        - mode
+        - multi_var_x
+        - multi_var_y
+        - multi_group
+      columns:
+          - name: k_groups
+            title: Groups (k)
+            type: integer
+          - name: pooled_r
+            title: Weighted Mean r
+            type: number
+            format: zto
+          - name: q_stat
+            title: Cochran's Q (χ²)
+            type: number
+            format: dp:3
+          - name: df
+            title: df
+            type: integer
+          - name: p_value
+            title: p
+            type: number
+            format: zto,pvalue
+
+    - name: partialTable
+      title: Partial Correlation Comparison (r_XY.Z between Groups)
+      type: Table
+      rows: 1
+      visible: (mode == 'partial_comparison')
+      refs:
+        - Steiger1980
+      clearWith:
+        - mode
+        - partial_var_x
+        - partial_var_y
+        - partial_covs
+        - partial_group
+      columns:
+          - name: group1
+            title: Group 1
+            type: text
+          - name: group2
+            title: Group 2
+            type: text
+          - name: n1
+            title: N₁
+            type: integer
+          - name: n2
+            title: N₂
+            type: integer
+          - name: r_partial_g1
+            title: r_XY.Z (G1)
+            type: number
+            format: zto
+          - name: r_partial_g2
+            title: r_XY.Z (G2)
+            type: number
+            format: zto
+          - name: z_stat
+            title: z
+            type: number
+            format: dp:3
+          - name: p_value
+            title: p
+            type: number
+            format: zto,pvalue
+
     - name: ciPlot
       title: Correlation Confidence Intervals (95% CI)
       type: Image
       width: 550
       height: 350
       renderFun: .renderCIPlot
-      visible: (mode != 'jennrich' && show_ci_plot)
+      visible: (mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison' && show_ci_plot)
       refs:
         - ggplot2
       clearWith:
@@ -112,6 +222,26 @@ items:
         - dep_non_r23
         - dep_non_r24
         - show_ci_plot
+
+    - name: ellipsePlot
+      title: Bivariate Scatterplot with Overlapping Confidence Ellipses
+      type: Image
+      width: 600
+      height: 450
+      renderFun: .renderEllipsePlot
+      visible: ((mode == 'multigroup' && show_ellipse_plot) || (mode == 'partial_comparison'))
+      refs:
+        - ggplot2
+      clearWith:
+        - mode
+        - multi_var_x
+        - multi_var_y
+        - multi_group
+        - partial_var_x
+        - partial_var_y
+        - partial_covs
+        - partial_group
+        - show_ellipse_plot
 
     - name: jennrichTable
       title: Jennrich Correlation Matrix Equality Test

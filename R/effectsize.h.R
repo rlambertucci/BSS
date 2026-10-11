@@ -34,7 +34,16 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             benchmark_standard = "cohen",
             show_es_plot = FALSE,
             plot_width = 650,
-            plot_height = 450, ...) {
+            plot_height = 450,
+            show_categorical_es = FALSE,
+            cat_var1 = NULL,
+            cat_var2 = NULL,
+            calc_from_test_stat = FALSE,
+            stat_type = "stat_t",
+            stat_val = 2.5,
+            stat_df1 = 30,
+            stat_df2 = 60,
+            stat_n = 60, ...) {
 
             super$initialize(
                 package="BSS",
@@ -55,7 +64,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 suggested=list(
                     "continuous"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..indep_vars_cs <- jmvcore::OptionVariables$new(
                 "indep_vars_cs",
                 indep_vars_cs,
@@ -64,21 +74,24 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "numeric",
-                    "factor"))
+                    "factor"),
+                default=NULL)
             private$..cov <- jmvcore::OptionVariable$new(
                 "cov",
                 cov,
                 suggested=list(
                     "continuous"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..dep_vars_long <- jmvcore::OptionVariables$new(
                 "dep_vars_long",
                 dep_vars_long,
                 suggested=list(
                     "continuous"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..indep_vars_long <- jmvcore::OptionVariables$new(
                 "indep_vars_long",
                 indep_vars_long,
@@ -87,14 +100,16 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "numeric",
-                    "factor"))
+                    "factor"),
+                default=NULL)
             private$..cov_long <- jmvcore::OptionVariable$new(
                 "cov_long",
                 cov_long,
                 suggested=list(
                     "continuous"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..subject_id_var <- jmvcore::OptionVariable$new(
                 "subject_id_var",
                 subject_id_var,
@@ -104,7 +119,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 permitted=list(
                     "numeric",
                     "factor",
-                    "id"))
+                    "id"),
+                default=NULL)
             private$..time_var <- jmvcore::OptionVariable$new(
                 "time_var",
                 time_var,
@@ -113,7 +129,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "numeric",
-                    "factor"))
+                    "factor"),
+                default=NULL)
             private$..wave_vars <- jmvcore::OptionVariables$new(
                 "wave_vars",
                 wave_vars,
@@ -122,7 +139,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "numeric",
-                    "factor"))
+                    "factor"),
+                default=NULL)
             private$..long_format <- jmvcore::OptionList$new(
                 "long_format",
                 long_format,
@@ -145,7 +163,9 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "cohens_d",
                     "hedges_g",
                     "glass_delta",
-                    "rank_biserial"),
+                    "rank_biserial",
+                    "algina_keselman_d",
+                    "akritas_arnold_delta"),
                 default="cohens_d")
             private$..show_cles <- jmvcore::OptionBool$new(
                 "show_cles",
@@ -228,6 +248,59 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "plot_height",
                 plot_height,
                 default=450)
+            private$..show_categorical_es <- jmvcore::OptionBool$new(
+                "show_categorical_es",
+                show_categorical_es,
+                default=FALSE)
+            private$..cat_var1 <- jmvcore::OptionVariable$new(
+                "cat_var1",
+                cat_var1,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor",
+                    "numeric"),
+                default=NULL)
+            private$..cat_var2 <- jmvcore::OptionVariable$new(
+                "cat_var2",
+                cat_var2,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor",
+                    "numeric"),
+                default=NULL)
+            private$..calc_from_test_stat <- jmvcore::OptionBool$new(
+                "calc_from_test_stat",
+                calc_from_test_stat,
+                default=FALSE)
+            private$..stat_type <- jmvcore::OptionList$new(
+                "stat_type",
+                stat_type,
+                options=list(
+                    "stat_t",
+                    "stat_f",
+                    "stat_z",
+                    "stat_chisq"),
+                default="stat_t")
+            private$..stat_val <- jmvcore::OptionNumber$new(
+                "stat_val",
+                stat_val,
+                default=2.5)
+            private$..stat_df1 <- jmvcore::OptionNumber$new(
+                "stat_df1",
+                stat_df1,
+                default=30)
+            private$..stat_df2 <- jmvcore::OptionNumber$new(
+                "stat_df2",
+                stat_df2,
+                default=60)
+            private$..stat_n <- jmvcore::OptionInteger$new(
+                "stat_n",
+                stat_n,
+                default=60)
 
             self$.addOption(private$..mode)
             self$.addOption(private$..dep_vars_cs)
@@ -258,6 +331,15 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..show_es_plot)
             self$.addOption(private$..plot_width)
             self$.addOption(private$..plot_height)
+            self$.addOption(private$..show_categorical_es)
+            self$.addOption(private$..cat_var1)
+            self$.addOption(private$..cat_var2)
+            self$.addOption(private$..calc_from_test_stat)
+            self$.addOption(private$..stat_type)
+            self$.addOption(private$..stat_val)
+            self$.addOption(private$..stat_df1)
+            self$.addOption(private$..stat_df2)
+            self$.addOption(private$..stat_n)
         }),
     active = list(
         mode = function() private$..mode$value,
@@ -288,7 +370,16 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         benchmark_standard = function() private$..benchmark_standard$value,
         show_es_plot = function() private$..show_es_plot$value,
         plot_width = function() private$..plot_width$value,
-        plot_height = function() private$..plot_height$value),
+        plot_height = function() private$..plot_height$value,
+        show_categorical_es = function() private$..show_categorical_es$value,
+        cat_var1 = function() private$..cat_var1$value,
+        cat_var2 = function() private$..cat_var2$value,
+        calc_from_test_stat = function() private$..calc_from_test_stat$value,
+        stat_type = function() private$..stat_type$value,
+        stat_val = function() private$..stat_val$value,
+        stat_df1 = function() private$..stat_df1$value,
+        stat_df2 = function() private$..stat_df2$value,
+        stat_n = function() private$..stat_n$value),
     private = list(
         ..mode = NA,
         ..dep_vars_cs = NA,
@@ -318,7 +409,16 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..benchmark_standard = NA,
         ..show_es_plot = NA,
         ..plot_width = NA,
-        ..plot_height = NA)
+        ..plot_height = NA,
+        ..show_categorical_es = NA,
+        ..cat_var1 = NA,
+        ..cat_var2 = NA,
+        ..calc_from_test_stat = NA,
+        ..stat_type = NA,
+        ..stat_val = NA,
+        ..stat_df1 = NA,
+        ..stat_df2 = NA,
+        ..stat_n = NA)
 )
 
 effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -332,6 +432,8 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         clesTable = function() private$.items[["clesTable"]],
         clesLongTable = function() private$.items[["clesLongTable"]],
         conversionTable = function() private$.items[["conversionTable"]],
+        categoricalTable = function() private$.items[["categoricalTable"]],
+        directCalcTable = function() private$.items[["directCalcTable"]],
         esPlot = function() private$.items[["esPlot"]],
         text = function() private$.items[["text"]]),
     private = list(),
@@ -359,7 +461,9 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 refs=list(
                     "effectsize",
                     "emmeans",
-                    "Cohen1988"),
+                    "Cohen1988",
+                    "AlginaKeselmanPenfield2005",
+                    "AkritasArnold1994"),
                 clearWith=list(
                     "mode",
                     "dep_vars_cs",
@@ -433,7 +537,9 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 refs=list(
                     "effectsize",
                     "emmeans",
-                    "Cohen1988"),
+                    "Cohen1988",
+                    "AlginaKeselmanPenfield2005",
+                    "AkritasArnold1994"),
                 clearWith=list(
                     "mode",
                     "dep_vars_long",
@@ -636,6 +742,90 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `name`="interpretation", 
                         `title`="Interpretation", 
                         `type`="text"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="categoricalTable",
+                title="Categorical Effect Sizes (Association & Risk)",
+                visible="(show_categorical_es)",
+                refs=list(
+                    "Cramer1946",
+                    "Cohen1988"),
+                clearWith=list(
+                    "cat_var1",
+                    "cat_var2",
+                    "ci_method",
+                    "ci_level",
+                    "n_bootstrap",
+                    "show_categorical_es"),
+                columns=list(
+                    list(
+                        `name`="pair", 
+                        `title`="Variable Pair", 
+                        `type`="text"),
+                    list(
+                        `name`="metric", 
+                        `title`="Metric", 
+                        `type`="text"),
+                    list(
+                        `name`="value", 
+                        `title`="Estimate", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_lower", 
+                        `title`="CI Lower", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_upper", 
+                        `title`="CI Upper", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="interpretation", 
+                        `title`="Interpretation", 
+                        `type`="text"),
+                    list(
+                        `name`="n_obs", 
+                        `title`="N", 
+                        `type`="integer"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="directCalcTable",
+                title="Direct Test Statistic Conversions",
+                visible="(calc_from_test_stat)",
+                refs=list(
+                    "Cohen1988",
+                    "Borenstein2009"),
+                clearWith=list(
+                    "stat_type",
+                    "stat_val",
+                    "stat_df1",
+                    "stat_df2",
+                    "stat_n",
+                    "calc_from_test_stat"),
+                columns=list(
+                    list(
+                        `name`="input_stat", 
+                        `title`="Input Statistic", 
+                        `type`="text"),
+                    list(
+                        `name`="metric", 
+                        `title`="Effect Size Metric", 
+                        `type`="text"),
+                    list(
+                        `name`="value", 
+                        `title`="Value", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="interpretation", 
+                        `title`="Benchmark Interpretation", 
+                        `type`="text"),
+                    list(
+                        `name`="formula_ref", 
+                        `title`="Primary Formula", 
+                        `type`="text"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="esPlot",
@@ -689,7 +879,11 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "wave_vars",
                     "subject_id_var",
                     "es_method_long",
-                    "reference_group_long")))}))
+                    "reference_group_long",
+                    "show_categorical_es",
+                    "cat_var1",
+                    "cat_var2",
+                    "calc_from_test_stat")))}))
 
 effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "effectSizeBase",
@@ -745,6 +939,15 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param show_es_plot .
 #' @param plot_width .
 #' @param plot_height .
+#' @param show_categorical_es .
+#' @param cat_var1 .
+#' @param cat_var2 .
+#' @param calc_from_test_stat .
+#' @param stat_type .
+#' @param stat_val .
+#' @param stat_df1 .
+#' @param stat_df2 .
+#' @param stat_n .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$analysisInfo} \tab \tab \tab \tab \tab a html \cr
@@ -754,6 +957,8 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$clesTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clesLongTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$conversionTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$categoricalTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$directCalcTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$esPlot} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$text} \tab \tab \tab \tab \tab a preformatted \cr
 #' }
@@ -768,15 +973,15 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 effectSize <- function(
     data,
     mode = "cross_sectional",
-    dep_vars_cs,
-    indep_vars_cs,
-    cov,
-    dep_vars_long,
-    indep_vars_long,
-    cov_long,
-    subject_id_var,
-    time_var,
-    wave_vars,
+    dep_vars_cs = NULL,
+    indep_vars_cs = NULL,
+    cov = NULL,
+    dep_vars_long = NULL,
+    indep_vars_long = NULL,
+    cov_long = NULL,
+    subject_id_var = NULL,
+    time_var = NULL,
+    wave_vars = NULL,
     long_format = "wide",
     include_interactions = FALSE,
     run_analysis = FALSE,
@@ -795,7 +1000,16 @@ effectSize <- function(
     benchmark_standard = "cohen",
     show_es_plot = FALSE,
     plot_width = 650,
-    plot_height = 450) {
+    plot_height = 450,
+    show_categorical_es = FALSE,
+    cat_var1 = NULL,
+    cat_var2 = NULL,
+    calc_from_test_stat = FALSE,
+    stat_type = "stat_t",
+    stat_val = 2.5,
+    stat_df1 = 30,
+    stat_df2 = 60,
+    stat_n = 60) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("effectSize requires jmvcore to be installed (restart may be required)")
@@ -809,6 +1023,8 @@ effectSize <- function(
     if ( ! missing(subject_id_var)) subject_id_var <- jmvcore::resolveQuo(jmvcore::enquo(subject_id_var))
     if ( ! missing(time_var)) time_var <- jmvcore::resolveQuo(jmvcore::enquo(time_var))
     if ( ! missing(wave_vars)) wave_vars <- jmvcore::resolveQuo(jmvcore::enquo(wave_vars))
+    if ( ! missing(cat_var1)) cat_var1 <- jmvcore::resolveQuo(jmvcore::enquo(cat_var1))
+    if ( ! missing(cat_var2)) cat_var2 <- jmvcore::resolveQuo(jmvcore::enquo(cat_var2))
     if (missing(data))
         data <- jmvcore::marshalData(
             parent.frame(),
@@ -820,7 +1036,9 @@ effectSize <- function(
             `if`( ! missing(cov_long), cov_long, NULL),
             `if`( ! missing(subject_id_var), subject_id_var, NULL),
             `if`( ! missing(time_var), time_var, NULL),
-            `if`( ! missing(wave_vars), wave_vars, NULL))
+            `if`( ! missing(wave_vars), wave_vars, NULL),
+            `if`( ! missing(cat_var1), cat_var1, NULL),
+            `if`( ! missing(cat_var2), cat_var2, NULL))
 
 
     options <- effectSizeOptions$new(
@@ -852,7 +1070,16 @@ effectSize <- function(
         benchmark_standard = benchmark_standard,
         show_es_plot = show_es_plot,
         plot_width = plot_width,
-        plot_height = plot_height)
+        plot_height = plot_height,
+        show_categorical_es = show_categorical_es,
+        cat_var1 = cat_var1,
+        cat_var2 = cat_var2,
+        calc_from_test_stat = calc_from_test_stat,
+        stat_type = stat_type,
+        stat_val = stat_val,
+        stat_df1 = stat_df1,
+        stat_df2 = stat_df2,
+        stat_n = stat_n)
 
     analysis <- effectSizeClass$new(
         options = options,

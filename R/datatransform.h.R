@@ -16,7 +16,9 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
             alpha_sw = 0.05,
             show_qq_plot = TRUE,
             show_hist_plot = TRUE,
-            show_density_plot = TRUE, ...) {
+            show_density_plot = TRUE,
+            int_formula = "blom",
+            show_recommendation_table = FALSE, ...) {
 
             super$initialize(
                 package="BSS",
@@ -40,7 +42,8 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     "yeojohnson",
                     "johnson",
                     "arcsine",
-                    "logit"),
+                    "logit",
+                    "int"),
                 default="yeojohnson")
             private$..auto_shift <- jmvcore::OptionBool$new(
                 "auto_shift",
@@ -86,6 +89,19 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 default=TRUE)
             private$..transformedVarsOutput <- jmvcore::OptionOutput$new(
                 "transformedVarsOutput")
+            private$..int_formula <- jmvcore::OptionList$new(
+                "int_formula",
+                int_formula,
+                options=list(
+                    "blom",
+                    "vdw",
+                    "tukey",
+                    "rankit"),
+                default="blom")
+            private$..show_recommendation_table <- jmvcore::OptionBool$new(
+                "show_recommendation_table",
+                show_recommendation_table,
+                default=FALSE)
 
             self$.addOption(private$..vars)
             self$.addOption(private$..method)
@@ -99,6 +115,8 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
             self$.addOption(private$..show_hist_plot)
             self$.addOption(private$..show_density_plot)
             self$.addOption(private$..transformedVarsOutput)
+            self$.addOption(private$..int_formula)
+            self$.addOption(private$..show_recommendation_table)
         }),
     active = list(
         vars = function() private$..vars$value,
@@ -112,7 +130,9 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         show_qq_plot = function() private$..show_qq_plot$value,
         show_hist_plot = function() private$..show_hist_plot$value,
         show_density_plot = function() private$..show_density_plot$value,
-        transformedVarsOutput = function() private$..transformedVarsOutput$value),
+        transformedVarsOutput = function() private$..transformedVarsOutput$value,
+        int_formula = function() private$..int_formula$value,
+        show_recommendation_table = function() private$..show_recommendation_table$value),
     private = list(
         ..vars = NA,
         ..method = NA,
@@ -125,7 +145,9 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         ..show_qq_plot = NA,
         ..show_hist_plot = NA,
         ..show_density_plot = NA,
-        ..transformedVarsOutput = NA)
+        ..transformedVarsOutput = NA,
+        ..int_formula = NA,
+        ..show_recommendation_table = NA)
 )
 
 dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -135,6 +157,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         transformInfo = function() private$.items[["transformInfo"]],
         lambdaTable = function() private$.items[["lambdaTable"]],
         normalityTable = function() private$.items[["normalityTable"]],
+        recommendationTable = function() private$.items[["recommendationTable"]],
         qqPlots = function() private$.items[["qqPlots"]],
         histPlots = function() private$.items[["histPlots"]],
         densityPlots = function() private$.items[["densityPlots"]],
@@ -159,11 +182,14 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 refs=list(
                     "bestNormalize",
                     "SuppDists",
-                    "Bartlett1937"),
+                    "Bartlett1937",
+                    "Blom1958",
+                    "VanDerWaerden1952"),
                 clearWith=list(
                     "vars",
                     "method",
-                    "auto_shift"),
+                    "auto_shift",
+                    "int_formula"),
                 columns=list(
                     list(
                         `name`="variable", 
@@ -205,6 +231,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     "vars",
                     "method",
                     "auto_shift",
+                    "int_formula",
                     "normality_test",
                     "alpha_sw"),
                 columns=list(
@@ -231,6 +258,58 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                         `name`="result", 
                         `title`="Normality", 
                         `type`="text"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="recommendationTable",
+                title="Transformation Recommender & Ranking",
+                visible="(show_recommendation_table)",
+                refs=list(
+                    "Blom1958",
+                    "VanDerWaerden1952",
+                    "bestNormalize"),
+                clearWith=list(
+                    "vars",
+                    "auto_shift",
+                    "int_formula",
+                    "normality_test"),
+                columns=list(
+                    list(
+                        `name`="variable", 
+                        `title`="Variable", 
+                        `type`="text", 
+                        `combineBelow`=TRUE),
+                    list(
+                        `name`="rank", 
+                        `title`="Rank", 
+                        `type`="integer"),
+                    list(
+                        `name`="method", 
+                        `title`="Method", 
+                        `type`="text"),
+                    list(
+                        `name`="skewness", 
+                        `title`="Skewness", 
+                        `type`="number", 
+                        `format`="dp:4"),
+                    list(
+                        `name`="kurtosis", 
+                        `title`="Excess Kurtosis", 
+                        `type`="number", 
+                        `format`="dp:4"),
+                    list(
+                        `name`="score", 
+                        `title`="Criterion (|Skew| + 0.5\u00D7|Kurt|)", 
+                        `type`="number", 
+                        `format`="dp:4"),
+                    list(
+                        `name`="normality_p", 
+                        `title`="Normality p (SW)", 
+                        `type`="number", 
+                        `format`="zto,pvalue"),
+                    list(
+                        `name`="recommended", 
+                        `title`="Recommendation", 
+                        `type`="text"))))
             self$add(jmvcore::Array$new(
                 options=options,
                 name="qqPlots",
@@ -243,7 +322,8 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 clearWith=list(
                     "vars",
                     "method",
-                    "auto_shift"),
+                    "auto_shift",
+                    "int_formula"),
                 template=jmvcore::Image$new(
                     options=options,
                     title="$key",
@@ -263,7 +343,8 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 clearWith=list(
                     "vars",
                     "method",
-                    "auto_shift"),
+                    "auto_shift",
+                    "int_formula"),
                 template=jmvcore::Image$new(
                     options=options,
                     title="$key",
@@ -283,7 +364,8 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 clearWith=list(
                     "vars",
                     "method",
-                    "auto_shift"),
+                    "auto_shift",
+                    "int_formula"),
                 template=jmvcore::Image$new(
                     options=options,
                     title="$key",
@@ -301,6 +383,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     "vars",
                     "method",
                     "auto_shift",
+                    "int_formula",
                     "suffix")))}))
 
 dataTransformBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -339,11 +422,14 @@ dataTransformBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param show_qq_plot .
 #' @param show_hist_plot .
 #' @param show_density_plot .
+#' @param int_formula .
+#' @param show_recommendation_table .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$transformInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$lambdaTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$normalityTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$recommendationTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$qqPlots} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$histPlots} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$densityPlots} \tab \tab \tab \tab \tab an array of images \cr
@@ -369,7 +455,9 @@ dataTransform <- function(
     alpha_sw = 0.05,
     show_qq_plot = TRUE,
     show_hist_plot = TRUE,
-    show_density_plot = TRUE) {
+    show_density_plot = TRUE,
+    int_formula = "blom",
+    show_recommendation_table = FALSE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("dataTransform requires jmvcore to be installed (restart may be required)")
@@ -392,7 +480,9 @@ dataTransform <- function(
         alpha_sw = alpha_sw,
         show_qq_plot = show_qq_plot,
         show_hist_plot = show_hist_plot,
-        show_density_plot = show_density_plot)
+        show_density_plot = show_density_plot,
+        int_formula = int_formula,
+        show_recommendation_table = show_recommendation_table)
 
     analysis <- dataTransformClass$new(
         options = options,

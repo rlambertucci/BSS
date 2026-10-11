@@ -14,11 +14,13 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             fixed_factors_long = NULL,
             subject_id_var = NULL,
             time_var = NULL,
+            within_factors_long = NULL,
             wave_vars = NULL,
             run_posthoc = FALSE,
             posthoc_correction = "holm",
             calc_es = FALSE,
             es_method = "cohens_d",
+            calc_nonparametric_es = FALSE,
             show_plot = FALSE,
             plot_width = 600,
             plot_height = 450,
@@ -44,7 +46,8 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "continuous",
                     "ordinal"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..fixed_factors_cs <- jmvcore::OptionVariables$new(
                 "fixed_factors_cs",
                 fixed_factors_cs,
@@ -53,7 +56,8 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "factor",
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..long_format <- jmvcore::OptionList$new(
                 "long_format",
                 long_format,
@@ -68,7 +72,8 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "continuous",
                     "ordinal"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..fixed_factors_long <- jmvcore::OptionVariables$new(
                 "fixed_factors_long",
                 fixed_factors_long,
@@ -77,7 +82,8 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "factor",
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..subject_id_var <- jmvcore::OptionVariable$new(
                 "subject_id_var",
                 subject_id_var,
@@ -87,7 +93,8 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 permitted=list(
                     "factor",
                     "numeric",
-                    "id"))
+                    "id"),
+                default=NULL)
             private$..time_var <- jmvcore::OptionVariable$new(
                 "time_var",
                 time_var,
@@ -96,7 +103,18 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ordinal"),
                 permitted=list(
                     "factor",
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
+            private$..within_factors_long <- jmvcore::OptionVariables$new(
+                "within_factors_long",
+                within_factors_long,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor",
+                    "numeric"),
+                default=NULL)
             private$..wave_vars <- jmvcore::OptionVariables$new(
                 "wave_vars",
                 wave_vars,
@@ -104,7 +122,8 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "continuous",
                     "ordinal"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..run_posthoc <- jmvcore::OptionBool$new(
                 "run_posthoc",
                 run_posthoc,
@@ -128,8 +147,15 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 es_method,
                 options=list(
                     "cohens_d",
-                    "hedges_g"),
+                    "hedges_g",
+                    "vargha_delaney_a",
+                    "rank_biserial",
+                    "all"),
                 default="cohens_d")
+            private$..calc_nonparametric_es <- jmvcore::OptionBool$new(
+                "calc_nonparametric_es",
+                calc_nonparametric_es,
+                default=FALSE)
             private$..show_plot <- jmvcore::OptionBool$new(
                 "show_plot",
                 show_plot,
@@ -155,11 +181,13 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..fixed_factors_long)
             self$.addOption(private$..subject_id_var)
             self$.addOption(private$..time_var)
+            self$.addOption(private$..within_factors_long)
             self$.addOption(private$..wave_vars)
             self$.addOption(private$..run_posthoc)
             self$.addOption(private$..posthoc_correction)
             self$.addOption(private$..calc_es)
             self$.addOption(private$..es_method)
+            self$.addOption(private$..calc_nonparametric_es)
             self$.addOption(private$..show_plot)
             self$.addOption(private$..plot_width)
             self$.addOption(private$..plot_height)
@@ -174,11 +202,13 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         fixed_factors_long = function() private$..fixed_factors_long$value,
         subject_id_var = function() private$..subject_id_var$value,
         time_var = function() private$..time_var$value,
+        within_factors_long = function() private$..within_factors_long$value,
         wave_vars = function() private$..wave_vars$value,
         run_posthoc = function() private$..run_posthoc$value,
         posthoc_correction = function() private$..posthoc_correction$value,
         calc_es = function() private$..calc_es$value,
         es_method = function() private$..es_method$value,
+        calc_nonparametric_es = function() private$..calc_nonparametric_es$value,
         show_plot = function() private$..show_plot$value,
         plot_width = function() private$..plot_width$value,
         plot_height = function() private$..plot_height$value,
@@ -192,11 +222,13 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..fixed_factors_long = NA,
         ..subject_id_var = NA,
         ..time_var = NA,
+        ..within_factors_long = NA,
         ..wave_vars = NA,
         ..run_posthoc = NA,
         ..posthoc_correction = NA,
         ..calc_es = NA,
         ..es_method = NA,
+        ..calc_nonparametric_es = NA,
         ..show_plot = NA,
         ..plot_width = NA,
         ..plot_height = NA,
@@ -238,6 +270,7 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "fixed_factors_cs",
                     "dep_var_long",
                     "fixed_factors_long",
+                    "within_factors_long",
                     "long_format",
                     "subject_id_var",
                     "time_var",
@@ -286,19 +319,23 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 refs=list(
                     "ARTool",
                     "emmeans",
-                    "Benjamini1995"),
+                    "Benjamini1995",
+                    "VarghaDelaney2000",
+                    "Kerby2014"),
                 clearWith=list(
                     "mode",
                     "dep_var_cs",
                     "fixed_factors_cs",
                     "dep_var_long",
                     "fixed_factors_long",
+                    "within_factors_long",
                     "long_format",
                     "subject_id_var",
                     "time_var",
                     "wave_vars",
                     "run_posthoc",
                     "posthoc_correction",
+                    "calc_nonparametric_es",
                     "run_analysis"),
                 columns=list(
                     list(
@@ -334,7 +371,19 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `name`="p_value", 
                         `title`="p", 
                         `type`="number", 
-                        `format`="pvalue"))))
+                        `format`="pvalue"),
+                    list(
+                        `name`="vd_a", 
+                        `title`="A (Vargha-Delaney)", 
+                        `type`="number", 
+                        `format`="dp:3", 
+                        `visible`="(calc_nonparametric_es)"),
+                    list(
+                        `name`="r_rb", 
+                        `title`="r_rb (Rank-biserial)", 
+                        `type`="number", 
+                        `format`="dp:3", 
+                        `visible`="(calc_nonparametric_es)"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="effectSizeTable",
@@ -342,13 +391,16 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(run_analysis && run_posthoc && calc_es)",
                 refs=list(
                     "ARTool",
-                    "emmeans"),
+                    "emmeans",
+                    "VarghaDelaney2000",
+                    "Kerby2014"),
                 clearWith=list(
                     "mode",
                     "dep_var_cs",
                     "fixed_factors_cs",
                     "dep_var_long",
                     "fixed_factors_long",
+                    "within_factors_long",
                     "long_format",
                     "subject_id_var",
                     "time_var",
@@ -393,6 +445,7 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "fixed_factors_cs",
                     "dep_var_long",
                     "fixed_factors_long",
+                    "within_factors_long",
                     "long_format",
                     "subject_id_var",
                     "time_var",
@@ -411,6 +464,7 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "fixed_factors_cs",
                     "dep_var_long",
                     "fixed_factors_long",
+                    "within_factors_long",
                     "long_format",
                     "subject_id_var",
                     "time_var",
@@ -450,11 +504,13 @@ artBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param fixed_factors_long .
 #' @param subject_id_var .
 #' @param time_var .
+#' @param within_factors_long .
 #' @param wave_vars .
 #' @param run_posthoc .
 #' @param posthoc_correction .
 #' @param calc_es .
 #' @param es_method .
+#' @param calc_nonparametric_es .
 #' @param show_plot .
 #' @param plot_width .
 #' @param plot_height .
@@ -479,18 +535,20 @@ artBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 art <- function(
     data,
     mode = "cross_sectional",
-    dep_var_cs,
-    fixed_factors_cs,
+    dep_var_cs = NULL,
+    fixed_factors_cs = NULL,
     long_format = "wide",
-    dep_var_long,
-    fixed_factors_long,
-    subject_id_var,
-    time_var,
-    wave_vars,
+    dep_var_long = NULL,
+    fixed_factors_long = NULL,
+    subject_id_var = NULL,
+    time_var = NULL,
+    within_factors_long = NULL,
+    wave_vars = NULL,
     run_posthoc = FALSE,
     posthoc_correction = "holm",
     calc_es = FALSE,
     es_method = "cohens_d",
+    calc_nonparametric_es = FALSE,
     show_plot = FALSE,
     plot_width = 600,
     plot_height = 450,
@@ -505,6 +563,7 @@ art <- function(
     if ( ! missing(fixed_factors_long)) fixed_factors_long <- jmvcore::resolveQuo(jmvcore::enquo(fixed_factors_long))
     if ( ! missing(subject_id_var)) subject_id_var <- jmvcore::resolveQuo(jmvcore::enquo(subject_id_var))
     if ( ! missing(time_var)) time_var <- jmvcore::resolveQuo(jmvcore::enquo(time_var))
+    if ( ! missing(within_factors_long)) within_factors_long <- jmvcore::resolveQuo(jmvcore::enquo(within_factors_long))
     if ( ! missing(wave_vars)) wave_vars <- jmvcore::resolveQuo(jmvcore::enquo(wave_vars))
     if (missing(data))
         data <- jmvcore::marshalData(
@@ -515,6 +574,7 @@ art <- function(
             `if`( ! missing(fixed_factors_long), fixed_factors_long, NULL),
             `if`( ! missing(subject_id_var), subject_id_var, NULL),
             `if`( ! missing(time_var), time_var, NULL),
+            `if`( ! missing(within_factors_long), within_factors_long, NULL),
             `if`( ! missing(wave_vars), wave_vars, NULL))
 
 
@@ -527,11 +587,13 @@ art <- function(
         fixed_factors_long = fixed_factors_long,
         subject_id_var = subject_id_var,
         time_var = time_var,
+        within_factors_long = within_factors_long,
         wave_vars = wave_vars,
         run_posthoc = run_posthoc,
         posthoc_correction = posthoc_correction,
         calc_es = calc_es,
         es_method = es_method,
+        calc_nonparametric_es = calc_nonparametric_es,
         show_plot = show_plot,
         plot_width = plot_width,
         plot_height = plot_height,

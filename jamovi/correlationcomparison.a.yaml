@@ -15,11 +15,15 @@ options:
       type: List
       options:
         - name: independent
-          title: Independent Correlations (2 Groups)
+          title: Independent Correlations (2 Groups - Summary)
         - name: dependent
-          title: Dependent Overlapping (r₁₂ vs r₁₃)
+          title: Dependent Overlapping (r₁₂ vs r₁₃ - Summary)
         - name: dep_nonoverlapping
-          title: Dependent Non-Overlapping (r₁₂ vs r₃₄)
+          title: Dependent Non-Overlapping (r₁₂ vs r₃₄ - Summary)
+        - name: multigroup
+          title: Multi-Group Homogeneity Test (k ≥ 2 Groups - Raw Data)
+        - name: partial_comparison
+          title: Partial Correlation Comparison (r_XY.Z between Groups)
         - name: jennrich
           title: Correlation Matrix Equality (Jennrich Test)
       default: independent
@@ -64,7 +68,7 @@ options:
       type: Number
       default: 0
 
-    # Dependent Non-Overlapping Correlations (BSS-FEAT-023)
+    # Dependent Non-Overlapping Correlations
     - name: dep_non_n
       title: Sample Size (N)
       type: Integer
@@ -100,7 +104,79 @@ options:
       type: Number
       default: 0.30
 
-    # Jennrich Matrix Equality Test (BSS-FEAT-022)
+    # Multi-Group Homogeneity Test (k >= 2)
+    - name: multi_var_x
+      title: Variable X
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: multi_var_y
+      title: Variable Y
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: multi_group
+      title: Grouping Variable (k ≥ 2 groups)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    - name: show_ellipse_plot
+      title: Show Scatterplot with Confidence Ellipses
+      type: Bool
+      default: true
+
+    # Partial Correlation Comparison
+    - name: partial_var_x
+      title: Variable X
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: partial_var_y
+      title: Variable Y
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: partial_covs
+      title: Control Variables / Covariates (Z)
+      type: Variables
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: partial_group
+      title: Grouping Variable (2 groups)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+      default: null
+
+    # Jennrich Matrix Equality Test
     - name: vars_jennrich
       title: Variables
       type: Variables
@@ -108,6 +184,7 @@ options:
         - continuous
       permitted:
         - numeric
+      default: null
 
     - name: group_jennrich
       title: Grouping Variable (2 groups)
@@ -117,8 +194,9 @@ options:
         - ordinal
       permitted:
         - factor
+      default: null
 
-    # Forest / Confidence Interval Plot (BSS-FEAT-024)
+    # Forest / Confidence Interval Plot
     - name: show_ci_plot
       title: Show Correlation Confidence Interval Plot
       type: Bool

@@ -760,3 +760,14 @@ Cramer1946:
   title: 'Mathematical Methods of Statistics'
   publisher: 'Princeton University Press'
   address: 'Princeton, NJ'
+
+Cochran1954:
+  type: article
+  author: 'Cochran, W. G.'
+  year: 1954
+  title: 'The combination of estimates from different experiments'
+  journal: 'Biometrics'
+  volume: 10
+  issue: 1
+  pages: '101-129'
+  doi: '10.2307/3001666'

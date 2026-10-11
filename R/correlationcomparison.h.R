@@ -22,6 +22,14 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
             dep_non_r14 = 0.1,
             dep_non_r23 = 0.2,
             dep_non_r24 = 0.3,
+            multi_var_x = NULL,
+            multi_var_y = NULL,
+            multi_group = NULL,
+            show_ellipse_plot = TRUE,
+            partial_var_x = NULL,
+            partial_var_y = NULL,
+            partial_covs = NULL,
+            partial_group = NULL,
             vars_jennrich = NULL,
             group_jennrich = NULL,
             show_ci_plot = TRUE, ...) {
@@ -39,6 +47,8 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "independent",
                     "dependent",
                     "dep_nonoverlapping",
+                    "multigroup",
+                    "partial_comparison",
                     "jennrich"),
                 default="independent")
             private$..independent_n1 <- jmvcore::OptionInteger$new(
@@ -101,13 +111,76 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 "dep_non_r24",
                 dep_non_r24,
                 default=0.3)
+            private$..multi_var_x <- jmvcore::OptionVariable$new(
+                "multi_var_x",
+                multi_var_x,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..multi_var_y <- jmvcore::OptionVariable$new(
+                "multi_var_y",
+                multi_var_y,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..multi_group <- jmvcore::OptionVariable$new(
+                "multi_group",
+                multi_group,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor"),
+                default=NULL)
+            private$..show_ellipse_plot <- jmvcore::OptionBool$new(
+                "show_ellipse_plot",
+                show_ellipse_plot,
+                default=TRUE)
+            private$..partial_var_x <- jmvcore::OptionVariable$new(
+                "partial_var_x",
+                partial_var_x,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..partial_var_y <- jmvcore::OptionVariable$new(
+                "partial_var_y",
+                partial_var_y,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..partial_covs <- jmvcore::OptionVariables$new(
+                "partial_covs",
+                partial_covs,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..partial_group <- jmvcore::OptionVariable$new(
+                "partial_group",
+                partial_group,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor"),
+                default=NULL)
             private$..vars_jennrich <- jmvcore::OptionVariables$new(
                 "vars_jennrich",
                 vars_jennrich,
                 suggested=list(
                     "continuous"),
                 permitted=list(
-                    "numeric"))
+                    "numeric"),
+                default=NULL)
             private$..group_jennrich <- jmvcore::OptionVariable$new(
                 "group_jennrich",
                 group_jennrich,
@@ -115,7 +188,8 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "nominal",
                     "ordinal"),
                 permitted=list(
-                    "factor"))
+                    "factor"),
+                default=NULL)
             private$..show_ci_plot <- jmvcore::OptionBool$new(
                 "show_ci_plot",
                 show_ci_plot,
@@ -137,6 +211,14 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
             self$.addOption(private$..dep_non_r14)
             self$.addOption(private$..dep_non_r23)
             self$.addOption(private$..dep_non_r24)
+            self$.addOption(private$..multi_var_x)
+            self$.addOption(private$..multi_var_y)
+            self$.addOption(private$..multi_group)
+            self$.addOption(private$..show_ellipse_plot)
+            self$.addOption(private$..partial_var_x)
+            self$.addOption(private$..partial_var_y)
+            self$.addOption(private$..partial_covs)
+            self$.addOption(private$..partial_group)
             self$.addOption(private$..vars_jennrich)
             self$.addOption(private$..group_jennrich)
             self$.addOption(private$..show_ci_plot)
@@ -158,6 +240,14 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
         dep_non_r14 = function() private$..dep_non_r14$value,
         dep_non_r23 = function() private$..dep_non_r23$value,
         dep_non_r24 = function() private$..dep_non_r24$value,
+        multi_var_x = function() private$..multi_var_x$value,
+        multi_var_y = function() private$..multi_var_y$value,
+        multi_group = function() private$..multi_group$value,
+        show_ellipse_plot = function() private$..show_ellipse_plot$value,
+        partial_var_x = function() private$..partial_var_x$value,
+        partial_var_y = function() private$..partial_var_y$value,
+        partial_covs = function() private$..partial_covs$value,
+        partial_group = function() private$..partial_group$value,
         vars_jennrich = function() private$..vars_jennrich$value,
         group_jennrich = function() private$..group_jennrich$value,
         show_ci_plot = function() private$..show_ci_plot$value),
@@ -178,6 +268,14 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
         ..dep_non_r14 = NA,
         ..dep_non_r23 = NA,
         ..dep_non_r24 = NA,
+        ..multi_var_x = NA,
+        ..multi_var_y = NA,
+        ..multi_group = NA,
+        ..show_ellipse_plot = NA,
+        ..partial_var_x = NA,
+        ..partial_var_y = NA,
+        ..partial_covs = NA,
+        ..partial_group = NA,
         ..vars_jennrich = NA,
         ..group_jennrich = NA,
         ..show_ci_plot = NA)
@@ -189,7 +287,11 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
     active = list(
         comparisonInfo = function() private$.items[["comparisonInfo"]],
         comparisonTable = function() private$.items[["comparisonTable"]],
+        multiGroupTable = function() private$.items[["multiGroupTable"]],
+        multiGroupOverallTable = function() private$.items[["multiGroupOverallTable"]],
+        partialTable = function() private$.items[["partialTable"]],
         ciPlot = function() private$.items[["ciPlot"]],
+        ellipsePlot = function() private$.items[["ellipsePlot"]],
         jennrichTable = function() private$.items[["jennrichTable"]]),
     private = list(),
     public=list(
@@ -208,7 +310,7 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 name="comparisonTable",
                 title="Correlation Comparison Results",
                 rows=1,
-                visible="(mode != 'jennrich')",
+                visible="(mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison')",
                 clearWith=list(
                     "mode",
                     "independent_n1",
@@ -292,6 +394,135 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                         `title`="p", 
                         `type`="number", 
                         `format`="zto,pvalue"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="multiGroupTable",
+                title="Multi-Group Correlation Estimates (k \u2265 2)",
+                visible="(mode == 'multigroup')",
+                refs=list(
+                    "Cochran1954"),
+                clearWith=list(
+                    "mode",
+                    "multi_var_x",
+                    "multi_var_y",
+                    "multi_group"),
+                columns=list(
+                    list(
+                        `name`="group", 
+                        `title`="Group", 
+                        `type`="text"),
+                    list(
+                        `name`="n", 
+                        `title`="N", 
+                        `type`="integer"),
+                    list(
+                        `name`="r", 
+                        `title`="r", 
+                        `type`="number", 
+                        `format`="zto"),
+                    list(
+                        `name`="z", 
+                        `title`="Fisher's z", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="ci_lower", 
+                        `title`="95% CI Lower", 
+                        `type`="number", 
+                        `format`="zto"),
+                    list(
+                        `name`="ci_upper", 
+                        `title`="95% CI Upper", 
+                        `type`="number", 
+                        `format`="zto"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="multiGroupOverallTable",
+                title="Multi-Group Homogeneity Test (Fisher's Q / \u03C7\u00B2)",
+                rows=1,
+                visible="(mode == 'multigroup')",
+                refs=list(
+                    "Cochran1954"),
+                clearWith=list(
+                    "mode",
+                    "multi_var_x",
+                    "multi_var_y",
+                    "multi_group"),
+                columns=list(
+                    list(
+                        `name`="k_groups", 
+                        `title`="Groups (k)", 
+                        `type`="integer"),
+                    list(
+                        `name`="pooled_r", 
+                        `title`="Weighted Mean r", 
+                        `type`="number", 
+                        `format`="zto"),
+                    list(
+                        `name`="q_stat", 
+                        `title`="Cochran's Q (\u03C7\u00B2)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="df", 
+                        `title`="df", 
+                        `type`="integer"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="partialTable",
+                title="Partial Correlation Comparison (r_XY.Z between Groups)",
+                rows=1,
+                visible="(mode == 'partial_comparison')",
+                refs=list(
+                    "Steiger1980"),
+                clearWith=list(
+                    "mode",
+                    "partial_var_x",
+                    "partial_var_y",
+                    "partial_covs",
+                    "partial_group"),
+                columns=list(
+                    list(
+                        `name`="group1", 
+                        `title`="Group 1", 
+                        `type`="text"),
+                    list(
+                        `name`="group2", 
+                        `title`="Group 2", 
+                        `type`="text"),
+                    list(
+                        `name`="n1", 
+                        `title`="N\u2081", 
+                        `type`="integer"),
+                    list(
+                        `name`="n2", 
+                        `title`="N\u2082", 
+                        `type`="integer"),
+                    list(
+                        `name`="r_partial_g1", 
+                        `title`="r_XY.Z (G1)", 
+                        `type`="number", 
+                        `format`="zto"),
+                    list(
+                        `name`="r_partial_g2", 
+                        `title`="r_XY.Z (G2)", 
+                        `type`="number", 
+                        `format`="zto"),
+                    list(
+                        `name`="z_stat", 
+                        `title`="z", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="p_value", 
+                        `title`="p", 
+                        `type`="number", 
+                        `format`="zto,pvalue"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="ciPlot",
@@ -299,7 +530,7 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 width=550,
                 height=350,
                 renderFun=".renderCIPlot",
-                visible="(mode != 'jennrich' && show_ci_plot)",
+                visible="(mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison' && show_ci_plot)",
                 refs=list(
                     "ggplot2"),
                 clearWith=list(
@@ -320,6 +551,26 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "dep_non_r23",
                     "dep_non_r24",
                     "show_ci_plot")))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="ellipsePlot",
+                title="Bivariate Scatterplot with Overlapping Confidence Ellipses",
+                width=600,
+                height=450,
+                renderFun=".renderEllipsePlot",
+                visible="((mode == 'multigroup' && show_ellipse_plot) || (mode == 'partial_comparison'))",
+                refs=list(
+                    "ggplot2"),
+                clearWith=list(
+                    "mode",
+                    "multi_var_x",
+                    "multi_var_y",
+                    "multi_group",
+                    "partial_var_x",
+                    "partial_var_y",
+                    "partial_covs",
+                    "partial_group",
+                    "show_ellipse_plot")))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="jennrichTable",
@@ -409,6 +660,14 @@ correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::
 #' @param dep_non_r14 .
 #' @param dep_non_r23 .
 #' @param dep_non_r24 .
+#' @param multi_var_x .
+#' @param multi_var_y .
+#' @param multi_group .
+#' @param show_ellipse_plot .
+#' @param partial_var_x .
+#' @param partial_var_y .
+#' @param partial_covs .
+#' @param partial_group .
 #' @param vars_jennrich .
 #' @param group_jennrich .
 #' @param show_ci_plot .
@@ -416,7 +675,11 @@ correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::
 #' \tabular{llllll}{
 #'   \code{results$comparisonInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$comparisonTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$multiGroupTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$multiGroupOverallTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$partialTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$ciPlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$ellipsePlot} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$jennrichTable} \tab \tab \tab \tab \tab a table \cr
 #' }
 #'
@@ -445,21 +708,45 @@ correlationComparison <- function(
     dep_non_r14 = 0.1,
     dep_non_r23 = 0.2,
     dep_non_r24 = 0.3,
-    vars_jennrich,
-    group_jennrich,
+    multi_var_x = NULL,
+    multi_var_y = NULL,
+    multi_group = NULL,
+    show_ellipse_plot = TRUE,
+    partial_var_x = NULL,
+    partial_var_y = NULL,
+    partial_covs = NULL,
+    partial_group = NULL,
+    vars_jennrich = NULL,
+    group_jennrich = NULL,
     show_ci_plot = TRUE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("correlationComparison requires jmvcore to be installed (restart may be required)")
 
+    if ( ! missing(multi_var_x)) multi_var_x <- jmvcore::resolveQuo(jmvcore::enquo(multi_var_x))
+    if ( ! missing(multi_var_y)) multi_var_y <- jmvcore::resolveQuo(jmvcore::enquo(multi_var_y))
+    if ( ! missing(multi_group)) multi_group <- jmvcore::resolveQuo(jmvcore::enquo(multi_group))
+    if ( ! missing(partial_var_x)) partial_var_x <- jmvcore::resolveQuo(jmvcore::enquo(partial_var_x))
+    if ( ! missing(partial_var_y)) partial_var_y <- jmvcore::resolveQuo(jmvcore::enquo(partial_var_y))
+    if ( ! missing(partial_covs)) partial_covs <- jmvcore::resolveQuo(jmvcore::enquo(partial_covs))
+    if ( ! missing(partial_group)) partial_group <- jmvcore::resolveQuo(jmvcore::enquo(partial_group))
     if ( ! missing(vars_jennrich)) vars_jennrich <- jmvcore::resolveQuo(jmvcore::enquo(vars_jennrich))
     if ( ! missing(group_jennrich)) group_jennrich <- jmvcore::resolveQuo(jmvcore::enquo(group_jennrich))
     if (missing(data))
         data <- jmvcore::marshalData(
             parent.frame(),
+            `if`( ! missing(multi_var_x), multi_var_x, NULL),
+            `if`( ! missing(multi_var_y), multi_var_y, NULL),
+            `if`( ! missing(multi_group), multi_group, NULL),
+            `if`( ! missing(partial_var_x), partial_var_x, NULL),
+            `if`( ! missing(partial_var_y), partial_var_y, NULL),
+            `if`( ! missing(partial_covs), partial_covs, NULL),
+            `if`( ! missing(partial_group), partial_group, NULL),
             `if`( ! missing(vars_jennrich), vars_jennrich, NULL),
             `if`( ! missing(group_jennrich), group_jennrich, NULL))
 
+    for (v in multi_group) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
+    for (v in partial_group) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
     for (v in group_jennrich) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
 
     options <- correlationComparisonOptions$new(
@@ -479,6 +766,14 @@ correlationComparison <- function(
         dep_non_r14 = dep_non_r14,
         dep_non_r23 = dep_non_r23,
         dep_non_r24 = dep_non_r24,
+        multi_var_x = multi_var_x,
+        multi_var_y = multi_var_y,
+        multi_group = multi_group,
+        show_ellipse_plot = show_ellipse_plot,
+        partial_var_x = partial_var_x,
+        partial_var_y = partial_var_y,
+        partial_covs = partial_covs,
+        partial_group = partial_group,
         vars_jennrich = vars_jennrich,
         group_jennrich = group_jennrich,
         show_ci_plot = show_ci_plot)

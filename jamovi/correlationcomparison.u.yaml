@@ -103,6 +103,76 @@ children:
                 label: Show Correlation Confidence Interval Plot
 
       - type: Content
+        name: multigroup
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: "Variable X"
+                children:
+                  - type: VariablesListBox
+                    name: multi_var_x
+                    isTarget: true
+                    maxItemCount: 1
+              - type: TargetLayoutBox
+                label: "Variable Y"
+                children:
+                  - type: VariablesListBox
+                    name: multi_var_y
+                    isTarget: true
+                    maxItemCount: 1
+              - type: TargetLayoutBox
+                label: "Grouping Variable (k ≥ 2 Groups)"
+                children:
+                  - type: VariablesListBox
+                    name: multi_group
+                    isTarget: true
+                    maxItemCount: 1
+          - type: LayoutBox
+            margin: large
+            children:
+              - type: CheckBox
+                name: show_ellipse_plot
+                label: "Show Scatterplot with Overlapping Confidence Ellipses"
+
+      - type: Content
+        name: partial_comparison
+        children:
+          - type: VariableSupplier
+            persistentItems: false
+            stretchFactor: 1
+            children:
+              - type: TargetLayoutBox
+                label: "Variable X"
+                children:
+                  - type: VariablesListBox
+                    name: partial_var_x
+                    isTarget: true
+                    maxItemCount: 1
+              - type: TargetLayoutBox
+                label: "Variable Y"
+                children:
+                  - type: VariablesListBox
+                    name: partial_var_y
+                    isTarget: true
+                    maxItemCount: 1
+              - type: TargetLayoutBox
+                label: "Control Variables / Covariates (Z)"
+                children:
+                  - type: VariablesListBox
+                    name: partial_covs
+                    isTarget: true
+              - type: TargetLayoutBox
+                label: "Grouping Variable (2 Groups)"
+                children:
+                  - type: VariablesListBox
+                    name: partial_group
+                    isTarget: true
+                    maxItemCount: 1
+
+      - type: Content
         name: jennrich
         children:
           - type: VariableSupplier
@@ -122,4 +192,3 @@ children:
                     name: group_jennrich
                     maxItemCount: 1
                     isTarget: true
-...
