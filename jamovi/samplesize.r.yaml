@@ -63,3 +63,165 @@ items:
       - name: value
         title: Value
         type: text
+
+  # Power & Sample Size for t-tests (BSS-FEAT-016)
+  - name: text_power_t
+    title: Power Analysis for t-tests
+    type: Preformatted
+    visible: (mode == 'power_t')
+
+  - name: sampleSizeTable_power_t
+    refs:
+      - Cohen1988
+    title: Sample Size & Power Results (t-test)
+    type: Table
+    rows: 1
+    visible: (mode == 'power_t')
+    clearWith:
+      - mode
+      - t_test_type
+      - t_effect_size
+      - t_alpha
+      - t_power
+      - t_alternative
+    columns:
+      - name: test_type
+        title: Test Type
+        type: text
+      - name: effect_size
+        title: Effect Size (d)
+        type: number
+        format: dp:3
+      - name: alpha
+        title: "α"
+        type: number
+        format: dp:3
+      - name: power
+        title: Target Power (1 - β)
+        type: number
+        format: dp:3
+      - name: n_per_group
+        title: Required n per Group
+        type: integer
+      - name: total_n
+        title: Total Sample Size (N)
+        type: integer
+
+  - name: powerCurvePlot
+    title: Power Sensitivity Curve
+    type: Image
+    width: 600
+    height: 420
+    renderFun: .renderPowerCurve
+    visible: (mode == 'power_t' && show_power_curve)
+    refs:
+      - ggplot2
+    clearWith:
+      - mode
+      - t_test_type
+      - t_effect_size
+      - t_alpha
+      - t_power
+      - t_alternative
+      - show_power_curve
+      - curve_n_max
+
+  # Equivalence Testing (TOST) (BSS-FEAT-017)
+  - name: text_tost
+    title: Equivalence Testing (TOST) Sample Size
+    type: Preformatted
+    visible: (mode == 'tost')
+
+  - name: sampleSizeTable_tost
+    refs:
+      - Lakens2013
+      - Schuirmann1987
+    title: Sample Size for Equivalence Testing (TOST)
+    type: Table
+    rows: 1
+    visible: (mode == 'tost')
+    clearWith:
+      - mode
+      - tost_eq_bound
+      - tost_true_diff
+      - tost_alpha
+      - tost_power
+      - tost_type
+    columns:
+      - name: design
+        title: Design
+        type: text
+      - name: eq_bound
+        title: "Equivalence Bound (±Δ)"
+        type: number
+        format: dp:3
+      - name: true_diff
+        title: "True Difference (δ)"
+        type: number
+        format: dp:3
+      - name: alpha
+        title: "α (per one-sided test)"
+        type: number
+        format: dp:3
+      - name: power
+        title: Target Power (1 - β)
+        type: number
+        format: dp:3
+      - name: n_per_group
+        title: Required n per Group
+        type: integer
+      - name: total_n
+        title: Total Sample Size (N)
+        type: integer
+
+  # Proportions & McNemar (BSS-FEAT-018)
+  - name: text_proportions
+    title: Sample Size for Proportions
+    type: Preformatted
+    visible: (mode == 'proportions')
+
+  - name: sampleSizeTable_proportions
+    refs:
+      - Fleiss2003
+      - McNemar1947
+    title: Sample Size & Power for Proportions
+    type: Table
+    rows: 1
+    visible: (mode == 'proportions')
+    clearWith:
+      - mode
+      - prop_test_type
+      - prop_p1
+      - prop_p2
+      - prop_p0
+      - prop_p12
+      - prop_p21
+      - prop_alpha
+      - prop_power
+      - prop_alternative
+    columns:
+      - name: test_type
+        title: Test Type
+        type: text
+      - name: p1
+        title: "p₁ / Proportion"
+        type: number
+        format: dp:3
+      - name: p2
+        title: "p₂ / Reference"
+        type: number
+        format: dp:3
+      - name: alpha
+        title: "α"
+        type: number
+        format: dp:3
+      - name: power
+        title: Target Power (1 - β)
+        type: number
+        format: dp:3
+      - name: n_per_group
+        title: Required n / Pairs
+        type: integer
+      - name: total_n
+        title: Total Sample Size (N)
+        type: integer

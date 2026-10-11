@@ -15,7 +15,28 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             design_animals = "Design 1 (One-way ANOVA)",
             nGroups_animals = 2,
             nMeasures_animals = 2,
-            sacrifice_animals = FALSE, ...) {
+            sacrifice_animals = FALSE,
+            t_test_type = "two_sample",
+            t_effect_size = 0.5,
+            t_alpha = 0.05,
+            t_power = 0.8,
+            t_alternative = "two_sided",
+            show_power_curve = TRUE,
+            curve_n_max = 150,
+            tost_eq_bound = 0.5,
+            tost_true_diff = 0,
+            tost_alpha = 0.05,
+            tost_power = 0.8,
+            tost_type = "two_sample",
+            prop_test_type = "two_prop",
+            prop_p1 = 0.6,
+            prop_p2 = 0.4,
+            prop_p0 = 0.5,
+            prop_p12 = 0.25,
+            prop_p21 = 0.1,
+            prop_alpha = 0.05,
+            prop_power = 0.8,
+            prop_alternative = "two_sided", ...) {
 
             super$initialize(
                 package="BSS",
@@ -28,7 +49,10 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 mode,
                 options=list(
                     "finite",
-                    "animals"),
+                    "animals",
+                    "power_t",
+                    "tost",
+                    "proportions"),
                 default="finite")
             private$..method_finite <- jmvcore::OptionList$new(
                 "method_finite",
@@ -73,6 +97,107 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "sacrifice_animals",
                 sacrifice_animals,
                 default=FALSE)
+            private$..t_test_type <- jmvcore::OptionList$new(
+                "t_test_type",
+                t_test_type,
+                options=list(
+                    "two_sample",
+                    "one_sample",
+                    "paired"),
+                default="two_sample")
+            private$..t_effect_size <- jmvcore::OptionNumber$new(
+                "t_effect_size",
+                t_effect_size,
+                default=0.5)
+            private$..t_alpha <- jmvcore::OptionNumber$new(
+                "t_alpha",
+                t_alpha,
+                default=0.05)
+            private$..t_power <- jmvcore::OptionNumber$new(
+                "t_power",
+                t_power,
+                default=0.8)
+            private$..t_alternative <- jmvcore::OptionList$new(
+                "t_alternative",
+                t_alternative,
+                options=list(
+                    "two_sided",
+                    "one_sided"),
+                default="two_sided")
+            private$..show_power_curve <- jmvcore::OptionBool$new(
+                "show_power_curve",
+                show_power_curve,
+                default=TRUE)
+            private$..curve_n_max <- jmvcore::OptionInteger$new(
+                "curve_n_max",
+                curve_n_max,
+                default=150)
+            private$..tost_eq_bound <- jmvcore::OptionNumber$new(
+                "tost_eq_bound",
+                tost_eq_bound,
+                default=0.5)
+            private$..tost_true_diff <- jmvcore::OptionNumber$new(
+                "tost_true_diff",
+                tost_true_diff,
+                default=0)
+            private$..tost_alpha <- jmvcore::OptionNumber$new(
+                "tost_alpha",
+                tost_alpha,
+                default=0.05)
+            private$..tost_power <- jmvcore::OptionNumber$new(
+                "tost_power",
+                tost_power,
+                default=0.8)
+            private$..tost_type <- jmvcore::OptionList$new(
+                "tost_type",
+                tost_type,
+                options=list(
+                    "two_sample",
+                    "paired"),
+                default="two_sample")
+            private$..prop_test_type <- jmvcore::OptionList$new(
+                "prop_test_type",
+                prop_test_type,
+                options=list(
+                    "two_prop",
+                    "one_prop",
+                    "mcnemar"),
+                default="two_prop")
+            private$..prop_p1 <- jmvcore::OptionNumber$new(
+                "prop_p1",
+                prop_p1,
+                default=0.6)
+            private$..prop_p2 <- jmvcore::OptionNumber$new(
+                "prop_p2",
+                prop_p2,
+                default=0.4)
+            private$..prop_p0 <- jmvcore::OptionNumber$new(
+                "prop_p0",
+                prop_p0,
+                default=0.5)
+            private$..prop_p12 <- jmvcore::OptionNumber$new(
+                "prop_p12",
+                prop_p12,
+                default=0.25)
+            private$..prop_p21 <- jmvcore::OptionNumber$new(
+                "prop_p21",
+                prop_p21,
+                default=0.1)
+            private$..prop_alpha <- jmvcore::OptionNumber$new(
+                "prop_alpha",
+                prop_alpha,
+                default=0.05)
+            private$..prop_power <- jmvcore::OptionNumber$new(
+                "prop_power",
+                prop_power,
+                default=0.8)
+            private$..prop_alternative <- jmvcore::OptionList$new(
+                "prop_alternative",
+                prop_alternative,
+                options=list(
+                    "two_sided",
+                    "one_sided"),
+                default="two_sided")
 
             self$.addOption(private$..mode)
             self$.addOption(private$..method_finite)
@@ -84,6 +209,27 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..nGroups_animals)
             self$.addOption(private$..nMeasures_animals)
             self$.addOption(private$..sacrifice_animals)
+            self$.addOption(private$..t_test_type)
+            self$.addOption(private$..t_effect_size)
+            self$.addOption(private$..t_alpha)
+            self$.addOption(private$..t_power)
+            self$.addOption(private$..t_alternative)
+            self$.addOption(private$..show_power_curve)
+            self$.addOption(private$..curve_n_max)
+            self$.addOption(private$..tost_eq_bound)
+            self$.addOption(private$..tost_true_diff)
+            self$.addOption(private$..tost_alpha)
+            self$.addOption(private$..tost_power)
+            self$.addOption(private$..tost_type)
+            self$.addOption(private$..prop_test_type)
+            self$.addOption(private$..prop_p1)
+            self$.addOption(private$..prop_p2)
+            self$.addOption(private$..prop_p0)
+            self$.addOption(private$..prop_p12)
+            self$.addOption(private$..prop_p21)
+            self$.addOption(private$..prop_alpha)
+            self$.addOption(private$..prop_power)
+            self$.addOption(private$..prop_alternative)
         }),
     active = list(
         mode = function() private$..mode$value,
@@ -95,7 +241,28 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         design_animals = function() private$..design_animals$value,
         nGroups_animals = function() private$..nGroups_animals$value,
         nMeasures_animals = function() private$..nMeasures_animals$value,
-        sacrifice_animals = function() private$..sacrifice_animals$value),
+        sacrifice_animals = function() private$..sacrifice_animals$value,
+        t_test_type = function() private$..t_test_type$value,
+        t_effect_size = function() private$..t_effect_size$value,
+        t_alpha = function() private$..t_alpha$value,
+        t_power = function() private$..t_power$value,
+        t_alternative = function() private$..t_alternative$value,
+        show_power_curve = function() private$..show_power_curve$value,
+        curve_n_max = function() private$..curve_n_max$value,
+        tost_eq_bound = function() private$..tost_eq_bound$value,
+        tost_true_diff = function() private$..tost_true_diff$value,
+        tost_alpha = function() private$..tost_alpha$value,
+        tost_power = function() private$..tost_power$value,
+        tost_type = function() private$..tost_type$value,
+        prop_test_type = function() private$..prop_test_type$value,
+        prop_p1 = function() private$..prop_p1$value,
+        prop_p2 = function() private$..prop_p2$value,
+        prop_p0 = function() private$..prop_p0$value,
+        prop_p12 = function() private$..prop_p12$value,
+        prop_p21 = function() private$..prop_p21$value,
+        prop_alpha = function() private$..prop_alpha$value,
+        prop_power = function() private$..prop_power$value,
+        prop_alternative = function() private$..prop_alternative$value),
     private = list(
         ..mode = NA,
         ..method_finite = NA,
@@ -106,7 +273,28 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..design_animals = NA,
         ..nGroups_animals = NA,
         ..nMeasures_animals = NA,
-        ..sacrifice_animals = NA)
+        ..sacrifice_animals = NA,
+        ..t_test_type = NA,
+        ..t_effect_size = NA,
+        ..t_alpha = NA,
+        ..t_power = NA,
+        ..t_alternative = NA,
+        ..show_power_curve = NA,
+        ..curve_n_max = NA,
+        ..tost_eq_bound = NA,
+        ..tost_true_diff = NA,
+        ..tost_alpha = NA,
+        ..tost_power = NA,
+        ..tost_type = NA,
+        ..prop_test_type = NA,
+        ..prop_p1 = NA,
+        ..prop_p2 = NA,
+        ..prop_p0 = NA,
+        ..prop_p12 = NA,
+        ..prop_p21 = NA,
+        ..prop_alpha = NA,
+        ..prop_power = NA,
+        ..prop_alternative = NA)
 )
 
 samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -116,7 +304,14 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         text_finite = function() private$.items[["text_finite"]],
         sampleSizeTable_finite = function() private$.items[["sampleSizeTable_finite"]],
         text_animals = function() private$.items[["text_animals"]],
-        sampleSizeTable_animals = function() private$.items[["sampleSizeTable_animals"]]),
+        sampleSizeTable_animals = function() private$.items[["sampleSizeTable_animals"]],
+        text_power_t = function() private$.items[["text_power_t"]],
+        sampleSizeTable_power_t = function() private$.items[["sampleSizeTable_power_t"]],
+        powerCurvePlot = function() private$.items[["powerCurvePlot"]],
+        text_tost = function() private$.items[["text_tost"]],
+        sampleSizeTable_tost = function() private$.items[["sampleSizeTable_tost"]],
+        text_proportions = function() private$.items[["text_proportions"]],
+        sampleSizeTable_proportions = function() private$.items[["sampleSizeTable_proportions"]]),
     private = list(),
     public=list(
         initialize=function(options) {
@@ -186,7 +381,186 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     list(
                         `name`="value", 
                         `title`="Value", 
-                        `type`="text"))))}))
+                        `type`="text"))))
+            self$add(jmvcore::Preformatted$new(
+                options=options,
+                name="text_power_t",
+                title="Power Analysis for t-tests",
+                visible="(mode == 'power_t')"))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="sampleSizeTable_power_t",
+                refs=list(
+                    "Cohen1988"),
+                title="Sample Size & Power Results (t-test)",
+                rows=1,
+                visible="(mode == 'power_t')",
+                clearWith=list(
+                    "mode",
+                    "t_test_type",
+                    "t_effect_size",
+                    "t_alpha",
+                    "t_power",
+                    "t_alternative"),
+                columns=list(
+                    list(
+                        `name`="test_type", 
+                        `title`="Test Type", 
+                        `type`="text"),
+                    list(
+                        `name`="effect_size", 
+                        `title`="Effect Size (d)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="alpha", 
+                        `title`="\u03B1", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="power", 
+                        `title`="Target Power (1 - \u03B2)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="n_per_group", 
+                        `title`="Required n per Group", 
+                        `type`="integer"),
+                    list(
+                        `name`="total_n", 
+                        `title`="Total Sample Size (N)", 
+                        `type`="integer"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="powerCurvePlot",
+                title="Power Sensitivity Curve",
+                width=600,
+                height=420,
+                renderFun=".renderPowerCurve",
+                visible="(mode == 'power_t' && show_power_curve)",
+                refs=list(
+                    "ggplot2"),
+                clearWith=list(
+                    "mode",
+                    "t_test_type",
+                    "t_effect_size",
+                    "t_alpha",
+                    "t_power",
+                    "t_alternative",
+                    "show_power_curve",
+                    "curve_n_max")))
+            self$add(jmvcore::Preformatted$new(
+                options=options,
+                name="text_tost",
+                title="Equivalence Testing (TOST) Sample Size",
+                visible="(mode == 'tost')"))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="sampleSizeTable_tost",
+                refs=list(
+                    "Lakens2013",
+                    "Schuirmann1987"),
+                title="Sample Size for Equivalence Testing (TOST)",
+                rows=1,
+                visible="(mode == 'tost')",
+                clearWith=list(
+                    "mode",
+                    "tost_eq_bound",
+                    "tost_true_diff",
+                    "tost_alpha",
+                    "tost_power",
+                    "tost_type"),
+                columns=list(
+                    list(
+                        `name`="design", 
+                        `title`="Design", 
+                        `type`="text"),
+                    list(
+                        `name`="eq_bound", 
+                        `title`="Equivalence Bound (\u00B1\u0394)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="true_diff", 
+                        `title`="True Difference (\u03B4)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="alpha", 
+                        `title`="\u03B1 (per one-sided test)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="power", 
+                        `title`="Target Power (1 - \u03B2)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="n_per_group", 
+                        `title`="Required n per Group", 
+                        `type`="integer"),
+                    list(
+                        `name`="total_n", 
+                        `title`="Total Sample Size (N)", 
+                        `type`="integer"))))
+            self$add(jmvcore::Preformatted$new(
+                options=options,
+                name="text_proportions",
+                title="Sample Size for Proportions",
+                visible="(mode == 'proportions')"))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="sampleSizeTable_proportions",
+                refs=list(
+                    "Fleiss2003",
+                    "McNemar1947"),
+                title="Sample Size & Power for Proportions",
+                rows=1,
+                visible="(mode == 'proportions')",
+                clearWith=list(
+                    "mode",
+                    "prop_test_type",
+                    "prop_p1",
+                    "prop_p2",
+                    "prop_p0",
+                    "prop_p12",
+                    "prop_p21",
+                    "prop_alpha",
+                    "prop_power",
+                    "prop_alternative"),
+                columns=list(
+                    list(
+                        `name`="test_type", 
+                        `title`="Test Type", 
+                        `type`="text"),
+                    list(
+                        `name`="p1", 
+                        `title`="p\u2081 / Proportion", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="p2", 
+                        `title`="p\u2082 / Reference", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="alpha", 
+                        `title`="\u03B1", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="power", 
+                        `title`="Target Power (1 - \u03B2)", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="n_per_group", 
+                        `title`="Required n / Pairs", 
+                        `type`="integer"),
+                    list(
+                        `name`="total_n", 
+                        `title`="Total Sample Size (N)", 
+                        `type`="integer"))))}))
 
 samplesizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "samplesizeBase",
@@ -222,12 +596,40 @@ samplesizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param nGroups_animals .
 #' @param nMeasures_animals .
 #' @param sacrifice_animals .
+#' @param t_test_type .
+#' @param t_effect_size .
+#' @param t_alpha .
+#' @param t_power .
+#' @param t_alternative .
+#' @param show_power_curve .
+#' @param curve_n_max .
+#' @param tost_eq_bound .
+#' @param tost_true_diff .
+#' @param tost_alpha .
+#' @param tost_power .
+#' @param tost_type .
+#' @param prop_test_type .
+#' @param prop_p1 .
+#' @param prop_p2 .
+#' @param prop_p0 .
+#' @param prop_p12 .
+#' @param prop_p21 .
+#' @param prop_alpha .
+#' @param prop_power .
+#' @param prop_alternative .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$text_finite} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$sampleSizeTable_finite} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$text_animals} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$sampleSizeTable_animals} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$text_power_t} \tab \tab \tab \tab \tab a preformatted \cr
+#'   \code{results$sampleSizeTable_power_t} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$powerCurvePlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$text_tost} \tab \tab \tab \tab \tab a preformatted \cr
+#'   \code{results$sampleSizeTable_tost} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$text_proportions} \tab \tab \tab \tab \tab a preformatted \cr
+#'   \code{results$sampleSizeTable_proportions} \tab \tab \tab \tab \tab a table \cr
 #' }
 #'
 #' Tables can be converted to data frames with \code{asDF} or \code{\link{as.data.frame}}. For example:
@@ -247,7 +649,28 @@ samplesize <- function(
     design_animals = "Design 1 (One-way ANOVA)",
     nGroups_animals = 2,
     nMeasures_animals = 2,
-    sacrifice_animals = FALSE) {
+    sacrifice_animals = FALSE,
+    t_test_type = "two_sample",
+    t_effect_size = 0.5,
+    t_alpha = 0.05,
+    t_power = 0.8,
+    t_alternative = "two_sided",
+    show_power_curve = TRUE,
+    curve_n_max = 150,
+    tost_eq_bound = 0.5,
+    tost_true_diff = 0,
+    tost_alpha = 0.05,
+    tost_power = 0.8,
+    tost_type = "two_sample",
+    prop_test_type = "two_prop",
+    prop_p1 = 0.6,
+    prop_p2 = 0.4,
+    prop_p0 = 0.5,
+    prop_p12 = 0.25,
+    prop_p21 = 0.1,
+    prop_alpha = 0.05,
+    prop_power = 0.8,
+    prop_alternative = "two_sided") {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("samplesize requires jmvcore to be installed (restart may be required)")
@@ -263,7 +686,28 @@ samplesize <- function(
         design_animals = design_animals,
         nGroups_animals = nGroups_animals,
         nMeasures_animals = nMeasures_animals,
-        sacrifice_animals = sacrifice_animals)
+        sacrifice_animals = sacrifice_animals,
+        t_test_type = t_test_type,
+        t_effect_size = t_effect_size,
+        t_alpha = t_alpha,
+        t_power = t_power,
+        t_alternative = t_alternative,
+        show_power_curve = show_power_curve,
+        curve_n_max = curve_n_max,
+        tost_eq_bound = tost_eq_bound,
+        tost_true_diff = tost_true_diff,
+        tost_alpha = tost_alpha,
+        tost_power = tost_power,
+        tost_type = tost_type,
+        prop_test_type = prop_test_type,
+        prop_p1 = prop_p1,
+        prop_p2 = prop_p2,
+        prop_p0 = prop_p0,
+        prop_p12 = prop_p12,
+        prop_p21 = prop_p21,
+        prop_alpha = prop_alpha,
+        prop_power = prop_power,
+        prop_alternative = prop_alternative)
 
     analysis <- samplesizeClass$new(
         options = options,

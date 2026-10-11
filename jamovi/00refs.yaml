@@ -562,3 +562,45 @@ Borenstein2009:
   publisher: "John Wiley & Sons"
   address: "Chichester, UK"
   doi: "10.1002/9780470743386"
+Lakens2013:
+  type: article
+  author: "Lakens, D."
+  year: 2013
+  title: "Equivalence testing for psychological research: A tutorial on the two one-sided tests procedure"
+  journal: "Social Psychological and Personality Science"
+  volume: 8
+  issue: 4
+  pages: "355-362"
+  doi: "10.1177/1948550617697177"
+
+Schuirmann1987:
+  type: article
+  author: "Schuirmann, D. J."
+  year: 1987
+  title: "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability"
+  journal: "Journal of Pharmacokinetics and Biopharmaceutics"
+  volume: 15
+  issue: 6
+  pages: "657-680"
+  doi: "10.1007/BF01068419"
+
+Fleiss2003:
+  type: book
+  author: "Fleiss, J. L., Levin, B., & Paik, M. C."
+  year: 2003
+  title: "Statistical Methods for Rates and Proportions"
+  edition: "3rd"
+  publisher: "John Wiley & Sons"
+  address: "Hoboken, NJ"
+  doi: "10.1002/0471445428"
+
+McNemar1947:
+  type: article
+  author: "McNemar, Q."
+  year: 1947
+  title: "Note on the sampling error of the difference between correlated proportions or percentages"
+  journal: "Psychometrika"
+  volume: 12
+  issue: 2
+  pages: "153-157"
+  doi: "10.1007/BF02295996"

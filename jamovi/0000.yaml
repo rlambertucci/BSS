@@ -97,7 +97,9 @@ analyses:
     menuGroup: BSS
     menuTitle: Sample size calculation
     menuSubgroup: Study Design & Presentation
-    menuSubtitle: Sample size calculation for finite population and animal design
+    menuSubtitle: >-
+      Sample size calculation for finite population, animal design, t-tests,
+      TOST and proportions
   - title: Data Presentation
     name: DataPresentation
     ns: BSS

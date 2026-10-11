@@ -2,7 +2,7 @@ name:  samplesize
 title: Sample size calculation
 menuGroup: BSS
 menuSubgroup: Study Design & Presentation
-menuSubtitle: Sample size calculation for finite population and animal design
+menuSubtitle: Sample size calculation for finite population, animal design, t-tests, TOST and proportions
 version: '1.0.0'
 jas: '1.2'
 
@@ -15,6 +15,12 @@ options:
         title: For finite population
       - name: animals
         title: For animals design
+      - name: power_t
+        title: Power & Sample Size for t-tests
+      - name: tost
+        title: Equivalence Testing (TOST)
+      - name: proportions
+        title: Proportions & McNemar Test
     default: finite
 
   - name: method_finite
@@ -68,3 +74,140 @@ options:
     title: Animals Sacrificed at Each Measure (Designs 2 and 3)
     type: Bool
     default: false
+
+  # Power & Sample Size for t-tests (BSS-FEAT-016)
+  - name: t_test_type
+    title: Test Type
+    type: List
+    options:
+      - name: two_sample
+        title: Two-Sample Independent t-test
+      - name: one_sample
+        title: One-Sample t-test
+      - name: paired
+        title: Paired-Samples t-test
+    default: two_sample
+
+  - name: t_effect_size
+    title: Effect Size (Cohen's d)
+    type: Number
+    default: 0.5
+
+  - name: t_alpha
+    title: Significance Level (α)
+    type: Number
+    default: 0.05
+
+  - name: t_power
+    title: Target Power (1 - β)
+    type: Number
+    default: 0.80
+
+  - name: t_alternative
+    title: Alternative Hypothesis
+    type: List
+    options:
+      - name: two_sided
+        title: Two-sided
+      - name: one_sided
+        title: One-sided
+    default: two_sided
+
+  - name: show_power_curve
+    title: Show Power Sensitivity Curves
+    type: Bool
+    default: true
+
+  - name: curve_n_max
+    title: Maximum Sample Size on Curve
+    type: Integer
+    default: 150
+
+  # Equivalence Testing (TOST) (BSS-FEAT-017)
+  - name: tost_eq_bound
+    title: Equivalence Bound (Δ in Cohen's d)
+    type: Number
+    default: 0.5
+
+  - name: tost_true_diff
+    title: Expected True Difference (δ)
+    type: Number
+    default: 0.0
+
+  - name: tost_alpha
+    title: Significance Level (α)
+    type: Number
+    default: 0.05
+
+  - name: tost_power
+    title: Target Power (1 - β)
+    type: Number
+    default: 0.80
+
+  - name: tost_type
+    title: Design Type
+    type: List
+    options:
+      - name: two_sample
+        title: Two Independent Groups
+      - name: paired
+        title: Paired Samples
+    default: two_sample
+
+  # Proportions & McNemar Test (BSS-FEAT-018)
+  - name: prop_test_type
+    title: Test Type
+    type: List
+    options:
+      - name: two_prop
+        title: Two Independent Proportions
+      - name: one_prop
+        title: One Proportion vs. Null Value
+      - name: mcnemar
+        title: Paired Proportions (McNemar Test)
+    default: two_prop
+
+  - name: prop_p1
+    title: Proportion 1 (p₁)
+    type: Number
+    default: 0.60
+
+  - name: prop_p2
+    title: Proportion 2 (p₂)
+    type: Number
+    default: 0.40
+
+  - name: prop_p0
+    title: Null Proportion (p₀)
+    type: Number
+    default: 0.50
+
+  - name: prop_p12
+    title: Discordant Proportion p₁₂ (Case + / Control -)
+    type: Number
+    default: 0.25
+
+  - name: prop_p21
+    title: Discordant Proportion p₂₁ (Case - / Control +)
+    type: Number
+    default: 0.10
+
+  - name: prop_alpha
+    title: Significance Level (α)
+    type: Number
+    default: 0.05
+
+  - name: prop_power
+    title: Target Power (1 - β)
+    type: Number
+    default: 0.80
+
+  - name: prop_alternative
+    title: Alternative Hypothesis
+    type: List
+    options:
+      - name: two_sided
+        title: Two-sided
+      - name: one_sided
+        title: One-sided
+    default: two_sided

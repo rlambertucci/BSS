@@ -73,4 +73,94 @@ children:
             children:
               - type: CheckBox
                 name: sacrifice_animals
+
+      - type: Content
+        name: power_t
+        children:
+          - type: LayoutBox
+            margin: large
+            stretchFactor: 1
+            children:
+              - type: ComboBox
+                name: t_test_type
+              - type: TextBox
+                name: t_effect_size
+                format: number
+              - type: TextBox
+                name: t_alpha
+                format: number
+              - type: TextBox
+                name: t_power
+                format: number
+              - type: ComboBox
+                name: t_alternative
+          - type: CollapseBox
+            label: Power Sensitivity Curves
+            collapsed: false
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                stretchFactor: 1
+                children:
+                  - type: CheckBox
+                    name: show_power_curve
+                  - type: TextBox
+                    name: curve_n_max
+                    format: number
+
+      - type: Content
+        name: tost
+        children:
+          - type: LayoutBox
+            margin: large
+            stretchFactor: 1
+            children:
+              - type: ComboBox
+                name: tost_type
+              - type: TextBox
+                name: tost_eq_bound
+                format: number
+              - type: TextBox
+                name: tost_true_diff
+                format: number
+              - type: TextBox
+                name: tost_alpha
+                format: number
+              - type: TextBox
+                name: tost_power
+                format: number
+
+      - type: Content
+        name: proportions
+        children:
+          - type: LayoutBox
+            margin: large
+            stretchFactor: 1
+            children:
+              - type: ComboBox
+                name: prop_test_type
+              - type: TextBox
+                name: prop_p1
+                format: number
+              - type: TextBox
+                name: prop_p2
+                format: number
+              - type: TextBox
+                name: prop_p0
+                format: number
+              - type: TextBox
+                name: prop_p12
+                format: number
+              - type: TextBox
+                name: prop_p21
+                format: number
+              - type: TextBox
+                name: prop_alpha
+                format: number
+              - type: TextBox
+                name: prop_power
+                format: number
+              - type: ComboBox
+                name: prop_alternative
 ...
