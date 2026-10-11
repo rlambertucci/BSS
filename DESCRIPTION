@@ -1,21 +1,21 @@
 Package: BSS
 Type: Package
 Title: BSS
-Version: 0.3.0
-Date: 2026-10-10
+Version: 0.4.0
+Date: 2026-10-11
 Author: Rafael Lambertucci
 Maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
-Description: This module provides a variety of statistical procedures for different data analysis needs. The main features include: 
-  1) Network analysis for continuous and mixed data; 
-  2) Missing value analysis and data imputation using missRanger and MICE;
-  3) Outlier detection using Dixon's Q Test, boxplots and the modified z-score with adjustable thresholds, including options for outlier treatment;
-  4) Post hoc analysis for MANOVA using descriptive discriminant analysis (including effect size calculation); 
-  5) Nonparametric factorial ANOVA using the Aligned Rank Transform (ART) with multifactor contrast tests;
-  6) Comprehensive pairwise effect size calculation for independent and longitudinal designs; 
-  7) Sample size calculation for finite populations and for animal experimental designs based on the Resource Equation Approach; 
-  8) Statistical comparison of correlation coefficients (independent and dependent);
-  9) Power transformations for normality (Box-Cox, Yeo-Johnson, and Johnson curves);
-  10) Highly customizable group comparison plots (bar charts, boxplots, and mean-dispersion graphs) for cross-sectional and longitudinal designs, including automated publication-ready descriptive tables (APA, ABNT, Vancouver, and Chicago styles).
+Description: This module provides a comprehensive suite of advanced statistical procedures for behavioral and health sciences: 
+  1) Network analysis for continuous and mixed data with bridge centrality and community detection; 
+  2) Missing value patterns and data imputation using missRanger and MICE with Rubin rules pooling;
+  3) Outlier detection using Dixon's Q, Hubert adjusted boxplot, modified z-score, and multivariate Mahalanobis/MCD;
+  4) Descriptive discriminant analysis (DDA) with Box's M test and classification matrix LOOCV; 
+  5) Aligned Rank Transform (ART) nonparametric factorial ANOVA with Partial Omega-Squared, FDR multiplicity control, and interaction plots;
+  6) Pairwise effect sizes, Sawilowsky benchmark, multi-metric conversions, and forest plots; 
+  7) Sample size calculation for finite populations, resource equation, t-test power curves, TOST equivalence, and proportions; 
+  8) Correlation comparison for independent and dependent coefficients with Jennrich matrix test and CI plots;
+  9) Power and bounded transformations for normality (Box-Cox, Yeo-Johnson, Johnson curves, Arcsine, and Logit) with Anderson-Darling and Shapiro-Francia tests;
+  10) Publication-ready group comparison plots, APA 7th HTML export, correlation matrices with significance stars, and clustered heatmaps.
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
