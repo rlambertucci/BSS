@@ -114,6 +114,8 @@ options:
           name: bonferroni
         - title: Tukey
           name: tukey
+        - title: FDR / Benjamini-Hochberg
+          name: fdr
         - title: None
           name: none
       default: holm
@@ -132,6 +134,21 @@ options:
         - title: Hedges' g
           name: hedges_g
       default: cohens_d
+
+    - name: show_plot
+      title: Interaction / Marginal Means Plot
+      type: Bool
+      default: false
+
+    - name: plot_width
+      title: Plot Width
+      type: Integer
+      default: 600
+
+    - name: plot_height
+      title: Plot Height
+      type: Integer
+      default: 450
 
     - name: run_analysis
       title: Run ART Analysis

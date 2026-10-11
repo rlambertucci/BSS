@@ -59,15 +59,15 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
     
     .init = function() {
       info_html <- paste0(
-        '<div style="font-size:0.9em; line-height:1.6; padding:4px;">',
-        '<h4 style="margin-bottom:6px;">&#128200; Aligned Rank Transform (ART)</h4>',
-        '<p style="margin-bottom:8px;">A robust nonparametric approach for analyzing data with multiple factors or repeated measures. ',
+        '<div style=\"font-size:0.9em; line-height:1.6; padding:4px;\">',
+        '<h4 style=\"margin-bottom:6px;\">&#128200; Aligned Rank Transform (ART)</h4>',
+        '<p style=\"margin-bottom:8px;\">A robust nonparametric approach for analyzing data with multiple factors or repeated measures. ',
         'It aligns the data before ranking, allowing for the accurate evaluation of main effects and interactions.</p>',
-        '<ul style="margin-top:0px; padding-left:20px;">',
+        '<ul style=\"margin-top:0px; padding-left:20px;\">',
         '<li><b>Cross-sectional:</b> For independent samples (Factorial Nonparametric ANOVA).</li>',
         '<li><b>Longitudinal:</b> For repeated measures or mixed designs. Automatically handles subject tracking.</li>',
         '</ul>',
-        '<p style="margin-bottom:4px; font-size:0.85em; color:#555;"><i>Powered by the R package <b>ARTool</b> (Wobbrock et al., 2011).</i></p>',
+        '<p style=\"margin-bottom:4px; font-size:0.85em; color:#555;\"><i>Powered by the R package <b>ARTool</b> (Wobbrock et al., 2011).</i></p>',
         '</div>'
       )
       self$results$analysisInfo$setContent(info_html)
@@ -85,6 +85,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       posthoc_correction <- self$options$posthoc_correction
       calc_es <- self$options$calc_es
       es_method <- self$options$es_method
+      show_plot <- self$options$show_plot
       
       if (!isTRUE(run_analysis)) {
         self$results$text$setContent("Check 'Run ART Analysis' to compute results.")
@@ -159,42 +160,45 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             direction = "long",
             idvar = subject_id_var
           )
-          rownames(process_data) <- NULL
           dep_var <- ".dv_internal"
           time_var <- ".time_internal"
-          process_data[[time_var]] <- as.factor(process_data[[time_var]])
         }, error = function(e) {
-          self$results$text$setContent(paste("Error converting Wide to Long format:", e$message))
-          self$results$text$setVisible(TRUE)
           reshape_failed <<- TRUE
         })
-      }
-      if (reshape_failed) {
-        return()
-      }
-      
-      process_data[[dep_var]] <- private$.to_numeric_vec(process_data[[dep_var]])
-      
-      predictors <- character()
-      if (private$.is_defined(fixed_factors)) {
-        predictors <- c(predictors, fixed_factors)
-      }
-      if (mode == "longitudinal" && private$.is_defined(time_var)) {
-        predictors <- c(predictors, time_var)
+        
+        if (reshape_failed) {
+          self$results$text$setContent("Error: Reshaping wide data to long format failed. Please check column names and data consistency.")
+          self$results$text$setVisible(TRUE)
+          return()
+        }
       }
       
-      if (length(predictors) == 0) {
-        self$results$text$setContent("Error: No valid factors found to build the model.")
+      predictors <- if (mode == "cross_sectional") fixed_factors else c(fixed_factors, time_var)
+      predictors <- Filter(Negate(is.null), predictors)
+      predictors <- unique(predictors)
+      
+      vars_in_model <- unique(c(dep_var, predictors, subject_id_var))
+      vars_in_model <- Filter(Negate(is.null), vars_in_model)
+      
+      missing_cols <- setdiff(vars_in_model, names(process_data))
+      if (length(missing_cols) > 0) {
+        self$results$text$setContent(paste("Error: Missing column(s) in dataset:", paste(missing_cols, collapse = ", ")))
         self$results$text$setVisible(TRUE)
         return()
       }
       
-      vars_in_model <- c(dep_var, predictors, subject_id_var)
-      vars_in_model <- unique(vars_in_model[private$.is_defined(vars_in_model)])
-      process_data <- na.omit(process_data[, vars_in_model, drop = FALSE])
+      process_data <- process_data[, vars_in_model, drop = FALSE]
+      process_data <- stats::na.omit(process_data)
       
       if (nrow(process_data) == 0) {
         self$results$text$setContent("Error: No complete cases remaining after removing missing values.")
+        self$results$text$setVisible(TRUE)
+        return()
+      }
+      
+      process_data[[dep_var]] <- private$.to_numeric_vec(process_data[[dep_var]])
+      if (all(is.na(process_data[[dep_var]]))) {
+        self$results$text$setContent("Error: The Dependent Variable cannot be converted to numeric.")
         self$results$text$setVisible(TRUE)
         return()
       }
@@ -263,7 +267,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       anova_table$setNote(
         "citation",
-        "Note. Computations powered by the R package ARTool (Wobbrock et al., 2011). Citation: Wobbrock, J. O., Findlater, L., Gergle, D., and Higgins, J. J. (2011). The Aligned Rank Transform for Nonparametric Factorial Analyses Using Only ANOVA Procedures. In Proceedings of the ACM Conference on Human Factors in Computing Systems (CHI '11), pp. 143-146. https://doi.org/10.1145/1978942.1978963"
+        "Note. Computations powered by the R package ARTool (Wobbrock et al., 2011). Partial η² calculated as (F * df) / (F * df + df.res). Partial ω² calculated as df * (F - 1) / (df * (F - 1) + df.res + 1), truncated at 0."
       )
       
       num_rows_anova <- nrow(anova_res)
@@ -280,17 +284,21 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         p_val <- private$.safe_extract(anova_res, i, c("Pr(>F)", "p-value", "p.value", "p"))
         
         pes <- NA_real_
+        pos <- NA_real_
         if (!is.na(f_val) && !is.na(df_num) && !is.na(df_res) && df_res > 0) {
           pes <- (f_val * df_num) / ((f_val * df_num) + df_res)
+          val_pos <- (df_num * (f_val - 1)) / (df_num * (f_val - 1) + df_res + 1)
+          pos <- max(0, val_pos)
         }
         
         anova_table$addRow(rowKey = i, values = list(
-          factor = term_display,
-          df = df_num,
-          df_res = df_res,
-          f_value = f_val,
-          p_value = p_val,
-          part_eta_sq = pes
+          factor        = term_display,
+          df            = df_num,
+          df_res        = df_res,
+          f_value       = f_val,
+          p_value       = p_val,
+          part_eta_sq   = pes,
+          part_omega_sq = pos
         ))
       }
       
@@ -300,7 +308,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         
         posthoc_table$setNote(
           "citation",
-          "Note. Pairwise contrast comparisons computed using the ART-C procedure (Elkin et al., 2021) via the R package ARTool, with p-value adjustments powered by the emmeans package (Lenth, 2024). Citations: (1) Elkin, L. A. et al. (2021). An Aligned Rank Transform Procedure for Multifactor Contrast Tests. In Proceedings of the ACM Symposium on User Interface Software and Technology (UIST '21), pp. 754-768. (2) Lenth, R. V. (2024). emmeans: Estimated Marginal Means, aka Least-Squares Means."
+          "Note. Pairwise contrast comparisons computed using the ART-C procedure (Elkin et al., 2021) via the R package ARTool, with p-value adjustments powered by the emmeans package (Lenth, 2024)."
         )
         
         es_table <- self$results$effectSizeTable
@@ -318,10 +326,20 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         between_vars_safe <- unname(safe_name_map[fixed_factors])
         within_vars_safe <- if (mode == "longitudinal") unname(safe_name_map[time_var]) else character()
         
+        adjust_arg <- switch(
+          posthoc_correction,
+          "holm"       = "holm",
+          "bonferroni" = "bonferroni",
+          "tukey"      = "tukey",
+          "fdr"        = "fdr",
+          "none"       = "none",
+          "holm"
+        )
+        
         for (term in terms_to_test) {
           term_display <- private$.unmangle_term(term, reverse_name_map)
           ph_res <- tryCatch({
-            ARTool::art.con(model, term, adjust = posthoc_correction)
+            ARTool::art.con(model, term, adjust = adjust_arg)
           }, error = function(e) {
             NULL
           })
@@ -381,12 +399,103 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
+      if (isTRUE(show_plot)) {
+        image <- self$results$artPlot
+        w <- self$options$plot_width
+        h <- self$options$plot_height
+        if (!is.null(w) && !is.null(h) && w > 0 && h > 0) {
+          image$setSize(w, h)
+        }
+        image$setState(list(
+          data          = process_data,
+          dep_var       = dep_var_safe,
+          dep_var_title = dep_var,
+          predictors    = predictors_safe,
+          reverse_map   = reverse_name_map
+        ))
+      }
+      
       display_formula <- paste0("`", dep_var, "` ~ ", paste(paste0("`", predictors, "`"), collapse = " * "))
       if (mode == "longitudinal" && private$.is_defined(subject_id_var)) {
-        display_formula <- paste0(display_formula, " + (1|`", subject_id_var, "`)")
+        display_formula <- paste0(display_formula, " + (1|`", subject_id_var, "`)\")")
       }
       self$results$text$setContent(paste("ART Analysis completed successfully.\nFormula used:", display_formula))
       self$results$text$setVisible(TRUE)
+    },
+    
+    .renderArtPlot = function(image, ggtheme, theme, ...) {
+      state <- image$state
+      if (is.null(state) || is.null(state$data)) return(FALSE)
+      
+      df          <- state$data
+      dep_var     <- state$dep_var
+      dep_title   <- state$dep_var_title
+      predictors  <- state$predictors
+      reverse_map <- state$reverse_map
+      
+      if (is.null(dep_var) || length(predictors) == 0) return(FALSE)
+      
+      pred1 <- predictors[1]
+      pred1_label <- if (!is.null(reverse_map[[pred1]])) reverse_map[[pred1]] else pred1
+      
+      if (length(predictors) == 1) {
+        plot_df <- stats::aggregate(df[[dep_var]], by = list(P1 = df[[pred1]]), FUN = function(x) {
+          c(Mean = mean(x, na.rm = TRUE),
+            SE   = stats::sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
+        })
+        plot_df <- data.frame(
+          P1   = plot_df$P1,
+          Mean = plot_df$x[, "Mean"],
+          SE   = plot_df$x[, "SE"]
+        )
+        plot_df$CI_lower <- plot_df$Mean - 1.96 * plot_df$SE
+        plot_df$CI_upper <- plot_df$Mean + 1.96 * plot_df$SE
+        
+        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = P1, y = Mean, group = 1)) +
+          ggplot2::geom_line(color = "#2b5c8f", linewidth = 0.8) +
+          ggplot2::geom_point(color = "#2b5c8f", size = 3) +
+          ggplot2::geom_errorbar(ggplot2::aes(ymin = CI_lower, ymax = CI_upper), width = 0.15, color = "#2b5c8f", linewidth = 0.7) +
+          ggplot2::labs(title = paste("Marginal Means:", dep_title), x = pred1_label, y = dep_title) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(panel.background = ggplot2::element_rect(fill = "transparent", colour = NA))
+        print(p)
+        return(TRUE)
+      } else {
+        pred2 <- predictors[2]
+        pred2_label <- if (!is.null(reverse_map[[pred2]])) reverse_map[[pred2]] else pred2
+        
+        plot_df <- stats::aggregate(df[[dep_var]], by = list(P1 = df[[pred1]], P2 = df[[pred2]]), FUN = function(x) {
+          c(Mean = mean(x, na.rm = TRUE),
+            SE   = stats::sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x))))
+        })
+        plot_df <- data.frame(
+          P1   = plot_df$P1,
+          P2   = plot_df$P2,
+          Mean = plot_df$x[, "Mean"],
+          SE   = plot_df$x[, "SE"]
+        )
+        plot_df$CI_lower <- plot_df$Mean - 1.96 * plot_df$SE
+        plot_df$CI_upper <- plot_df$Mean + 1.96 * plot_df$SE
+        
+        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = P1, y = Mean, color = P2, group = P2)) +
+          ggplot2::geom_line(linewidth = 0.8) +
+          ggplot2::geom_point(size = 3) +
+          ggplot2::geom_errorbar(ggplot2::aes(ymin = CI_lower, ymax = CI_upper), width = 0.15, linewidth = 0.7) +
+          ggplot2::labs(
+            title = paste("Interaction Plot:", pred1_label, "×", pred2_label),
+            x = pred1_label,
+            y = dep_title,
+            color = pred2_label
+          ) +
+          ggplot2::scale_color_brewer(palette = "Set1") +
+          ggplot2::theme_bw() +
+          ggplot2::theme(
+            legend.position  = "right",
+            panel.background = ggplot2::element_rect(fill = "transparent", colour = NA)
+          )
+        print(p)
+        return(TRUE)
+      }
     }
   )
 )

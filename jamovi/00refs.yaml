@@ -531,3 +531,14 @@ Fisher1936:
   issue: 2
   pages: "179-188"
   doi: "10.1111/j.1469-1809.1936.tb02137.x"
+
+Benjamini1995:
+  type: article
+  author: "Benjamini, Y., & Hochberg, Y."
+  year: 1995
+  title: "Controlling the false discovery rate: a practical and powerful approach to multiple testing"
+  journal: "Journal of the Royal Statistical Society: Series B"
+  volume: 57
+  issue: 1
+  pages: "289-300"
+  doi: "10.1111/j.2517-6161.1995.tb02031.x"

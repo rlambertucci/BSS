@@ -48,6 +48,10 @@ items:
           title: Partial η²
           type: number
           format: dp:3
+        - name: part_omega_sq
+          title: Partial ω²
+          type: number
+          format: dp:3
 
     - name: posthocTable
       title: Pairwise Post-Hoc Tests (art.con)
@@ -56,6 +60,7 @@ items:
       refs:
         - ARTool
         - emmeans
+        - Benjamini1995
       clearWith:
         - mode
         - dep_var_cs
@@ -134,6 +139,30 @@ items:
           title: Effect Size
           type: number
           format: dp:3
+
+    - name: artPlot
+      title: Interaction & Marginal Means Plot
+      type: Image
+      width: 600
+      height: 450
+      renderFun: .renderArtPlot
+      visible: (run_analysis && show_plot)
+      requiresData: true
+      refs:
+        - ggplot2
+      clearWith:
+        - mode
+        - dep_var_cs
+        - fixed_factors_cs
+        - dep_var_long
+        - fixed_factors_long
+        - long_format
+        - subject_id_var
+        - time_var
+        - wave_vars
+        - run_analysis
+        - plot_width
+        - plot_height
 
     - name: text
       title: Analysis Summary

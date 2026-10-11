@@ -19,6 +19,9 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             posthoc_correction = "holm",
             calc_es = FALSE,
             es_method = "cohens_d",
+            show_plot = FALSE,
+            plot_width = 600,
+            plot_height = 450,
             run_analysis = FALSE, ...) {
 
             super$initialize(
@@ -113,6 +116,7 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "holm",
                     "bonferroni",
                     "tukey",
+                    "fdr",
                     "none"),
                 default="holm")
             private$..calc_es <- jmvcore::OptionBool$new(
@@ -126,6 +130,18 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "cohens_d",
                     "hedges_g"),
                 default="cohens_d")
+            private$..show_plot <- jmvcore::OptionBool$new(
+                "show_plot",
+                show_plot,
+                default=FALSE)
+            private$..plot_width <- jmvcore::OptionInteger$new(
+                "plot_width",
+                plot_width,
+                default=600)
+            private$..plot_height <- jmvcore::OptionInteger$new(
+                "plot_height",
+                plot_height,
+                default=450)
             private$..run_analysis <- jmvcore::OptionBool$new(
                 "run_analysis",
                 run_analysis,
@@ -144,6 +160,9 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..posthoc_correction)
             self$.addOption(private$..calc_es)
             self$.addOption(private$..es_method)
+            self$.addOption(private$..show_plot)
+            self$.addOption(private$..plot_width)
+            self$.addOption(private$..plot_height)
             self$.addOption(private$..run_analysis)
         }),
     active = list(
@@ -160,6 +179,9 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         posthoc_correction = function() private$..posthoc_correction$value,
         calc_es = function() private$..calc_es$value,
         es_method = function() private$..es_method$value,
+        show_plot = function() private$..show_plot$value,
+        plot_width = function() private$..plot_width$value,
+        plot_height = function() private$..plot_height$value,
         run_analysis = function() private$..run_analysis$value),
     private = list(
         ..mode = NA,
@@ -175,6 +197,9 @@ artOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..posthoc_correction = NA,
         ..calc_es = NA,
         ..es_method = NA,
+        ..show_plot = NA,
+        ..plot_width = NA,
+        ..plot_height = NA,
         ..run_analysis = NA)
 )
 
@@ -186,6 +211,7 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         anovaTable = function() private$.items[["anovaTable"]],
         posthocTable = function() private$.items[["posthocTable"]],
         effectSizeTable = function() private$.items[["effectSizeTable"]],
+        artPlot = function() private$.items[["artPlot"]],
         text = function() private$.items[["text"]]),
     private = list(),
     public=list(
@@ -246,6 +272,11 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `name`="part_eta_sq", 
                         `title`="Partial \u03B7\u00B2", 
                         `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="part_omega_sq", 
+                        `title`="Partial \u03C9\u00B2", 
+                        `type`="number", 
                         `format`="dp:3"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -254,7 +285,8 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(run_analysis && run_posthoc)",
                 refs=list(
                     "ARTool",
-                    "emmeans"),
+                    "emmeans",
+                    "Benjamini1995"),
                 clearWith=list(
                     "mode",
                     "dep_var_cs",
@@ -344,6 +376,30 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `title`="Effect Size", 
                         `type`="number", 
                         `format`="dp:3"))))
+            self$add(jmvcore::Image$new(
+                options=options,
+                name="artPlot",
+                title="Interaction & Marginal Means Plot",
+                width=600,
+                height=450,
+                renderFun=".renderArtPlot",
+                visible="(run_analysis && show_plot)",
+                requiresData=TRUE,
+                refs=list(
+                    "ggplot2"),
+                clearWith=list(
+                    "mode",
+                    "dep_var_cs",
+                    "fixed_factors_cs",
+                    "dep_var_long",
+                    "fixed_factors_long",
+                    "long_format",
+                    "subject_id_var",
+                    "time_var",
+                    "wave_vars",
+                    "run_analysis",
+                    "plot_width",
+                    "plot_height")))
             self$add(jmvcore::Preformatted$new(
                 options=options,
                 name="text",
@@ -399,6 +455,9 @@ artBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param posthoc_correction .
 #' @param calc_es .
 #' @param es_method .
+#' @param show_plot .
+#' @param plot_width .
+#' @param plot_height .
 #' @param run_analysis .
 #' @return A results object containing:
 #' \tabular{llllll}{
@@ -406,6 +465,7 @@ artBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$anovaTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$posthocTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$effectSizeTable} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$artPlot} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$text} \tab \tab \tab \tab \tab a preformatted \cr
 #' }
 #'
@@ -431,6 +491,9 @@ art <- function(
     posthoc_correction = "holm",
     calc_es = FALSE,
     es_method = "cohens_d",
+    show_plot = FALSE,
+    plot_width = 600,
+    plot_height = 450,
     run_analysis = FALSE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
@@ -469,6 +532,9 @@ art <- function(
         posthoc_correction = posthoc_correction,
         calc_es = calc_es,
         es_method = es_method,
+        show_plot = show_plot,
+        plot_width = plot_width,
+        plot_height = plot_height,
         run_analysis = run_analysis)
 
     analysis <- artClass$new(

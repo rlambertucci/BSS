@@ -112,6 +112,28 @@ children:
             label: Effect Size Method
             enable: (run_posthoc && calc_es)
 
+  - type: CollapseBox
+    label: Interaction Plot
+    collapsed: true
+    stretchFactor: 1
+    children:
+      - type: LayoutBox
+        margin: large
+        children:
+          - type: CheckBox
+            name: show_plot
+            label: Plot Interaction / Marginal Means
+          - type: TextBox
+            name: plot_width
+            label: Plot Width
+            format: number
+            enable: (show_plot)
+          - type: TextBox
+            name: plot_height
+            label: Plot Height
+            format: number
+            enable: (show_plot)
+
   - type: LayoutBox
     margin: large
     children:
