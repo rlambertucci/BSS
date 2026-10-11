@@ -7,6 +7,50 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       tryCatch(sapply(table$columns, function(col) col$name), error = function(e) character(0))
     },
     
+    .computeCommunitiesAndBridge = function(adjMatrix, nodeLabels, nodeGroupsFromVar, communityAlgo) {
+      communities_res <- NULL
+      bridge_res <- NULL
+      node_to_comm <- NULL
+      if (communityAlgo != "none" && requireNamespace("igraph", quietly = TRUE)) {
+        tryCatch({
+          g <- igraph::graph_from_adjacency_matrix(abs(adjMatrix), mode = "undirected", weighted = TRUE, diag = FALSE)
+          cl <- if (communityAlgo == "louvain") igraph::cluster_louvain(g) else igraph::cluster_walktrap(g)
+          mem <- as.character(igraph::membership(cl))
+          names(mem) <- nodeLabels
+          node_to_comm <- mem
+          communities_res <- data.frame(node = nodeLabels, community = paste0("Community ", mem), stringsAsFactors = FALSE)
+        }, error = function(e) {})
+      }
+      comm_for_bridge <- NULL
+      if (!is.null(nodeGroupsFromVar) && length(nodeGroupsFromVar) > 0) {
+        comm_for_bridge <- rep(NA_character_, length(nodeLabels))
+        names(comm_for_bridge) <- nodeLabels
+        for (g_name in names(nodeGroupsFromVar)) {
+          idx <- nodeGroupsFromVar[[g_name]]
+          comm_for_bridge[idx] <- g_name
+        }
+      } else if (!is.null(node_to_comm)) {
+        comm_for_bridge <- node_to_comm
+      }
+      if (!is.null(comm_for_bridge) && !anyNA(comm_for_bridge) && length(unique(comm_for_bridge)) >= 2) {
+        if (requireNamespace("networktools", quietly = TRUE)) {
+          tryCatch({
+            bc <- networktools::bridge(adjMatrix, communities = comm_for_bridge)
+            bridge_res <- data.frame(
+              node = nodeLabels,
+              community = as.character(comm_for_bridge),
+              bridgeStrength = as.numeric(bc$`Bridge Strength`),
+              bridgeBetweenness = as.numeric(bc$`Bridge Betweenness`),
+              bridgeCloseness = as.numeric(bc$`Bridge Closeness`),
+              bridgeEI1 = as.numeric(bc$`Bridge Expected Influence (1-step)`),
+              stringsAsFactors = FALSE
+            )
+          }, error = function(e) {})
+        }
+      }
+      return(list(communities = communities_res, bridge = bridge_res, nodeToComm = node_to_comm))
+    },
+
     .init = function() {
       
       if (isTRUE(self$options$plotNetwork_net)) {
@@ -106,6 +150,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         try(self$results$centrality_net$setVisible(FALSE), silent=TRUE); try(self$results$clustering_net$setVisible(FALSE), silent=TRUE)
         try(self$results$networkPlot_net$setVisible(FALSE), silent=TRUE); try(self$results$centralityPlot_net$setVisible(FALSE), silent=TRUE)
         try(self$results$clusteringPlot_net$setVisible(FALSE), silent=TRUE)
+        try(self$results$bridge_net$setVisible(FALSE), silent=TRUE); try(self$results$communities_net$setVisible(FALSE), silent=TRUE)
         return()
       } else {
         self$results$instructions_net$setVisible(FALSE)
@@ -201,6 +246,9 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       networkGraphsList <- list()
       centralityDataList <- list()
       clusteringDataList <- list()
+      bridgeDataList <- list()
+      communitiesDataList <- list()
+      commMembershipList <- list()
       estimation_errors <- list()
       
       if (!requireNamespace("bootnet", quietly = TRUE)) { jmvcore::reject("Package 'bootnet' required.", code = "bootnet_missing"); return() }
@@ -310,6 +358,15 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
             }
           }, error = function(e) {})
           clusteringDataList[[groupName]] <- clusteringDataNorm
+          
+          # BSS-FEAT-001 & BSS-FEAT-002: Bridge Centrality and Communities
+          commAlgo <- self$options$communityAlgorithm_net
+          cb_res <- private$.computeCommunitiesAndBridge(networkGraph, nodeLabels, qgraph_groups, commAlgo)
+          bridgeDataList[[groupName]] <- cb_res$bridge
+          communitiesDataList[[groupName]] <- cb_res$communities
+          if (!is.null(cb_res$nodeToComm)) {
+            commMembershipList[[groupName]] <- cb_res$nodeToComm
+          }
           
         }, error = function(e) {
           err_msg <- paste("Group", groupName, "-", e$message)
@@ -502,6 +559,50 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         try(clusteringTable$setState(NULL), silent=TRUE)
       }
       
+      bridgeTable <- self$results$bridge_net
+      try(bridgeTable$setState(NULL), silent=TRUE)
+      try(bridgeTable$deleteRows(), silent=TRUE)
+      if (isTRUE(self$options$tableBridge_net)) {
+        for (groupName in successful_groups) {
+          bData <- bridgeDataList[[groupName]]
+          if (!is.null(bData) && nrow(bData) > 0) {
+            for (i in seq_len(nrow(bData))) {
+              row_key <- paste(groupName, bData$node[i], sep="_")
+              row_vals <- list(
+                node = bData$node[i],
+                community = bData$community[i],
+                bridgeStrength = bData$bridgeStrength[i],
+                bridgeBetweenness = bData$bridgeBetweenness[i],
+                bridgeCloseness = bData$bridgeCloseness[i],
+                bridgeEI1 = bData$bridgeEI1[i]
+              )
+              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
+              try(bridgeTable$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
+            }
+          }
+        }
+      }
+
+      commTable <- self$results$communities_net
+      try(commTable$setState(NULL), silent=TRUE)
+      try(commTable$deleteRows(), silent=TRUE)
+      if (isTRUE(self$options$tableCommunities_net)) {
+        for (groupName in successful_groups) {
+          cData <- communitiesDataList[[groupName]]
+          if (!is.null(cData) && nrow(cData) > 0) {
+            for (i in seq_len(nrow(cData))) {
+              row_key <- paste(groupName, cData$node[i], sep="_")
+              row_vals <- list(
+                node = cData$node[i],
+                community = cData$community[i]
+              )
+              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
+              try(commTable$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
+            }
+          }
+        }
+      }
+
       if (isTRUE(self$options$plotNetwork_net) && length(networkGraphsList) > 0) {
         commonLayout <- NULL
         tryCatch({
@@ -522,12 +623,23 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           }, error=function(e2){})
         })
         
+        final_node_groups <- qgraph_groups
+        if (is.null(final_node_groups) && length(commMembershipList) > 0) {
+          first_mem <- commMembershipList[[1]]
+          if (!is.null(first_mem)) {
+            final_node_groups <- list()
+            for (u_c in unique(first_mem)) {
+              final_node_groups[[paste0("Comm ", u_c)]] <- which(first_mem == u_c)
+            }
+          }
+        }
         plotState <- list(
-          graphs = networkGraphsList, 
+          graphs = networkGraphsList,
+          layoutSeed = self$options$layoutSeed_net, 
           layout = commonLayout, 
           labels = if(isTRUE(self$options$showLabels_net)) nodeLabels else FALSE, 
           groupNames = successful_groups,
-          nodeGroups = qgraph_groups
+          nodeGroups = final_node_groups
         )
         self$results$networkPlot_net$setState(plotState)
       }
@@ -559,6 +671,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         try(self$results$centrality_mixed$setVisible(FALSE), silent=TRUE); try(self$results$clustering_mixed$setVisible(FALSE), silent=TRUE)
         try(self$results$networkPlot_mixed$setVisible(FALSE), silent=TRUE); try(self$results$centralityPlot_mixed$setVisible(FALSE), silent=TRUE)
         try(self$results$clusteringPlot_mixed$setVisible(FALSE), silent=TRUE)
+        try(self$results$bridge_mixed$setVisible(FALSE), silent=TRUE); try(self$results$communities_mixed$setVisible(FALSE), silent=TRUE)
         return()
       } else {
         self$results$instructions_mixed$setVisible(FALSE)
@@ -712,7 +825,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       if (!requireNamespace("gtools", quietly = TRUE)) { jmvcore::reject("Package 'gtools' is required. Please install it.", code = "gtools_missing"); return() }
       if (!requireNamespace("reshape2", quietly = TRUE)) { jmvcore::reject("Package 'reshape2' is required. Please install it.", code = "reshape2_missing"); return() }
       
-      networkResultsList <- list(); weightedAdjMatrices <- list(); centralityDataList <- list(); clusteringDataList <- list(); estimation_errors <- character()
+      networkResultsList <- list(); weightedAdjMatrices <- list(); centralityDataList <- list(); clusteringDataList <- list(); bridgeDataList <- list(); communitiesDataList <- list(); commMembershipList <- list(); estimation_errors <- character()
       
       for (groupName in groupLevels) {
         currentDataGroup_for_estimation <- dataList[[groupName]][, allVarNames, drop=FALSE]
@@ -825,6 +938,15 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
             rownames(clusteringDataRaw) <- NULL
             clusteringDataList[[groupName]] <- clusteringDataRaw
           }, error = function(e) {})
+          
+          # BSS-FEAT-001 & BSS-FEAT-002: Bridge Centrality and Communities
+          commAlgo_mixed <- self$options$communityAlgorithm_mixed
+          cb_res_mixed <- private$.computeCommunitiesAndBridge(adjMatrix, allVarNames, qgraph_groups, commAlgo_mixed)
+          bridgeDataList[[groupName]] <- cb_res_mixed$bridge
+          communitiesDataList[[groupName]] <- cb_res_mixed$communities
+          if (!is.null(cb_res_mixed$nodeToComm)) {
+            commMembershipList[[groupName]] <- cb_res_mixed$nodeToComm
+          }
           
         }, error = function(e) {
           err_msg <- paste0("Group '", groupName, "': Error during estimation - ", e$message)
@@ -1004,6 +1126,50 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         }
       }
       
+      bridgeTable_m <- self$results$bridge_mixed
+      try(bridgeTable_m$setState(NULL), silent=TRUE)
+      try(bridgeTable_m$deleteRows(), silent=TRUE)
+      if (isTRUE(self$options$tableBridge_mixed)) {
+        for (groupName in successful_groups) {
+          bData <- bridgeDataList[[groupName]]
+          if (!is.null(bData) && nrow(bData) > 0) {
+            for (i in seq_len(nrow(bData))) {
+              row_key <- paste(groupName, bData$node[i], sep="_")
+              row_vals <- list(
+                node = bData$node[i],
+                community = bData$community[i],
+                bridgeStrength = bData$bridgeStrength[i],
+                bridgeBetweenness = bData$bridgeBetweenness[i],
+                bridgeCloseness = bData$bridgeCloseness[i],
+                bridgeEI1 = bData$bridgeEI1[i]
+              )
+              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
+              try(bridgeTable_m$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
+            }
+          }
+        }
+      }
+
+      commTable_m <- self$results$communities_mixed
+      try(commTable_m$setState(NULL), silent=TRUE)
+      try(commTable_m$deleteRows(), silent=TRUE)
+      if (isTRUE(self$options$tableCommunities_mixed)) {
+        for (groupName in successful_groups) {
+          cData <- communitiesDataList[[groupName]]
+          if (!is.null(cData) && nrow(cData) > 0) {
+            for (i in seq_len(nrow(cData))) {
+              row_key <- paste(groupName, cData$node[i], sep="_")
+              row_vals <- list(
+                node = cData$node[i],
+                community = cData$community[i]
+              )
+              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
+              try(commTable_m$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
+            }
+          }
+        }
+      }
+
       if (isTRUE(self$options$plotNetwork_mixed) && length(weightedAdjMatrices) > 0) {
         commonLayout <- NULL
         graphs_for_layout <- weightedAdjMatrices[successful_groups]
@@ -1038,14 +1204,25 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           })
         }
         
+        final_node_groups_mixed <- qgraph_groups
+        if (is.null(final_node_groups_mixed) && length(commMembershipList) > 0) {
+          first_mem_m <- commMembershipList[[1]]
+          if (!is.null(first_mem_m)) {
+            final_node_groups_mixed <- list()
+            for (u_c in unique(first_mem_m)) {
+              final_node_groups_mixed[[paste0("Comm ", u_c)]] <- which(first_mem_m == u_c)
+            }
+          }
+        }
         plotStateNetwork <- list(
-          graphs = graphs_for_layout, 
+          graphs = graphs_for_layout,
+          layoutSeed = self$options$layoutSeed_mixed, 
           edgeColors = lapply(networkResultsList[successful_groups], function(fit) if(!is.null(fit) && !is.null(fit$pairwise) && !is.null(fit$pairwise$edgecolor_cb)) fit$pairwise$edgecolor_cb else if(!is.null(fit) && !is.null(fit$pairwise)) fit$pairwise$edgecolor else NULL),
           layout = commonLayout, 
           labels = if(isTRUE(self$options$showLabels_mixed)) allVarNames else FALSE, 
           groupNames = successful_groups, 
           layoutAlgorithm = self$options$layoutAlgorithm_mixed,
-          nodeGroups = qgraph_groups
+          nodeGroups = final_node_groups_mixed
         )
         self$results$networkPlot_mixed$setState(plotStateNetwork)
       }
@@ -1090,6 +1267,12 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       graphics::par(bg = "transparent")
       plotOk <- TRUE
       
+      if (!is.null(plotState$layoutSeed) && is.numeric(plotState$layoutSeed)) {
+        set.seed(plotState$layoutSeed)
+      }
+      if (!is.null(plotState$layoutSeed) && is.numeric(plotState$layoutSeed)) {
+        set.seed(plotState$layoutSeed)
+      }
       for (i in 1:numPlots) { 
         groupName <- groupNames[i]
         currentGraph <- graphsToPlot[[groupName]]

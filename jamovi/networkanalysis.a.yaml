@@ -78,10 +78,32 @@ options:
       type: Bool
       default: TRUE
 
+    - name: tableBridge_net
+      title: Bridge Centrality Table
+      type: Bool
+      default: FALSE
+
     - name: tableClustering_net
       title: Clustering Table
       type: Bool
       default: FALSE
+
+    - name: tableCommunities_net
+      title: Community Detection Table
+      type: Bool
+      default: FALSE
+
+    - name: communityAlgorithm_net
+      title: Community Detection Algorithm
+      type: List
+      options:
+        - name: none
+          title: None (Use Node Groups Variable)
+        - name: walktrap
+          title: Walktrap (Pons & Latapy, 2005)
+        - name: louvain
+          title: Louvain (Blondel et al., 2008)
+      default: none
 
     - name: tableWeights_net
       title: Weights (Adjacency) Table
@@ -112,6 +134,11 @@ options:
         - name: circle
           title: Circle
       default: spring
+
+    - name: layoutSeed_net
+      title: Layout Random Seed
+      type: Integer
+      default: 100
 
     - name: showLabels_net
       title: Show Labels
@@ -214,10 +241,32 @@ options:
       type: Bool
       default: TRUE
 
+    - name: tableBridge_mixed
+      title: Bridge Centrality Table
+      type: Bool
+      default: FALSE
+
     - name: tableClustering_mixed
       title: Clustering Table
       type: Bool
       default: FALSE
+
+    - name: tableCommunities_mixed
+      title: Community Detection Table
+      type: Bool
+      default: FALSE
+
+    - name: communityAlgorithm_mixed
+      title: Community Detection Algorithm
+      type: List
+      options:
+        - name: none
+          title: None (Use Node Groups Variable)
+        - name: walktrap
+          title: Walktrap (Pons & Latapy, 2005)
+        - name: louvain
+          title: Louvain (Blondel et al., 2008)
+      default: none
 
     - name: tableWeights_mixed
       title: Weights (Adjacency) Table
@@ -248,6 +297,11 @@ options:
         - name: circle
           title: Circle
       default: spring
+
+    - name: layoutSeed_mixed
+      title: Layout Random Seed
+      type: Integer
+      default: 100
 
     - name: showLabels_mixed
       title: Show Labels

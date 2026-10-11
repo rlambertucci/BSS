@@ -478,3 +478,25 @@ ShapiroWilk1965:
   issue: 3-4
   pages: "591-611"
   doi: "10.1093/biomet/52.3-4.591"
+
+Jones2021:
+  type: article
+  author: "Jones, P. J., Ma, R., & McNally, R. J."
+  year: 2021
+  title: "Bridge Centrality: A Network Approach to Understanding Comorbidity"
+  journal: "Multivariate Behavioral Research"
+  volume: 56
+  issue: 2
+  pages: "353-367"
+  doi: "10.1080/00273171.2019.1614898"
+
+Blondel2008:
+  type: article
+  author: "Blondel, V. D., Guillaume, J.-L., Lambiotte, R., & Lefebvre, E."
+  year: 2008
+  title: "Fast unfolding of communities in large networks"
+  journal: "Journal of Statistical Mechanics: Theory and Experiment"
+  volume: 2008
+  issue: 10
+  pages: "P10008"
+  doi: "10.1088/1742-5468/2008/10/P10008"

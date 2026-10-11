@@ -57,7 +57,13 @@ children:
                   - type: CheckBox
                     name: tableCentrality_net
                   - type: CheckBox
+                    name: tableBridge_net
+                  - type: CheckBox
                     name: tableClustering_net
+                  - type: CheckBox
+                    name: tableCommunities_net
+                  - type: ComboBox
+                    name: communityAlgorithm_net
                   - type: CheckBox
                     name: tableWeights_net
 
@@ -88,6 +94,10 @@ children:
                 children:
                   - type: ComboBox
                     name: layoutAlgorithm_net
+                  - type: TextBox
+                    name: layoutSeed_net
+                    label: Layout Random Seed
+                    format: number
                   - type: CheckBox
                     name: showLabels_net
                   - type: TextBox
@@ -173,7 +183,13 @@ children:
                   - type: CheckBox
                     name: tableCentrality_mixed
                   - type: CheckBox
+                    name: tableBridge_mixed
+                  - type: CheckBox
                     name: tableClustering_mixed
+                  - type: CheckBox
+                    name: tableCommunities_mixed
+                  - type: ComboBox
+                    name: communityAlgorithm_mixed
                   - type: CheckBox
                     name: tableWeights_mixed
 
@@ -204,6 +220,10 @@ children:
                 children:
                   - type: ComboBox
                     name: layoutAlgorithm_mixed
+                  - type: TextBox
+                    name: layoutSeed_mixed
+                    label: Layout Random Seed
+                    format: number
                   - type: CheckBox
                     name: showLabels_mixed
                   - type: TextBox

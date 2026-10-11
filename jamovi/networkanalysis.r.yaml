@@ -104,6 +104,72 @@ items:
         title: 'Zhang'
         type: number
 
+
+  - name: bridge_net
+    title: Bridge Centrality Measures
+    type: Table
+    visible: (mode == 'continuous' && tableBridge_net)
+    refs:
+      - Jones2021
+      - networktools
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - nodeGroupVar_net
+      - communityAlgorithm_net
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_net)
+      - name: node
+        title: 'Variable'
+        type: text
+        format: string
+      - name: community
+        title: 'Community'
+        type: text
+      - name: bridgeStrength
+        title: 'Bridge Strength'
+        type: number
+      - name: bridgeBetweenness
+        title: 'Bridge Betweenness'
+        type: number
+      - name: bridgeCloseness
+        title: 'Bridge Closeness'
+        type: number
+      - name: bridgeEI1
+        title: 'Bridge Expected Influence (1-step)'
+        type: number
+
+  - name: communities_net
+    title: Community Detection Membership
+    type: Table
+    visible: (mode == 'continuous' && tableCommunities_net)
+    refs:
+      - Blondel2008
+      - igraph
+    clearWith:
+      - vars_net
+      - estimator_net
+      - corMethod_net
+      - groupVar_net
+      - communityAlgorithm_net
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_net)
+      - name: node
+        title: 'Variable'
+        type: text
+        format: string
+      - name: community
+        title: 'Detected Community'
+        type: text
+
   - name: weights_net
     title: Weights (Adjacency Matrix)
     type: Table
@@ -171,6 +237,8 @@ items:
       - showLabels_net
       - plotWidth_net
       - plotHeight_net
+      - layoutSeed_net
+      - communityAlgorithm_net
       - groupVar_net
       - nodeGroupVar_net
   - name: instructions_mixed
@@ -289,6 +357,81 @@ items:
         title: 'Zhang'
         type: number
 
+
+  - name: bridge_mixed
+    title: Bridge Centrality Measures
+    type: Table
+    visible: (mode == 'mixed' && tableBridge_mixed)
+    refs:
+      - Jones2021
+      - networktools
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+      - communityAlgorithm_mixed
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_mixed)
+      - name: node
+        title: 'Variable'
+        type: text
+        format: string
+      - name: community
+        title: 'Community'
+        type: text
+      - name: bridgeStrength
+        title: 'Bridge Strength'
+        type: number
+      - name: bridgeBetweenness
+        title: 'Bridge Betweenness'
+        type: number
+      - name: bridgeCloseness
+        title: 'Bridge Closeness'
+        type: number
+      - name: bridgeEI1
+        title: 'Bridge Expected Influence (1-step)'
+        type: number
+
+  - name: communities_mixed
+    title: Community Detection Membership
+    type: Table
+    visible: (mode == 'mixed' && tableCommunities_mixed)
+    refs:
+      - Blondel2008
+      - igraph
+    clearWith:
+      - varsCont_mixed
+      - varsCat_mixed
+      - varsCount_mixed
+      - groupVar_mixed
+      - nodeGroupVar_mixed
+      - lambdaSelMethod_mixed
+      - kFolds_mixed
+      - lambdaGam_mixed
+      - ruleReg_mixed
+      - communityAlgorithm_mixed
+    columns:
+      - name: group
+        title: 'Group'
+        type: text
+        visible: (groupVar_mixed)
+      - name: node
+        title: 'Variable'
+        type: text
+        format: string
+      - name: community
+        title: 'Detected Community'
+        type: text
+
   - name: weights_mixed
     title: Weights (Adjacency Matrix)
     type: Table
@@ -387,3 +530,5 @@ items:
       - showLabels_mixed
       - plotWidth_mixed
       - plotHeight_mixed
+      - layoutSeed_mixed
+      - communityAlgorithm_mixed

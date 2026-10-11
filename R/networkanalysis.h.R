@@ -13,12 +13,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             estimator_net = "EBICglasso",
             corMethod_net = "auto",
             tableCentrality_net = TRUE,
+            tableBridge_net = FALSE,
             tableClustering_net = FALSE,
+            tableCommunities_net = FALSE,
+            communityAlgorithm_net = "none",
             tableWeights_net = FALSE,
             plotCentrality_net = FALSE,
             plotClustering_net = FALSE,
             plotNetwork_net = FALSE,
             layoutAlgorithm_net = "spring",
+            layoutSeed_net = 100,
             showLabels_net = TRUE,
             plotWidth_net = 500,
             plotHeight_net = 500,
@@ -32,12 +36,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             lambdaGam_mixed = 0.5,
             ruleReg_mixed = "AND",
             tableCentrality_mixed = TRUE,
+            tableBridge_mixed = FALSE,
             tableClustering_mixed = FALSE,
+            tableCommunities_mixed = FALSE,
+            communityAlgorithm_mixed = "none",
             tableWeights_mixed = FALSE,
             plotCentrality_mixed = FALSE,
             plotClustering_mixed = FALSE,
             plotNetwork_mixed = TRUE,
             layoutAlgorithm_mixed = "spring",
+            layoutSeed_mixed = 100,
             showLabels_mixed = TRUE,
             plotWidth_mixed = 500,
             plotHeight_mixed = 500, ...) {
@@ -101,10 +109,26 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 "tableCentrality_net",
                 tableCentrality_net,
                 default=TRUE)
+            private$..tableBridge_net <- jmvcore::OptionBool$new(
+                "tableBridge_net",
+                tableBridge_net,
+                default=FALSE)
             private$..tableClustering_net <- jmvcore::OptionBool$new(
                 "tableClustering_net",
                 tableClustering_net,
                 default=FALSE)
+            private$..tableCommunities_net <- jmvcore::OptionBool$new(
+                "tableCommunities_net",
+                tableCommunities_net,
+                default=FALSE)
+            private$..communityAlgorithm_net <- jmvcore::OptionList$new(
+                "communityAlgorithm_net",
+                communityAlgorithm_net,
+                options=list(
+                    "none",
+                    "walktrap",
+                    "louvain"),
+                default="none")
             private$..tableWeights_net <- jmvcore::OptionBool$new(
                 "tableWeights_net",
                 tableWeights_net,
@@ -128,6 +152,10 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "spring",
                     "circle"),
                 default="spring")
+            private$..layoutSeed_net <- jmvcore::OptionInteger$new(
+                "layoutSeed_net",
+                layoutSeed_net,
+                default=100)
             private$..showLabels_net <- jmvcore::OptionBool$new(
                 "showLabels_net",
                 showLabels_net,
@@ -212,10 +240,26 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 "tableCentrality_mixed",
                 tableCentrality_mixed,
                 default=TRUE)
+            private$..tableBridge_mixed <- jmvcore::OptionBool$new(
+                "tableBridge_mixed",
+                tableBridge_mixed,
+                default=FALSE)
             private$..tableClustering_mixed <- jmvcore::OptionBool$new(
                 "tableClustering_mixed",
                 tableClustering_mixed,
                 default=FALSE)
+            private$..tableCommunities_mixed <- jmvcore::OptionBool$new(
+                "tableCommunities_mixed",
+                tableCommunities_mixed,
+                default=FALSE)
+            private$..communityAlgorithm_mixed <- jmvcore::OptionList$new(
+                "communityAlgorithm_mixed",
+                communityAlgorithm_mixed,
+                options=list(
+                    "none",
+                    "walktrap",
+                    "louvain"),
+                default="none")
             private$..tableWeights_mixed <- jmvcore::OptionBool$new(
                 "tableWeights_mixed",
                 tableWeights_mixed,
@@ -239,6 +283,10 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "spring",
                     "circle"),
                 default="spring")
+            private$..layoutSeed_mixed <- jmvcore::OptionInteger$new(
+                "layoutSeed_mixed",
+                layoutSeed_mixed,
+                default=100)
             private$..showLabels_mixed <- jmvcore::OptionBool$new(
                 "showLabels_mixed",
                 showLabels_mixed,
@@ -259,12 +307,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             self$.addOption(private$..estimator_net)
             self$.addOption(private$..corMethod_net)
             self$.addOption(private$..tableCentrality_net)
+            self$.addOption(private$..tableBridge_net)
             self$.addOption(private$..tableClustering_net)
+            self$.addOption(private$..tableCommunities_net)
+            self$.addOption(private$..communityAlgorithm_net)
             self$.addOption(private$..tableWeights_net)
             self$.addOption(private$..plotCentrality_net)
             self$.addOption(private$..plotClustering_net)
             self$.addOption(private$..plotNetwork_net)
             self$.addOption(private$..layoutAlgorithm_net)
+            self$.addOption(private$..layoutSeed_net)
             self$.addOption(private$..showLabels_net)
             self$.addOption(private$..plotWidth_net)
             self$.addOption(private$..plotHeight_net)
@@ -278,12 +330,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             self$.addOption(private$..lambdaGam_mixed)
             self$.addOption(private$..ruleReg_mixed)
             self$.addOption(private$..tableCentrality_mixed)
+            self$.addOption(private$..tableBridge_mixed)
             self$.addOption(private$..tableClustering_mixed)
+            self$.addOption(private$..tableCommunities_mixed)
+            self$.addOption(private$..communityAlgorithm_mixed)
             self$.addOption(private$..tableWeights_mixed)
             self$.addOption(private$..plotCentrality_mixed)
             self$.addOption(private$..plotClustering_mixed)
             self$.addOption(private$..plotNetwork_mixed)
             self$.addOption(private$..layoutAlgorithm_mixed)
+            self$.addOption(private$..layoutSeed_mixed)
             self$.addOption(private$..showLabels_mixed)
             self$.addOption(private$..plotWidth_mixed)
             self$.addOption(private$..plotHeight_mixed)
@@ -296,12 +352,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         estimator_net = function() private$..estimator_net$value,
         corMethod_net = function() private$..corMethod_net$value,
         tableCentrality_net = function() private$..tableCentrality_net$value,
+        tableBridge_net = function() private$..tableBridge_net$value,
         tableClustering_net = function() private$..tableClustering_net$value,
+        tableCommunities_net = function() private$..tableCommunities_net$value,
+        communityAlgorithm_net = function() private$..communityAlgorithm_net$value,
         tableWeights_net = function() private$..tableWeights_net$value,
         plotCentrality_net = function() private$..plotCentrality_net$value,
         plotClustering_net = function() private$..plotClustering_net$value,
         plotNetwork_net = function() private$..plotNetwork_net$value,
         layoutAlgorithm_net = function() private$..layoutAlgorithm_net$value,
+        layoutSeed_net = function() private$..layoutSeed_net$value,
         showLabels_net = function() private$..showLabels_net$value,
         plotWidth_net = function() private$..plotWidth_net$value,
         plotHeight_net = function() private$..plotHeight_net$value,
@@ -315,12 +375,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         lambdaGam_mixed = function() private$..lambdaGam_mixed$value,
         ruleReg_mixed = function() private$..ruleReg_mixed$value,
         tableCentrality_mixed = function() private$..tableCentrality_mixed$value,
+        tableBridge_mixed = function() private$..tableBridge_mixed$value,
         tableClustering_mixed = function() private$..tableClustering_mixed$value,
+        tableCommunities_mixed = function() private$..tableCommunities_mixed$value,
+        communityAlgorithm_mixed = function() private$..communityAlgorithm_mixed$value,
         tableWeights_mixed = function() private$..tableWeights_mixed$value,
         plotCentrality_mixed = function() private$..plotCentrality_mixed$value,
         plotClustering_mixed = function() private$..plotClustering_mixed$value,
         plotNetwork_mixed = function() private$..plotNetwork_mixed$value,
         layoutAlgorithm_mixed = function() private$..layoutAlgorithm_mixed$value,
+        layoutSeed_mixed = function() private$..layoutSeed_mixed$value,
         showLabels_mixed = function() private$..showLabels_mixed$value,
         plotWidth_mixed = function() private$..plotWidth_mixed$value,
         plotHeight_mixed = function() private$..plotHeight_mixed$value),
@@ -332,12 +396,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         ..estimator_net = NA,
         ..corMethod_net = NA,
         ..tableCentrality_net = NA,
+        ..tableBridge_net = NA,
         ..tableClustering_net = NA,
+        ..tableCommunities_net = NA,
+        ..communityAlgorithm_net = NA,
         ..tableWeights_net = NA,
         ..plotCentrality_net = NA,
         ..plotClustering_net = NA,
         ..plotNetwork_net = NA,
         ..layoutAlgorithm_net = NA,
+        ..layoutSeed_net = NA,
         ..showLabels_net = NA,
         ..plotWidth_net = NA,
         ..plotHeight_net = NA,
@@ -351,12 +419,16 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         ..lambdaGam_mixed = NA,
         ..ruleReg_mixed = NA,
         ..tableCentrality_mixed = NA,
+        ..tableBridge_mixed = NA,
         ..tableClustering_mixed = NA,
+        ..tableCommunities_mixed = NA,
+        ..communityAlgorithm_mixed = NA,
         ..tableWeights_mixed = NA,
         ..plotCentrality_mixed = NA,
         ..plotClustering_mixed = NA,
         ..plotNetwork_mixed = NA,
         ..layoutAlgorithm_mixed = NA,
+        ..layoutSeed_mixed = NA,
         ..showLabels_mixed = NA,
         ..plotWidth_mixed = NA,
         ..plotHeight_mixed = NA)
@@ -370,6 +442,8 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         summary_net = function() private$.items[["summary_net"]],
         centrality_net = function() private$.items[["centrality_net"]],
         clustering_net = function() private$.items[["clustering_net"]],
+        bridge_net = function() private$.items[["bridge_net"]],
+        communities_net = function() private$.items[["communities_net"]],
         weights_net = function() private$.items[["weights_net"]],
         centralityPlot_net = function() private$.items[["centralityPlot_net"]],
         clusteringPlot_net = function() private$.items[["clusteringPlot_net"]],
@@ -378,6 +452,8 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         summary_mixed = function() private$.items[["summary_mixed"]],
         centrality_mixed = function() private$.items[["centrality_mixed"]],
         clustering_mixed = function() private$.items[["clustering_mixed"]],
+        bridge_mixed = function() private$.items[["bridge_mixed"]],
+        communities_mixed = function() private$.items[["communities_mixed"]],
         weights_mixed = function() private$.items[["weights_mixed"]],
         centralityPlot_mixed = function() private$.items[["centralityPlot_mixed"]],
         clusteringPlot_mixed = function() private$.items[["clusteringPlot_mixed"]],
@@ -508,6 +584,81 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
+                name="bridge_net",
+                title="Bridge Centrality Measures",
+                visible="(mode == 'continuous' && tableBridge_net)",
+                refs=list(
+                    "Jones2021",
+                    "networktools"),
+                clearWith=list(
+                    "vars_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "groupVar_net",
+                    "nodeGroupVar_net",
+                    "communityAlgorithm_net"),
+                columns=list(
+                    list(
+                        `name`="group", 
+                        `title`="Group", 
+                        `type`="text", 
+                        `visible`="(groupVar_net)"),
+                    list(
+                        `name`="node", 
+                        `title`="Variable", 
+                        `type`="text", 
+                        `format`="string"),
+                    list(
+                        `name`="community", 
+                        `title`="Community", 
+                        `type`="text"),
+                    list(
+                        `name`="bridgeStrength", 
+                        `title`="Bridge Strength", 
+                        `type`="number"),
+                    list(
+                        `name`="bridgeBetweenness", 
+                        `title`="Bridge Betweenness", 
+                        `type`="number"),
+                    list(
+                        `name`="bridgeCloseness", 
+                        `title`="Bridge Closeness", 
+                        `type`="number"),
+                    list(
+                        `name`="bridgeEI1", 
+                        `title`="Bridge Expected Influence (1-step)", 
+                        `type`="number"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="communities_net",
+                title="Community Detection Membership",
+                visible="(mode == 'continuous' && tableCommunities_net)",
+                refs=list(
+                    "Blondel2008",
+                    "igraph"),
+                clearWith=list(
+                    "vars_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "groupVar_net",
+                    "communityAlgorithm_net"),
+                columns=list(
+                    list(
+                        `name`="group", 
+                        `title`="Group", 
+                        `type`="text", 
+                        `visible`="(groupVar_net)"),
+                    list(
+                        `name`="node", 
+                        `title`="Variable", 
+                        `type`="text", 
+                        `format`="string"),
+                    list(
+                        `name`="community", 
+                        `title`="Detected Community", 
+                        `type`="text"))))
+            self$add(jmvcore::Table$new(
+                options=options,
                 name="weights_net",
                 title="Weights (Adjacency Matrix)",
                 visible="(mode == 'continuous' && tableWeights_net)",
@@ -575,6 +726,8 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "showLabels_net",
                     "plotWidth_net",
                     "plotHeight_net",
+                    "layoutSeed_net",
+                    "communityAlgorithm_net",
                     "groupVar_net",
                     "nodeGroupVar_net")))
             self$add(jmvcore::Preformatted$new(
@@ -711,6 +864,90 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
+                name="bridge_mixed",
+                title="Bridge Centrality Measures",
+                visible="(mode == 'mixed' && tableBridge_mixed)",
+                refs=list(
+                    "Jones2021",
+                    "networktools"),
+                clearWith=list(
+                    "varsCont_mixed",
+                    "varsCat_mixed",
+                    "varsCount_mixed",
+                    "groupVar_mixed",
+                    "nodeGroupVar_mixed",
+                    "lambdaSelMethod_mixed",
+                    "kFolds_mixed",
+                    "lambdaGam_mixed",
+                    "ruleReg_mixed",
+                    "communityAlgorithm_mixed"),
+                columns=list(
+                    list(
+                        `name`="group", 
+                        `title`="Group", 
+                        `type`="text", 
+                        `visible`="(groupVar_mixed)"),
+                    list(
+                        `name`="node", 
+                        `title`="Variable", 
+                        `type`="text", 
+                        `format`="string"),
+                    list(
+                        `name`="community", 
+                        `title`="Community", 
+                        `type`="text"),
+                    list(
+                        `name`="bridgeStrength", 
+                        `title`="Bridge Strength", 
+                        `type`="number"),
+                    list(
+                        `name`="bridgeBetweenness", 
+                        `title`="Bridge Betweenness", 
+                        `type`="number"),
+                    list(
+                        `name`="bridgeCloseness", 
+                        `title`="Bridge Closeness", 
+                        `type`="number"),
+                    list(
+                        `name`="bridgeEI1", 
+                        `title`="Bridge Expected Influence (1-step)", 
+                        `type`="number"))))
+            self$add(jmvcore::Table$new(
+                options=options,
+                name="communities_mixed",
+                title="Community Detection Membership",
+                visible="(mode == 'mixed' && tableCommunities_mixed)",
+                refs=list(
+                    "Blondel2008",
+                    "igraph"),
+                clearWith=list(
+                    "varsCont_mixed",
+                    "varsCat_mixed",
+                    "varsCount_mixed",
+                    "groupVar_mixed",
+                    "nodeGroupVar_mixed",
+                    "lambdaSelMethod_mixed",
+                    "kFolds_mixed",
+                    "lambdaGam_mixed",
+                    "ruleReg_mixed",
+                    "communityAlgorithm_mixed"),
+                columns=list(
+                    list(
+                        `name`="group", 
+                        `title`="Group", 
+                        `type`="text", 
+                        `visible`="(groupVar_mixed)"),
+                    list(
+                        `name`="node", 
+                        `title`="Variable", 
+                        `type`="text", 
+                        `format`="string"),
+                    list(
+                        `name`="community", 
+                        `title`="Detected Community", 
+                        `type`="text"))))
+            self$add(jmvcore::Table$new(
+                options=options,
                 name="weights_mixed",
                 title="Weights (Adjacency Matrix)",
                 visible="(mode == 'mixed' && tableWeights_mixed)",
@@ -809,7 +1046,9 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "layoutAlgorithm_mixed",
                     "showLabels_mixed",
                     "plotWidth_mixed",
-                    "plotHeight_mixed")))}))
+                    "plotHeight_mixed",
+                    "layoutSeed_mixed",
+                    "communityAlgorithm_mixed")))}))
 
 networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "networkanalysisBase",
@@ -843,12 +1082,16 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #' @param estimator_net .
 #' @param corMethod_net .
 #' @param tableCentrality_net .
+#' @param tableBridge_net .
 #' @param tableClustering_net .
+#' @param tableCommunities_net .
+#' @param communityAlgorithm_net .
 #' @param tableWeights_net .
 #' @param plotCentrality_net .
 #' @param plotClustering_net .
 #' @param plotNetwork_net .
 #' @param layoutAlgorithm_net .
+#' @param layoutSeed_net .
 #' @param showLabels_net .
 #' @param plotWidth_net .
 #' @param plotHeight_net .
@@ -862,12 +1105,16 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #' @param lambdaGam_mixed .
 #' @param ruleReg_mixed .
 #' @param tableCentrality_mixed .
+#' @param tableBridge_mixed .
 #' @param tableClustering_mixed .
+#' @param tableCommunities_mixed .
+#' @param communityAlgorithm_mixed .
 #' @param tableWeights_mixed .
 #' @param plotCentrality_mixed .
 #' @param plotClustering_mixed .
 #' @param plotNetwork_mixed .
 #' @param layoutAlgorithm_mixed .
+#' @param layoutSeed_mixed .
 #' @param showLabels_mixed .
 #' @param plotWidth_mixed .
 #' @param plotHeight_mixed .
@@ -877,6 +1124,8 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #'   \code{results$summary_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centrality_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clustering_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$bridge_net} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$communities_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$weights_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centralityPlot_net} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$clusteringPlot_net} \tab \tab \tab \tab \tab an image \cr
@@ -885,6 +1134,8 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #'   \code{results$summary_mixed} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centrality_mixed} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clustering_mixed} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$bridge_mixed} \tab \tab \tab \tab \tab a table \cr
+#'   \code{results$communities_mixed} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$weights_mixed} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centralityPlot_mixed} \tab \tab \tab \tab \tab an image \cr
 #'   \code{results$clusteringPlot_mixed} \tab \tab \tab \tab \tab an image \cr
@@ -907,12 +1158,16 @@ networkanalysis <- function(
     estimator_net = "EBICglasso",
     corMethod_net = "auto",
     tableCentrality_net = TRUE,
+    tableBridge_net = FALSE,
     tableClustering_net = FALSE,
+    tableCommunities_net = FALSE,
+    communityAlgorithm_net = "none",
     tableWeights_net = FALSE,
     plotCentrality_net = FALSE,
     plotClustering_net = FALSE,
     plotNetwork_net = FALSE,
     layoutAlgorithm_net = "spring",
+    layoutSeed_net = 100,
     showLabels_net = TRUE,
     plotWidth_net = 500,
     plotHeight_net = 500,
@@ -926,12 +1181,16 @@ networkanalysis <- function(
     lambdaGam_mixed = 0.5,
     ruleReg_mixed = "AND",
     tableCentrality_mixed = TRUE,
+    tableBridge_mixed = FALSE,
     tableClustering_mixed = FALSE,
+    tableCommunities_mixed = FALSE,
+    communityAlgorithm_mixed = "none",
     tableWeights_mixed = FALSE,
     plotCentrality_mixed = FALSE,
     plotClustering_mixed = FALSE,
     plotNetwork_mixed = TRUE,
     layoutAlgorithm_mixed = "spring",
+    layoutSeed_mixed = 100,
     showLabels_mixed = TRUE,
     plotWidth_mixed = 500,
     plotHeight_mixed = 500) {
@@ -971,12 +1230,16 @@ networkanalysis <- function(
         estimator_net = estimator_net,
         corMethod_net = corMethod_net,
         tableCentrality_net = tableCentrality_net,
+        tableBridge_net = tableBridge_net,
         tableClustering_net = tableClustering_net,
+        tableCommunities_net = tableCommunities_net,
+        communityAlgorithm_net = communityAlgorithm_net,
         tableWeights_net = tableWeights_net,
         plotCentrality_net = plotCentrality_net,
         plotClustering_net = plotClustering_net,
         plotNetwork_net = plotNetwork_net,
         layoutAlgorithm_net = layoutAlgorithm_net,
+        layoutSeed_net = layoutSeed_net,
         showLabels_net = showLabels_net,
         plotWidth_net = plotWidth_net,
         plotHeight_net = plotHeight_net,
@@ -990,12 +1253,16 @@ networkanalysis <- function(
         lambdaGam_mixed = lambdaGam_mixed,
         ruleReg_mixed = ruleReg_mixed,
         tableCentrality_mixed = tableCentrality_mixed,
+        tableBridge_mixed = tableBridge_mixed,
         tableClustering_mixed = tableClustering_mixed,
+        tableCommunities_mixed = tableCommunities_mixed,
+        communityAlgorithm_mixed = communityAlgorithm_mixed,
         tableWeights_mixed = tableWeights_mixed,
         plotCentrality_mixed = plotCentrality_mixed,
         plotClustering_mixed = plotClustering_mixed,
         plotNetwork_mixed = plotNetwork_mixed,
         layoutAlgorithm_mixed = layoutAlgorithm_mixed,
+        layoutSeed_mixed = layoutSeed_mixed,
         showLabels_mixed = showLabels_mixed,
         plotWidth_mixed = plotWidth_mixed,
         plotHeight_mixed = plotHeight_mixed)
