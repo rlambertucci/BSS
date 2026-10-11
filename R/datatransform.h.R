@@ -12,9 +12,11 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
             suffix = "_transfrmd",
             show_lambda_table = TRUE,
             show_normality_table = TRUE,
+            normality_test = "shapiro",
             alpha_sw = 0.05,
             show_qq_plot = TRUE,
-            show_hist_plot = TRUE, ...) {
+            show_hist_plot = TRUE,
+            show_density_plot = TRUE, ...) {
 
             super$initialize(
                 package="BSS",
@@ -36,7 +38,9 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 options=list(
                     "boxcox",
                     "yeojohnson",
-                    "johnson"),
+                    "johnson",
+                    "arcsine",
+                    "logit"),
                 default="yeojohnson")
             private$..auto_shift <- jmvcore::OptionBool$new(
                 "auto_shift",
@@ -54,6 +58,14 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 "show_normality_table",
                 show_normality_table,
                 default=TRUE)
+            private$..normality_test <- jmvcore::OptionList$new(
+                "normality_test",
+                normality_test,
+                options=list(
+                    "shapiro",
+                    "anderson_darling",
+                    "shapiro_francia"),
+                default="shapiro")
             private$..alpha_sw <- jmvcore::OptionNumber$new(
                 "alpha_sw",
                 alpha_sw,
@@ -68,6 +80,10 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 "show_hist_plot",
                 show_hist_plot,
                 default=TRUE)
+            private$..show_density_plot <- jmvcore::OptionBool$new(
+                "show_density_plot",
+                show_density_plot,
+                default=TRUE)
             private$..transformedVarsOutput <- jmvcore::OptionOutput$new(
                 "transformedVarsOutput")
 
@@ -77,9 +93,11 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
             self$.addOption(private$..suffix)
             self$.addOption(private$..show_lambda_table)
             self$.addOption(private$..show_normality_table)
+            self$.addOption(private$..normality_test)
             self$.addOption(private$..alpha_sw)
             self$.addOption(private$..show_qq_plot)
             self$.addOption(private$..show_hist_plot)
+            self$.addOption(private$..show_density_plot)
             self$.addOption(private$..transformedVarsOutput)
         }),
     active = list(
@@ -89,9 +107,11 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         suffix = function() private$..suffix$value,
         show_lambda_table = function() private$..show_lambda_table$value,
         show_normality_table = function() private$..show_normality_table$value,
+        normality_test = function() private$..normality_test$value,
         alpha_sw = function() private$..alpha_sw$value,
         show_qq_plot = function() private$..show_qq_plot$value,
         show_hist_plot = function() private$..show_hist_plot$value,
+        show_density_plot = function() private$..show_density_plot$value,
         transformedVarsOutput = function() private$..transformedVarsOutput$value),
     private = list(
         ..vars = NA,
@@ -100,9 +120,11 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         ..suffix = NA,
         ..show_lambda_table = NA,
         ..show_normality_table = NA,
+        ..normality_test = NA,
         ..alpha_sw = NA,
         ..show_qq_plot = NA,
         ..show_hist_plot = NA,
+        ..show_density_plot = NA,
         ..transformedVarsOutput = NA)
 )
 
@@ -115,6 +137,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         normalityTable = function() private$.items[["normalityTable"]],
         qqPlots = function() private$.items[["qqPlots"]],
         histPlots = function() private$.items[["histPlots"]],
+        densityPlots = function() private$.items[["densityPlots"]],
         transformedVarsOutput = function() private$.items[["transformedVarsOutput"]]),
     private = list(),
     public=list(
@@ -135,7 +158,8 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 visible="(show_lambda_table)",
                 refs=list(
                     "bestNormalize",
-                    "SuppDists"),
+                    "SuppDists",
+                    "Bartlett1937"),
                 clearWith=list(
                     "vars",
                     "method",
@@ -171,12 +195,17 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
             self$add(jmvcore::Table$new(
                 options=options,
                 name="normalityTable",
-                title="Shapiro-Wilk Normality Test",
+                title="Normality Test (Before & After)",
                 visible="(show_normality_table)",
+                refs=list(
+                    "ShapiroWilk1965",
+                    "Stephens1974",
+                    "Royston1993"),
                 clearWith=list(
                     "vars",
                     "method",
                     "auto_shift",
+                    "normality_test",
                     "alpha_sw"),
                 columns=list(
                     list(
@@ -190,7 +219,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                         `type`="text"),
                     list(
                         `name`="W", 
-                        `title`="W", 
+                        `title`="Statistic", 
                         `type`="number", 
                         `format`="dp:4"),
                     list(
@@ -242,6 +271,26 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     height=400,
                     renderFun=".histPlot",
                     requiresData=TRUE)))
+            self$add(jmvcore::Array$new(
+                options=options,
+                name="densityPlots",
+                title="Density Plot (Before & After)",
+                items="(vars)",
+                visible="(show_density_plot)",
+                refs=list(
+                    "ggplot2",
+                    "gridExtra"),
+                clearWith=list(
+                    "vars",
+                    "method",
+                    "auto_shift"),
+                template=jmvcore::Image$new(
+                    options=options,
+                    title="$key",
+                    width=650,
+                    height=400,
+                    renderFun=".densityPlot",
+                    requiresData=TRUE)))
             self$add(jmvcore::Output$new(
                 options=options,
                 name="transformedVarsOutput",
@@ -285,9 +334,11 @@ dataTransformBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param suffix .
 #' @param show_lambda_table .
 #' @param show_normality_table .
+#' @param normality_test .
 #' @param alpha_sw .
 #' @param show_qq_plot .
 #' @param show_hist_plot .
+#' @param show_density_plot .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$transformInfo} \tab \tab \tab \tab \tab a html \cr
@@ -295,6 +346,7 @@ dataTransformBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$normalityTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$qqPlots} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$histPlots} \tab \tab \tab \tab \tab an array of images \cr
+#'   \code{results$densityPlots} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$transformedVarsOutput} \tab \tab \tab \tab \tab an output \cr
 #' }
 #'
@@ -313,9 +365,11 @@ dataTransform <- function(
     suffix = "_transfrmd",
     show_lambda_table = TRUE,
     show_normality_table = TRUE,
+    normality_test = "shapiro",
     alpha_sw = 0.05,
     show_qq_plot = TRUE,
-    show_hist_plot = TRUE) {
+    show_hist_plot = TRUE,
+    show_density_plot = TRUE) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("dataTransform requires jmvcore to be installed (restart may be required)")
@@ -334,9 +388,11 @@ dataTransform <- function(
         suffix = suffix,
         show_lambda_table = show_lambda_table,
         show_normality_table = show_normality_table,
+        normality_test = normality_test,
         alpha_sw = alpha_sw,
         show_qq_plot = show_qq_plot,
-        show_hist_plot = show_hist_plot)
+        show_hist_plot = show_hist_plot,
+        show_density_plot = show_density_plot)
 
     analysis <- dataTransformClass$new(
         options = options,

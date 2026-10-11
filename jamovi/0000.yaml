@@ -49,7 +49,9 @@ analyses:
     menuGroup: BSS
     menuTitle: Data Transformation
     menuSubgroup: Data Preparation & Screening
-    menuSubtitle: Power transformations for normality (Box-Cox, Yeo-Johnson, Johnson)
+    menuSubtitle: >-
+      Power & bounded transformations for normality (Box-Cox, Yeo-Johnson,
+      Johnson, Arcsine, Logit)
   - title: Network analysis
     name: networkanalysis
     ns: BSS

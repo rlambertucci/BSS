@@ -15,6 +15,7 @@ items:
       refs:
         - bestNormalize
         - SuppDists
+        - Bartlett1937
       clearWith:
         - vars
         - method
@@ -43,13 +44,18 @@ items:
           format: dp:4
 
     - name: normalityTable
-      title: Shapiro-Wilk Normality Test
+      title: Normality Test (Before & After)
       type: Table
       visible: (show_normality_table)
+      refs:
+        - ShapiroWilk1965
+        - Stephens1974
+        - Royston1993
       clearWith:
         - vars
         - method
         - auto_shift
+        - normality_test
         - alpha_sw
       columns:
         - name: variable
@@ -60,7 +66,7 @@ items:
           title: Moment
           type: text
         - name: W
-          title: W
+          title: Statistic
           type: number
           format: dp:4
         - name: p
@@ -109,6 +115,26 @@ items:
         width: 650
         height: 400
         renderFun: .histPlot
+        requiresData: true
+
+    - name: densityPlots
+      title: Density Plot (Before & After)
+      type: Array
+      items: (vars)
+      visible: (show_density_plot)
+      refs:
+        - ggplot2
+        - gridExtra
+      clearWith:
+        - vars
+        - method
+        - auto_shift
+      template:
+        title: $key
+        type: Image
+        width: 650
+        height: 400
+        renderFun: .densityPlot
         requiresData: true
 
     - name: transformedVarsOutput

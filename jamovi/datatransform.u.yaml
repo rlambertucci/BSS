@@ -50,7 +50,11 @@ children:
         children:
           - type: CheckBox
             name: show_normality_table
-            label: Shapiro-Wilk Test (before & after transformation)
+            label: Normality Test (before & after transformation)
+          - type: ComboBox
+            name: normality_test
+            label: Normality Test Method
+            enable: (show_normality_table)
           - type: TextBox
             name: alpha_sw
             label: Significance Level (α)
@@ -62,6 +66,9 @@ children:
           - type: CheckBox
             name: show_hist_plot
             label: Histogram (before & after transformation)
+          - type: CheckBox
+            name: show_density_plot
+            label: Density Plot (before & after transformation)
 
   - type: CollapseBox
     label: Save

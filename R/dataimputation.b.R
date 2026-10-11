@@ -753,4 +753,418 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
           if (!is.matrix(mat)) mat <- matrix(mat, nrow = length(na_idx))
           pooled[[v]][na_idx] <- apply(mat, 1, get_mode)
           if (is.factor(col_orig)) {
-            pooled[[v]] <- factor(pooled[[v]], levels = levels(col_orig), ordered = is.ordered(col_orig))\n          }\n        }\n      }\n      pooled\n    },\n    \n    .fill_imputed_table = function(original_data, pooled_data, vars_to_impute, table_result_ref) {\n      if (table_result_ref$rowCount > 0) table_result_ref$clear()\n      \n      row_num <- 1\n      for (var_name in vars_to_impute) {\n        if (!var_name %in% names(original_data) || !var_name %in% names(pooled_data)) next\n        original_col <- original_data[[var_name]]\n        imputed_col  <- pooled_data[[var_name]]\n        na_idx       <- which(is.na(original_col))\n        \n        for (i in na_idx) {\n          val <- imputed_col[i]\n          imputed_str <- if (is.numeric(val)) {\n            as.character(round(val, 3))\n          } else {\n            as.character(val)\n          }\n          if (row_num <= 1000) {\n            table_result_ref$addRow(rowKey = row_num, values = list(\n              variable  = var_name,\n              original  = \"NA\",\n              imputed   = imputed_str,\n              rowNumber = i\n            ))\n            row_num <- row_num + 1\n          } else if (row_num == 1001) {\n            table_result_ref$addRow(rowKey = row_num, values = list(\n              variable  = \"...\",\n              original  = \"...\",\n              imputed   = \"Table truncated (max 1000 rows)\",\n              rowNumber = NA_integer_\n            ))\n            row_num <- row_num + 1\n          }\n        }\n      }\n    },\n    \n    .set_correlation_state = function(data, vars_to_impute, plot_ref) {\n      sub_data   <- data[, intersect(vars_to_impute, names(data)), drop = FALSE]\n      miss_ind   <- as.data.frame(lapply(sub_data, function(x) as.integer(is.na(x))))\n      valid_cols <- sapply(miss_ind, function(x) var(x, na.rm = TRUE) > 0)\n      \n      if (sum(valid_cols) > 1) {\n        cor_mat <- stats::cor(miss_ind[, valid_cols, drop = FALSE], use = \"pairwise.complete.obs\")\n        if (any(is.finite(cor_mat))) {\n          plot_ref$setState(cor_mat)\n          plot_ref$setVisible(TRUE)\n          return()\n        }\n      }\n      plot_ref$setVisible(FALSE)\n    },\n    \n    .write_output = function(pooled_data, vars_to_impute, original_data, output_ref) {\n      if (!output_ref$isNotFilled()) return()\n      \n      keys   <- character()\n      titles <- character()\n      mtypes <- character()\n      \n      for (v in vars_to_impute) {\n        if (!v %in% names(pooled_data)) next\n        keys   <- c(keys, v)\n        titles <- c(titles, paste0(v, \"_imputed\"))\n        \n        orig_col <- original_data[[v]]\n        mtype <- if (is.numeric(orig_col)) \"continuous\"\n        else if (is.factor(orig_col) && is.ordered(orig_col)) \"ordinal\"\n        else if (is.factor(orig_col)) \"nominal\"\n        else \"continuous\"\n        mtypes <- c(mtypes, mtype)\n      }\n      \n      if (length(keys) == 0) return()\n      \n      output_ref$set(\n        keys         = keys,\n        titles       = titles,\n        descriptions = \"Pooled imputed variable output\",\n        measureTypes = mtypes\n      )\n      \n      for (k in keys) {\n        vec      <- pooled_data[[k]]\n        orig_col <- original_data[[k]]\n        if (is.factor(orig_col) && is.factor(vec)) {\n          vec <- factor(as.character(vec), levels = levels(orig_col), ordered = is.ordered(orig_col))\n        } else if (is.numeric(vec)) {\n          vec <- round(vec, 3)\n        }\n        output_ref$setValues(key = k, values = vec)\n      }\n      \n      if (nrow(original_data) > 0) {\n        output_ref$setRowNums(seq_len(nrow(original_data)))\n      }\n    },\n    \n    .renderPatternPlotMiceCS = function(image, ggtheme, theme, ...) {\n      private$.draw_vim_pattern(image)\n    },\n    .renderCorrelationPlotMiceCS = function(image, ggtheme, theme, ...) {\n      private$.draw_ggcorr_heatmap(image)\n    },\n    .renderTracePlotMiceCS = function(image, ggtheme, theme, ...) {\n      private$.draw_mice_trace(image)\n    },\n    .renderDensityPlotMiceCS = function(image, ggtheme, theme, ...) {\n      private$.draw_mice_density(image)\n    },\n    .renderStripPlotMiceCS = function(image, ggtheme, theme, ...) {\n      private$.draw_mice_strip(image)\n    },\n    \n    .renderPatternPlotMiceLong = function(image, ggtheme, theme, ...) {\n      private$.draw_vim_pattern(image)\n    },\n    .renderCorrelationPlotMiceLong = function(image, ggtheme, theme, ...) {\n      private$.draw_ggcorr_heatmap(image)\n    },\n    .renderTracePlotMiceLong = function(image, ggtheme, theme, ...) {\n      private$.draw_mice_trace(image)\n    },\n    .renderDensityPlotMiceLong = function(image, ggtheme, theme, ...) {\n      private$.draw_mice_density(image)\n    },\n    .renderStripPlotMiceLong = function(image, ggtheme, theme, ...) {\n      private$.draw_mice_strip(image)\n    },\n    \n    .renderPatternPlotMR = function(image, ggtheme, theme, ...) {\n      private$.draw_vim_pattern(image)\n    },\n    .renderCorrelationPlotMR = function(image, ggtheme, theme, ...) {\n      private$.draw_ggcorr_heatmap(image)\n    },\n    .renderDensityPlotMR = function(image, ggtheme, theme, ...) {\n      private$.draw_mr_density(image)\n    },\n    .renderStripPlotMR = function(image, ggtheme, theme, ...) {\n      private$.draw_mr_strip(image)\n    },\n    \n    .draw_vim_pattern = function(image) {\n      if (is.null(image$state)) return(FALSE)\n      state <- image$state\n      plot_data <- state$data[, intersect(state$vars, names(state$data)), drop = FALSE]\n      if (ncol(plot_data) == 0) return(FALSE)\n      \n      old_par <- graphics::par(no.readonly = TRUE)\n      on.exit(graphics::par(old_par))\n      graphics::par(bg = \"transparent\")\n      \n      VIM::aggr(\n        plot_data,\n        numbers  = TRUE,\n        sortVars = TRUE,\n        prop     = c(TRUE, TRUE),\n        gap      = 3,\n        col      = c(\"#9ecae1\", \"#fc9272\"),\n        cex.axis = 0.8,\n        ylab     = c(\"Proportion Missing\", \"Combination Pattern\")\n      )\n      TRUE\n    },\n    \n    .draw_ggcorr_heatmap = function(image) {\n      if (is.null(image$state) || !is.matrix(image$state)) return(FALSE)\n      cor_matrix <- image$state\n      if (nrow(cor_matrix) < 2 || ncol(cor_matrix) < 2) return(FALSE)\n      \n      p <- GGally::ggcorr(\n        data = NULL, cor_matrix = cor_matrix,\n        label = TRUE, label_round = 2,\n        hjust = 0.9, layout.exp = 3, label_size = 3.5\n      ) +\n        ggplot2::theme(\n          axis.text.x      = ggplot2::element_text(angle = 45, hjust = 1, size = 10),\n          axis.text.y      = ggplot2::element_text(size = 10),\n          panel.background = ggplot2::element_rect(fill = \"transparent\", colour = NA),\n          plot.background  = ggplot2::element_rect(fill = \"transparent\", colour = NA)\n        )\n      print(p)\n      TRUE\n    },\n    \n    .draw_mice_trace = function(image) {\n      if (is.null(image$state)) return(FALSE)\n      mice_obj <- image$state\n      if (!inherits(mice_obj, \"mids\")) return(FALSE)\n      \n      imputed_vars <- names(which(mice_obj$method != \"\"))\n      if (length(imputed_vars) == 0) return(FALSE)\n      \n      n_vars <- length(imputed_vars)\n      n_cols <- 2\n      n_rows <- ceiling(n_vars / n_cols)\n      \n      old_par <- graphics::par(no.readonly = TRUE)\n      on.exit(graphics::par(old_par))\n      graphics::par(mfrow = c(n_rows * 2, n_cols), mar = c(3, 3, 2, 1), bg = \"transparent\")\n      \n      chainMean <- mice_obj$chainMean\n      chainVar  <- mice_obj$chainVar\n      \n      for (v in imputed_vars) {\n        if (!v %in% dimnames(chainMean)[[1]]) next\n        mean_mat <- chainMean[v, , ]\n        var_mat  <- chainVar[v, , ]\n        \n        matplot(\n          t(mean_mat), type = \"l\", lty = 1,\n          col = grDevices::rainbow(ncol(mean_mat)),\n          main = paste0(v, \" — Iteration Mean\"),\n          xlab = \"Iteration\", ylab = \"Mean\", cex.main = 0.9\n        )\n        \n        sd_mat <- sqrt(pmax(var_mat, 0))\n        if (any(is.finite(sd_mat))) {\n          matplot(\n            t(sd_mat), type = \"l\", lty = 1,\n            col = grDevices::rainbow(ncol(sd_mat)),\n            main = paste0(v, \" — Iteration SD\"),\n            xlab = \"Iteration\", ylab = \"SD\", cex.main = 0.9\n          )\n        } else {\n          graphics::plot.new()\n          graphics::title(main = paste0(v, \" — SD N/A\"), cex.main = 0.9)\n        }\n      }\n      TRUE\n    },\n    \n    .draw_mice_density = function(image) {\n      if (is.null(image$state)) return(FALSE)\n      mice_obj <- image$state\n      \n      vars_with_miss <- names(which(sapply(mice_obj$data, function(x) is.numeric(x) && anyNA(x))))\n      if (length(vars_with_miss) == 0) return(FALSE)\n      \n      completed_list <- lapply(seq_len(mice_obj$m), function(i) mice::complete(mice_obj, action = i))\n      plot_list <- list()\n      for (v in vars_with_miss) {\n        obs <- mice_obj$data[[v]]\n        obs <- obs[!is.na(obs)]\n        if (length(obs) < 2) next\n        \n        imp <- unlist(lapply(completed_list, function(d) {\n          d[[v]][is.na(mice_obj$data[[v]])]\n        }))\n        if (length(imp) < 2) next\n        \n        plot_list[[v]] <- rbind(\n          data.frame(value = obs, type = \"Observed\", variable = v),\n          data.frame(value = imp, type = \"Imputed\",  variable = v)\n        )\n      }\n      \n      if (length(plot_list) == 0) return(FALSE)\n      plot_data <- do.call(rbind, plot_list)\n      \n      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = value, colour = type, fill = type)) +\n        ggplot2::geom_density(alpha = 0.25, linewidth = 0.7) +\n        ggplot2::facet_wrap(~ variable, scales = \"free\") +\n        ggplot2::scale_colour_manual(values = c(\"Observed\" = \"#3182bd\", \"Imputed\" = \"#de2d26\")) +\n        ggplot2::scale_fill_manual(values = c(\"Observed\" = \"#3182bd\", \"Imputed\" = \"#de2d26\")) +\n        ggplot2::labs(x = \"Value\", y = \"Density\", colour = NULL, fill = NULL) +\n        ggplot2::theme_bw() +\n        ggplot2::theme(\n          legend.position  = \"top\",\n          strip.background = ggplot2::element_rect(fill = \"#f0f0f0\"),\n          panel.background = ggplot2::element_rect(fill = \"transparent\", colour = NA),\n          plot.background  = ggplot2::element_rect(fill = \"transparent\", colour = NA)\n        )\n      print(p)\n      TRUE\n    },\n    \n    .draw_mice_strip = function(image) {\n      if (is.null(image$state)) return(FALSE)\n      mice_obj <- image$state$mice_obj\n      vars     <- image$state$vars\n      \n      num_vars <- Filter(function(v) v %in% names(mice_obj$data) && is.numeric(mice_obj$data[[v]]) && anyNA(mice_obj$data[[v]]), vars)\n      if (length(num_vars) == 0) return(FALSE)\n      \n      completed_list <- lapply(seq_len(mice_obj$m), function(i) mice::complete(mice_obj, action = i))\n      plot_rows <- list()\n      for (v in num_vars) {\n        na_orig <- is.na(mice_obj$data[[v]])\n        plot_rows[[paste(v, 0)]] <- data.frame(variable = v, value = mice_obj$data[[v]][!na_orig], imp = 0, type = \"Observed\")\n        \n        for (i in seq_len(mice_obj$m)) {\n          d <- completed_list[[i]]\n          plot_rows[[paste(v, i)]] <- data.frame(variable = v, value = d[[v]][na_orig], imp = i, type = \"Imputed\")\n        }\n      }\n      \n      plot_data      <- do.call(rbind, plot_rows)\n      plot_data$imp  <- factor(plot_data$imp)\n      plot_data$type <- factor(plot_data$type, levels = c(\"Observed\", \"Imputed\"))\n      \n      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = imp, y = value, colour = type, shape = type)) +\n        ggplot2::geom_jitter(width = 0.18, alpha = 0.65, size = 1.6) +\n        ggplot2::facet_wrap(~ variable, scales = \"free_y\") +\n        ggplot2::scale_colour_manual(values = c(\"Observed\" = \"#3182bd\", \"Imputed\" = \"#de2d26\")) +\n        ggplot2::scale_shape_manual(values = c(\"Observed\" = 21, \"Imputed\" = 20)) +\n        ggplot2::labs(x = \"Imputation (0 = Observed)\", y = \"Value\", colour = NULL, shape = NULL) +\n        ggplot2::theme_bw() +\n        ggplot2::theme(\n          legend.position  = \"top\",\n          strip.background = ggplot2::element_rect(fill = \"#f0f0f0\"),\n          panel.background = ggplot2::element_rect(fill = \"transparent\", colour = NA),\n          plot.background  = ggplot2::element_rect(fill = \"transparent\", colour = NA)\n        )\n      print(p)\n      TRUE\n    },\n    \n    .draw_mr_density = function(image) {\n      if (is.null(image$state)) return(FALSE)\n      orig_data      <- image$state$original\n      completed_list <- image$state$completed_list\n      vars           <- image$state$vars\n      \n      vars_with_miss <- Filter(function(v) v %in% names(orig_data) && is.numeric(orig_data[[v]]) && anyNA(orig_data[[v]]), vars)\n      if (length(vars_with_miss) == 0) return(FALSE)\n      \n      plot_list <- list()\n      for (v in vars_with_miss) {\n        obs <- orig_data[[v]]\n        obs <- obs[!is.na(obs)]\n        if (length(obs) < 2) next\n        \n        na_orig <- is.na(orig_data[[v]])\n        imp <- unlist(lapply(completed_list, function(d) d[[v]][na_orig]))\n        if (length(imp) < 2) next\n        \n        plot_list[[v]] <- rbind(\n          data.frame(value = obs, type = \"Observed\", variable = v),\n          data.frame(value = imp, type = \"Imputed\",  variable = v)\n        )\n      }\n      \n      if (length(plot_list) == 0) return(FALSE)\n      plot_data <- do.call(rbind, plot_list)\n      \n      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = value, colour = type, fill = type)) +\n        ggplot2::geom_density(alpha = 0.25, linewidth = 0.7) +\n        ggplot2::facet_wrap(~ variable, scales = \"free\") +\n        ggplot2::scale_colour_manual(values = c(\"Observed\" = \"#3182bd\", \"Imputed\" = \"#de2d26\")) +\n        ggplot2::scale_fill_manual(values = c(\"Observed\" = \"#3182bd\", \"Imputed\" = \"#de2d26\")) +\n        ggplot2::labs(x = \"Value\", y = \"Density\", colour = NULL, fill = NULL) +\n        ggplot2::theme_bw() +\n        ggplot2::theme(\n          legend.position  = \"top\",\n          strip.background = ggplot2::element_rect(fill = \"#f0f0f0\"),\n          panel.background = ggplot2::element_rect(fill = \"transparent\", colour = NA),\n          plot.background  = ggplot2::element_rect(fill = \"transparent\", colour = NA)\n        )\n      print(p)\n      TRUE\n    },\n    \n    .draw_mr_strip = function(image) {\n      if (is.null(image$state)) return(FALSE)\n      orig_data      <- image$state$original\n      completed_list <- image$state$completed_list\n      vars           <- image$state$vars\n      \n      num_vars <- Filter(function(v) v %in% names(orig_data) && is.numeric(orig_data[[v]]) && anyNA(orig_data[[v]]), vars)\n      if (length(num_vars) == 0) return(FALSE)\n      \n      plot_rows <- list()\n      for (v in num_vars) {\n        na_orig <- is.na(orig_data[[v]])\n        plot_rows[[paste(v, 0)]] <- data.frame(variable = v, value = orig_data[[v]][!na_orig], imp = 0, type = \"Observed\")\n        \n        for (i in seq_along(completed_list)) {\n          d <- completed_list[[i]]\n          plot_rows[[paste(v, i)]] <- data.frame(variable = v, value = d[[v]][na_orig], imp = i, type = \"Imputed\")\n        }\n      }\n      \n      plot_data      <- do.call(rbind, plot_rows)\n      plot_data$imp  <- factor(plot_data$imp)\n      plot_data$type <- factor(plot_data$type, levels = c(\"Observed\", \"Imputed\"))\n      \n      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = imp, y = value, colour = type, shape = type)) +\n        ggplot2::geom_jitter(width = 0.18, alpha = 0.65, size = 1.6) +\n        ggplot2::facet_wrap(~ variable, scales = \"free_y\") +\n        ggplot2::scale_colour_manual(values = c(\"Observed\" = \"#3182bd\", \"Imputed\" = \"#de2d26\")) +\n        ggplot2::scale_shape_manual(values = c(\"Observed\" = 21, \"Imputed\" = 20)) +\n        ggplot2::labs(x = \"Imputation (0 = Observed)\", y = \"Value\", colour = NULL, shape = NULL) +\n        ggplot2::theme_bw() +\n        ggplot2::theme(\n          legend.position  = \"top\",\n          strip.background = ggplot2::element_rect(fill = \"#f0f0f0\"),\n          panel.background = ggplot2::element_rect(fill = \"transparent\", colour = NA),\n          plot.background  = ggplot2::element_rect(fill = \"transparent\", colour = NA)\n        )\n      print(p)\n      TRUE\n    }\n  )\n)\n
+            pooled[[v]] <- factor(pooled[[v]], levels = levels(col_orig), ordered = is.ordered(col_orig))
+          }
+        }
+      }
+      pooled
+    },
+    
+    .fill_imputed_table = function(original_data, pooled_data, vars_to_impute, table_result_ref) {
+      if (table_result_ref$rowCount > 0) table_result_ref$clear()
+      
+      row_num <- 1
+      for (var_name in vars_to_impute) {
+        if (!var_name %in% names(original_data) || !var_name %in% names(pooled_data)) next
+        original_col <- original_data[[var_name]]
+        imputed_col  <- pooled_data[[var_name]]
+        na_idx       <- which(is.na(original_col))
+        
+        for (i in na_idx) {
+          val <- imputed_col[i]
+          imputed_str <- if (is.numeric(val)) {
+            as.character(round(val, 3))
+          } else {
+            as.character(val)
+          }
+          if (row_num <= 1000) {
+            table_result_ref$addRow(rowKey = row_num, values = list(
+              variable  = var_name,
+              original  = "NA",
+              imputed   = imputed_str,
+              rowNumber = i
+            ))
+            row_num <- row_num + 1
+          } else if (row_num == 1001) {
+            table_result_ref$addRow(rowKey = row_num, values = list(
+              variable  = "...",
+              original  = "...",
+              imputed   = "Table truncated (max 1000 rows)",
+              rowNumber = NA_integer_
+            ))
+            row_num <- row_num + 1
+          }
+        }
+      }
+    },
+    
+    .set_correlation_state = function(data, vars_to_impute, plot_ref) {
+      sub_data   <- data[, intersect(vars_to_impute, names(data)), drop = FALSE]
+      miss_ind   <- as.data.frame(lapply(sub_data, function(x) as.integer(is.na(x))))
+      valid_cols <- sapply(miss_ind, function(x) var(x, na.rm = TRUE) > 0)
+      
+      if (sum(valid_cols) > 1) {
+        cor_mat <- stats::cor(miss_ind[, valid_cols, drop = FALSE], use = "pairwise.complete.obs")
+        if (any(is.finite(cor_mat))) {
+          plot_ref$setState(cor_mat)
+          plot_ref$setVisible(TRUE)
+          return()
+        }
+      }
+      plot_ref$setVisible(FALSE)
+    },
+    
+    .write_output = function(pooled_data, vars_to_impute, original_data, output_ref) {
+      if (!output_ref$isNotFilled()) return()
+      
+      keys   <- character()
+      titles <- character()
+      mtypes <- character()
+      
+      for (v in vars_to_impute) {
+        if (!v %in% names(pooled_data)) next
+        keys   <- c(keys, v)
+        titles <- c(titles, paste0(v, "_imputed"))
+        
+        orig_col <- original_data[[v]]
+        mtype <- if (is.numeric(orig_col)) "continuous"
+        else if (is.factor(orig_col) && is.ordered(orig_col)) "ordinal"
+        else if (is.factor(orig_col)) "nominal"
+        else "continuous"
+        mtypes <- c(mtypes, mtype)
+      }
+      
+      if (length(keys) == 0) return()
+      
+      output_ref$set(
+        keys         = keys,
+        titles       = titles,
+        descriptions = "Pooled imputed variable output",
+        measureTypes = mtypes
+      )
+      
+      for (k in keys) {
+        vec      <- pooled_data[[k]]
+        orig_col <- original_data[[k]]
+        if (is.factor(orig_col) && is.factor(vec)) {
+          vec <- factor(as.character(vec), levels = levels(orig_col), ordered = is.ordered(orig_col))
+        } else if (is.numeric(vec)) {
+          vec <- round(vec, 3)
+        }
+        output_ref$setValues(key = k, values = vec)
+      }
+      
+      if (nrow(original_data) > 0) {
+        output_ref$setRowNums(seq_len(nrow(original_data)))
+      }
+    },
+    
+    .renderPatternPlotMiceCS = function(image, ggtheme, theme, ...) {
+      private$.draw_vim_pattern(image)
+    },
+    .renderCorrelationPlotMiceCS = function(image, ggtheme, theme, ...) {
+      private$.draw_ggcorr_heatmap(image)
+    },
+    .renderTracePlotMiceCS = function(image, ggtheme, theme, ...) {
+      private$.draw_mice_trace(image)
+    },
+    .renderDensityPlotMiceCS = function(image, ggtheme, theme, ...) {
+      private$.draw_mice_density(image)
+    },
+    .renderStripPlotMiceCS = function(image, ggtheme, theme, ...) {
+      private$.draw_mice_strip(image)
+    },
+    
+    .renderPatternPlotMiceLong = function(image, ggtheme, theme, ...) {
+      private$.draw_vim_pattern(image)
+    },
+    .renderCorrelationPlotMiceLong = function(image, ggtheme, theme, ...) {
+      private$.draw_ggcorr_heatmap(image)
+    },
+    .renderTracePlotMiceLong = function(image, ggtheme, theme, ...) {
+      private$.draw_mice_trace(image)
+    },
+    .renderDensityPlotMiceLong = function(image, ggtheme, theme, ...) {
+      private$.draw_mice_density(image)
+    },
+    .renderStripPlotMiceLong = function(image, ggtheme, theme, ...) {
+      private$.draw_mice_strip(image)
+    },
+    
+    .renderPatternPlotMR = function(image, ggtheme, theme, ...) {
+      private$.draw_vim_pattern(image)
+    },
+    .renderCorrelationPlotMR = function(image, ggtheme, theme, ...) {
+      private$.draw_ggcorr_heatmap(image)
+    },
+    .renderDensityPlotMR = function(image, ggtheme, theme, ...) {
+      private$.draw_mr_density(image)
+    },
+    .renderStripPlotMR = function(image, ggtheme, theme, ...) {
+      private$.draw_mr_strip(image)
+    },
+    
+    .draw_vim_pattern = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      state <- image$state
+      plot_data <- state$data[, intersect(state$vars, names(state$data)), drop = FALSE]
+      if (ncol(plot_data) == 0) return(FALSE)
+      
+      old_par <- graphics::par(no.readonly = TRUE)
+      on.exit(graphics::par(old_par))
+      graphics::par(bg = "transparent")
+      
+      VIM::aggr(
+        plot_data,
+        numbers  = TRUE,
+        sortVars = TRUE,
+        prop     = c(TRUE, TRUE),
+        gap      = 3,
+        col      = c("#9ecae1", "#fc9272"),
+        cex.axis = 0.8,
+        ylab     = c("Proportion Missing", "Combination Pattern")
+      )
+      TRUE
+    },
+    
+    .draw_ggcorr_heatmap = function(image) {
+      if (is.null(image$state) || !is.matrix(image$state)) return(FALSE)
+      cor_matrix <- image$state
+      if (nrow(cor_matrix) < 2 || ncol(cor_matrix) < 2) return(FALSE)
+      
+      p <- GGally::ggcorr(
+        data = NULL, cor_matrix = cor_matrix,
+        label = TRUE, label_round = 2,
+        hjust = 0.9, layout.exp = 3, label_size = 3.5
+      ) +
+        ggplot2::theme(
+          axis.text.x      = ggplot2::element_text(angle = 45, hjust = 1, size = 10),
+          axis.text.y      = ggplot2::element_text(size = 10),
+          panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+          plot.background  = ggplot2::element_rect(fill = "transparent", colour = NA)
+        )
+      print(p)
+      TRUE
+    },
+    
+    .draw_mice_trace = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      mice_obj <- image$state
+      if (!inherits(mice_obj, "mids")) return(FALSE)
+      
+      imputed_vars <- names(which(mice_obj$method != ""))
+      if (length(imputed_vars) == 0) return(FALSE)
+      
+      n_vars <- length(imputed_vars)
+      n_cols <- 2
+      n_rows <- ceiling(n_vars / n_cols)
+      
+      old_par <- graphics::par(no.readonly = TRUE)
+      on.exit(graphics::par(old_par))
+      graphics::par(mfrow = c(n_rows * 2, n_cols), mar = c(3, 3, 2, 1), bg = "transparent")
+      
+      chainMean <- mice_obj$chainMean
+      chainVar  <- mice_obj$chainVar
+      
+      for (v in imputed_vars) {
+        if (!v %in% dimnames(chainMean)[[1]]) next
+        mean_mat <- chainMean[v, , ]
+        var_mat  <- chainVar[v, , ]
+        
+        matplot(
+          t(mean_mat), type = "l", lty = 1,
+          col = grDevices::rainbow(ncol(mean_mat)),
+          main = paste0(v, " — Iteration Mean"),
+          xlab = "Iteration", ylab = "Mean", cex.main = 0.9
+        )
+        
+        sd_mat <- sqrt(pmax(var_mat, 0))
+        if (any(is.finite(sd_mat))) {
+          matplot(
+            t(sd_mat), type = "l", lty = 1,
+            col = grDevices::rainbow(ncol(sd_mat)),
+            main = paste0(v, " — Iteration SD"),
+            xlab = "Iteration", ylab = "SD", cex.main = 0.9
+          )
+        } else {
+          graphics::plot.new()
+          graphics::title(main = paste0(v, " — SD N/A"), cex.main = 0.9)
+        }
+      }
+      TRUE
+    },
+    
+    .draw_mice_density = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      mice_obj <- image$state
+      
+      vars_with_miss <- names(which(sapply(mice_obj$data, function(x) is.numeric(x) && anyNA(x))))
+      if (length(vars_with_miss) == 0) return(FALSE)
+      
+      completed_list <- lapply(seq_len(mice_obj$m), function(i) mice::complete(mice_obj, action = i))
+      plot_list <- list()
+      for (v in vars_with_miss) {
+        obs <- mice_obj$data[[v]]
+        obs <- obs[!is.na(obs)]
+        if (length(obs) < 2) next
+        
+        imp <- unlist(lapply(completed_list, function(d) {
+          d[[v]][is.na(mice_obj$data[[v]])]
+        }))
+        if (length(imp) < 2) next
+        
+        plot_list[[v]] <- rbind(
+          data.frame(value = obs, type = "Observed", variable = v),
+          data.frame(value = imp, type = "Imputed",  variable = v)
+        )
+      }
+      
+      if (length(plot_list) == 0) return(FALSE)
+      plot_data <- do.call(rbind, plot_list)
+      
+      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = value, colour = type, fill = type)) +
+        ggplot2::geom_density(alpha = 0.25, linewidth = 0.7) +
+        ggplot2::facet_wrap(~ variable, scales = "free") +
+        ggplot2::scale_colour_manual(values = c("Observed" = "#3182bd", "Imputed" = "#de2d26")) +
+        ggplot2::scale_fill_manual(values = c("Observed" = "#3182bd", "Imputed" = "#de2d26")) +
+        ggplot2::labs(x = "Value", y = "Density", colour = NULL, fill = NULL) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(
+          legend.position  = "top",
+          strip.background = ggplot2::element_rect(fill = "#f0f0f0"),
+          panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+          plot.background  = ggplot2::element_rect(fill = "transparent", colour = NA)
+        )
+      print(p)
+      TRUE
+    },
+    
+    .draw_mice_strip = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      mice_obj <- image$state$mice_obj
+      vars     <- image$state$vars
+      
+      num_vars <- Filter(function(v) v %in% names(mice_obj$data) && is.numeric(mice_obj$data[[v]]) && anyNA(mice_obj$data[[v]]), vars)
+      if (length(num_vars) == 0) return(FALSE)
+      
+      completed_list <- lapply(seq_len(mice_obj$m), function(i) mice::complete(mice_obj, action = i))
+      plot_rows <- list()
+      for (v in num_vars) {
+        na_orig <- is.na(mice_obj$data[[v]])
+        plot_rows[[paste(v, 0)]] <- data.frame(variable = v, value = mice_obj$data[[v]][!na_orig], imp = 0, type = "Observed")
+        
+        for (i in seq_len(mice_obj$m)) {
+          d <- completed_list[[i]]
+          plot_rows[[paste(v, i)]] <- data.frame(variable = v, value = d[[v]][na_orig], imp = i, type = "Imputed")
+        }
+      }
+      
+      plot_data      <- do.call(rbind, plot_rows)
+      plot_data$imp  <- factor(plot_data$imp)
+      plot_data$type <- factor(plot_data$type, levels = c("Observed", "Imputed"))
+      
+      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = imp, y = value, colour = type, shape = type)) +
+        ggplot2::geom_jitter(width = 0.18, alpha = 0.65, size = 1.6) +
+        ggplot2::facet_wrap(~ variable, scales = "free_y") +
+        ggplot2::scale_colour_manual(values = c("Observed" = "#3182bd", "Imputed" = "#de2d26")) +
+        ggplot2::scale_shape_manual(values = c("Observed" = 21, "Imputed" = 20)) +
+        ggplot2::labs(x = "Imputation (0 = Observed)", y = "Value", colour = NULL, shape = NULL) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(
+          legend.position  = "top",
+          strip.background = ggplot2::element_rect(fill = "#f0f0f0"),
+          panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+          plot.background  = ggplot2::element_rect(fill = "transparent", colour = NA)
+        )
+      print(p)
+      TRUE
+    },
+    
+    .draw_mr_density = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      orig_data      <- image$state$original
+      completed_list <- image$state$completed_list
+      vars           <- image$state$vars
+      
+      vars_with_miss <- Filter(function(v) v %in% names(orig_data) && is.numeric(orig_data[[v]]) && anyNA(orig_data[[v]]), vars)
+      if (length(vars_with_miss) == 0) return(FALSE)
+      
+      plot_list <- list()
+      for (v in vars_with_miss) {
+        obs <- orig_data[[v]]
+        obs <- obs[!is.na(obs)]
+        if (length(obs) < 2) next
+        
+        na_orig <- is.na(orig_data[[v]])
+        imp <- unlist(lapply(completed_list, function(d) d[[v]][na_orig]))
+        if (length(imp) < 2) next
+        
+        plot_list[[v]] <- rbind(
+          data.frame(value = obs, type = "Observed", variable = v),
+          data.frame(value = imp, type = "Imputed",  variable = v)
+        )
+      }
+      
+      if (length(plot_list) == 0) return(FALSE)
+      plot_data <- do.call(rbind, plot_list)
+      
+      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = value, colour = type, fill = type)) +
+        ggplot2::geom_density(alpha = 0.25, linewidth = 0.7) +
+        ggplot2::facet_wrap(~ variable, scales = "free") +
+        ggplot2::scale_colour_manual(values = c("Observed" = "#3182bd", "Imputed" = "#de2d26")) +
+        ggplot2::scale_fill_manual(values = c("Observed" = "#3182bd", "Imputed" = "#de2d26")) +
+        ggplot2::labs(x = "Value", y = "Density", colour = NULL, fill = NULL) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(
+          legend.position  = "top",
+          strip.background = ggplot2::element_rect(fill = "#f0f0f0"),
+          panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+          plot.background  = ggplot2::element_rect(fill = "transparent", colour = NA)
+        )
+      print(p)
+      TRUE
+    },
+    
+    .draw_mr_strip = function(image) {
+      if (is.null(image$state)) return(FALSE)
+      orig_data      <- image$state$original
+      completed_list <- image$state$completed_list
+      vars           <- image$state$vars
+      
+      num_vars <- Filter(function(v) v %in% names(orig_data) && is.numeric(orig_data[[v]]) && anyNA(orig_data[[v]]), vars)
+      if (length(num_vars) == 0) return(FALSE)
+      
+      plot_rows <- list()
+      for (v in num_vars) {
+        na_orig <- is.na(orig_data[[v]])
+        plot_rows[[paste(v, 0)]] <- data.frame(variable = v, value = orig_data[[v]][!na_orig], imp = 0, type = "Observed")
+        
+        for (i in seq_along(completed_list)) {
+          d <- completed_list[[i]]
+          plot_rows[[paste(v, i)]] <- data.frame(variable = v, value = d[[v]][na_orig], imp = i, type = "Imputed")
+        }
+      }
+      
+      plot_data      <- do.call(rbind, plot_rows)
+      plot_data$imp  <- factor(plot_data$imp)
+      plot_data$type <- factor(plot_data$type, levels = c("Observed", "Imputed"))
+      
+      p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = imp, y = value, colour = type, shape = type)) +
+        ggplot2::geom_jitter(width = 0.18, alpha = 0.65, size = 1.6) +
+        ggplot2::facet_wrap(~ variable, scales = "free_y") +
+        ggplot2::scale_colour_manual(values = c("Observed" = "#3182bd", "Imputed" = "#de2d26")) +
+        ggplot2::scale_shape_manual(values = c("Observed" = 21, "Imputed" = 20)) +
+        ggplot2::labs(x = "Imputation (0 = Observed)", y = "Value", colour = NULL, shape = NULL) +
+        ggplot2::theme_bw() +
+        ggplot2::theme(
+          legend.position  = "top",
+          strip.background = ggplot2::element_rect(fill = "#f0f0f0"),
+          panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+          plot.background  = ggplot2::element_rect(fill = "transparent", colour = NA)
+        )
+      print(p)
+      TRUE
+    }
+  )
+)
+

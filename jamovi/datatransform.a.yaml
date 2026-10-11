@@ -2,7 +2,7 @@ name: dataTransform
 title: Data Transformation
 menuGroup: BSS
 menuSubgroup: Data Preparation & Screening
-menuSubtitle: Power transformations for normality (Box-Cox, Yeo-Johnson, Johnson)
+menuSubtitle: Power & bounded transformations for normality (Box-Cox, Yeo-Johnson, Johnson, Arcsine, Logit)
 version: '0.0.1'
 jas: '1.2'
 
@@ -31,6 +31,10 @@ options:
           name: yeojohnson
         - title: Johnson
           name: johnson
+        - title: Arcsine Square Root (Proportions / Rates)
+          name: arcsine
+        - title: Empirical Logit (Proportions / Rates)
+          name: logit
       default: yeojohnson
 
     - name: auto_shift
@@ -49,12 +53,24 @@ options:
       default: true
 
     - name: show_normality_table
-      title: Shapiro-Wilk Normality Test (before & after)
+      title: Normality Test (before & after)
       type: Bool
       default: true
 
+    - name: normality_test
+      title: Normality Test Method
+      type: List
+      options:
+        - name: shapiro
+          title: Shapiro-Wilk Test
+        - name: anderson_darling
+          title: Anderson-Darling Test
+        - name: shapiro_francia
+          title: Shapiro-Francia Test
+      default: shapiro
+
     - name: alpha_sw
-      title: Significance Level (α) for Shapiro-Wilk
+      title: Significance Level (α) for Normality Test
       type: Number
       default: 0.05
       min: 0.01
@@ -67,6 +83,11 @@ options:
 
     - name: show_hist_plot
       title: Histogram (before & after)
+      type: Bool
+      default: true
+
+    - name: show_density_plot
+      title: Density Plot (before & after)
       type: Bool
       default: true
 

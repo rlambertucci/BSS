@@ -647,3 +647,36 @@ Jennrich1970:
   issue: 330
   pages: "904-912"
   doi: "10.1080/01621459.1970.10481133"
+
+Bartlett1937:
+  type: article
+  author: "Bartlett, M. S."
+  year: 1937
+  title: "Some examples of statistical methods of research in agriculture and applied biology"
+  journal: "Journal of the Royal Statistical Society: Supplement"
+  volume: 4
+  issue: 2
+  pages: "137-183"
+  doi: "10.2307/2983639"
+
+Stephens1974:
+  type: article
+  author: "Stephens, M. A."
+  year: 1974
+  title: "EDF statistics for goodness of fit and some comparisons"
+  journal: "Journal of the American Statistical Association"
+  volume: 69
+  issue: 347
+  pages: "730-737"
+  doi: "10.1080/01621459.1974.10480196"
+
+Royston1993:
+  type: article
+  author: "Royston, P."
+  year: 1993
+  title: "A pocket-calculator algorithm for the Shapiro-Francia test for non-normality"
+  journal: "Statistics in Medicine"
+  volume: 12
+  issue: 2
+  pages: "181-184"
+  doi: "10.1002/sim.4780120209"
