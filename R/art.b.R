@@ -422,7 +422,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               }
             }
             
-            # Fallback analítico se empírico não convergiu
+            # Analytical fallback if empirical bootstrap did not converge
             if (is.na(a_val) && !is.na(t_r) && !is.na(df) && df > 0) {
               scale_fac <- if (is_paired) 1 else 2
               d_approx <- (scale_fac * t_r) / sqrt(df)
@@ -530,3 +530,4 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
     }
   )
 )
+

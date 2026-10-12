@@ -249,7 +249,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       data <- self$data
       
-      # 2. CATEGORICAL EFFECT SIZES (Cramér's V, Odds Ratio, Relative Risk)
+      # 2. CATEGORICAL EFFECT SIZES (Cramer's V, Odds Ratio, Relative Risk)
       if (show_categorical_es && !is.null(data)) {
         cat_tbl <- self$results$categoricalTable
         if (cat_tbl$rowCount > 0) cat_tbl$deleteRows()
@@ -281,7 +281,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             k_min <- min(r_dim - 1, c_dim - 1)
             v_est <- sqrt(chi_stat / (n_cat * max(1, k_min)))
             
-            # Cramér's V CI via bootstrap or analytic approximation
+            # Cramer's V CI via bootstrap or analytic approximation
             z_crit <- stats::qnorm(1 - (1 - ci_level) / 2)
             se_v <- sqrt((1 - v_est^2) / n_cat)
             ci_lo_v <- max(0, v_est - z_crit * se_v)
@@ -1098,3 +1098,5 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
     }
   )
 )
+
+
