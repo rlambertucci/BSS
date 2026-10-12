@@ -359,7 +359,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           }, error = function(e) {})
           clusteringDataList[[groupName]] <- clusteringDataNorm
           
-          # BSS-FEAT-001 & BSS-FEAT-002: Bridge Centrality and Communities
           commAlgo <- self$options$communityAlgorithm_net
           cb_res <- private$.computeCommunitiesAndBridge(networkGraph, nodeLabels, qgraph_groups, commAlgo)
           bridgeDataList[[groupName]] <- cb_res$bridge
@@ -660,7 +659,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         self$results$clusteringPlot_net$setState(combinedClusteringData)
       }
       
-      # v0.5.0 Extensions: Boot Stability, NCT, and DAG
       if (isTRUE(self$options$bootStability_net) && length(successful_groups) > 0) {
         target_group_for_boot <- successful_groups[1]
         boot_data <- dataList[[target_group_for_boot]]
@@ -874,7 +872,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         
         mgmFit <- NULL; adjMatrix <- NULL
         tryCatch({
-        # Prepare numeric matrix for mgm (factors converted to 0-based integers)
         mat_for_mgm <- matrix(0, nrow = nrow(currentDataGroup_for_estimation), ncol = length(allVarNames))
         colnames(mat_for_mgm) <- allVarNames
         for (v_idx in seq_along(allVarNames)) {
@@ -975,7 +972,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
             clusteringDataList[[groupName]] <- clusteringDataRaw
           }, error = function(e) {})
           
-          # BSS-FEAT-001 & BSS-FEAT-002: Bridge Centrality and Communities
           commAlgo_mixed <- self$options$communityAlgorithm_mixed
           cb_res_mixed <- private$.computeCommunitiesAndBridge(adjMatrix, allVarNames, qgraph_groups, commAlgo_mixed)
           bridgeDataList[[groupName]] <- cb_res_mixed$bridge
@@ -1669,7 +1665,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       n_rows <- nrow(currentData)
       p_vars <- length(vars)
       
-      # 1. Edge Weight Non-parametric Bootstrap
       if (isTRUE(self$options$bootEdgeCI_net)) {
         if (tableEdgeCI$rowCount > 0) tableEdgeCI$clear()
         
@@ -1728,7 +1723,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         }
       }
       
-      # 2. Centrality Stability Coefficient (CS-coefficient) via Case-Dropping
       if (isTRUE(self$options$bootCS_net)) {
         if (tableCS$rowCount > 0) tableCS$clear()
         

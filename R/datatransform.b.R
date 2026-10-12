@@ -290,37 +290,30 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           if (self$options$show_density_plot) self$results$densityPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
         }
         
-        # Recommendation table computation
         if (self$options$show_recommendation_table) {
           rec_tbl <- self$results$recommendationTable
           cands <- list()
           
-          # 1. Original
           cands[["Original (No Transform)"]] <- x_clean
           
-          # 2. Yeo-Johnson
           yj_try <- tryCatch(bestNormalize::yeojohnson(x_clean)$x.t, error = function(e) NULL)
           if (!is.null(yj_try)) cands[["Yeo-Johnson"]] <- yj_try
           
-          # 3. Box-Cox (with auto-shift if needed)
           bc_in <- x_clean
           if (min(bc_in) <= 0) bc_in <- bc_in + abs(min(bc_in)) + 0.001
           bc_try <- tryCatch(bestNormalize::boxcox(bc_in)$x.t, error = function(e) NULL)
           if (!is.null(bc_try)) cands[["Box-Cox"]] <- bc_try
           
-          # 4. Rank-Based INT (Blom)
           n_c <- length(x_clean)
           r_c <- rank(x_clean, ties.method = "average")
           p_blom <- (r_c - 0.375) / (n_c + 0.25)
           p_blom <- pmin(pmax(p_blom, 1e-09), 1 - 1e-09)
           cands[["Rank-Based INT (Blom)"]] <- stats::qnorm(p_blom)
           
-          # 5. Rank-Based INT (Van der Waerden)
           p_vdw <- r_c / (n_c + 1)
           p_vdw <- pmin(pmax(p_vdw, 1e-09), 1 - 1e-09)
           cands[["Rank-Based INT (Van der Waerden)"]] <- stats::qnorm(p_vdw)
           
-          # 6. Johnson System
           j_try <- tryCatch({
             jt_fit <- SuppDists::JohnsonFit(x_clean, moment = "quant")
             y_j <- (x_clean - jt_fit$xi) / jt_fit$lambda
@@ -335,16 +328,13 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           }, error = function(e) NULL)
           if (!is.null(j_try) && !any(is.na(j_try))) cands[["Johnson Curve"]] <- j_try
           
-          # 7. Natural Log
           min_val <- min(x_clean)
           shift_log <- if (min_val <= 0) abs(min_val) + 0.001 else 0
           cands[["Natural Log (ln)"]] <- log(x_clean + shift_log)
           
-          # 8. Square Root
           shift_sqrt <- if (min_val < 0) abs(min_val) else 0
           cands[["Square Root"]] <- sqrt(x_clean + shift_sqrt)
           
-          # 9. Arcsine and Logit if bounded / proportions
           if (min_val >= 0 && max(x_clean) <= 100) {
             scale_prop <- ifelse(max(x_clean) > 1.05, 100, 1)
             p_unit <- x_clean / scale_prop
@@ -458,7 +448,6 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           p_val <- sf_res$p
         }
       } else {
-        # Default Shapiro-Wilk
         res <- tryCatch(stats::shapiro.test(data_sample), error=function(e) NULL)
         if (!is.null(res)) {
           stat_val <- as.numeric(res$statistic)
@@ -535,7 +524,6 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       if (is.null(image$state) || nrow(image$state) == 0) return(FALSE)
       df <- image$state
       
-      # Before plot with normal curve overlay
       m1 <- mean(df$before, na.rm=TRUE)
       s1 <- stats::sd(df$before, na.rm=TRUE)
       p1 <- ggplot2::ggplot(df, ggplot2::aes(x=before)) +
@@ -544,7 +532,6 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
         ggplot2::labs(title="Before (Empirical vs Normal)", x="Value", y="Density") +
         ggtheme
       
-      # After plot with normal curve overlay
       m2 <- mean(df$after, na.rm=TRUE)
       s2 <- stats::sd(df$after, na.rm=TRUE)
       p2 <- ggplot2::ggplot(df, ggplot2::aes(x=after)) +

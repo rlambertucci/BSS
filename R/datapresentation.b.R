@@ -96,7 +96,6 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         }
         self$results$messages$setVisible(FALSE)
         
-        # Defensive coercion of DVs and covariate (BSS-STAT-033)
         for (dep in deps) data[[dep]] <- private$.to_numeric_vec(data[[dep]])
         if (has_cov) data[[cov_var]] <- private$.to_numeric_vec(data[[cov_var]])
         for (v in groups_vars) data[[v]] <- as.factor(data[[v]])
@@ -191,7 +190,6 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         }
         self$results$messages$setVisible(FALSE)
         
-        # Defensive coercion of longitudinal variables and covariate (BSS-STAT-033)
         for (v in rm_vars) data[[v]] <- private$.to_numeric_vec(data[[v]])
         if (has_cov) data[[cov_var]] <- private$.to_numeric_vec(data[[cov_var]])
         if (length(group_long) > 0) {
@@ -588,10 +586,10 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       col_titles <- switch(
         format,
         'abnt' = list(
-          variable = if (analysisType == 'longitudinal') 'Tempo' else 'VariÃ¡vel',
-          n = 'N', mean = 'MÃ©dia', sd = 'DP', se = 'EP', 
+          variable = if (analysisType == 'longitudinal') 'Tempo' else 'VariÃƒÂ¡vel',
+          n = 'N', mean = 'MÃƒÂ©dia', sd = 'DP', se = 'EP', 
           ci_lower = 'IC Inferior', ci_upper = 'IC Superior', 
-          median = 'Mediana', min = 'MÃ­n', max = 'MÃ¡x'
+          median = 'Mediana', min = 'MÃƒÂ­n', max = 'MÃƒÂ¡x'
         ),
         'apa' = list(
           variable = if (analysisType == 'longitudinal') 'Time' else 'Variable',
@@ -623,7 +621,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       if (title == 'Table 1. Descriptive statistics by group') {
         title_to_set <- switch(
           format,
-          'abnt' = 'Tabela 1. EstatÃ­sticas descritivas por grupo',
+          'abnt' = 'Tabela 1. EstatÃƒÂ­sticas descritivas por grupo',
           'Table 1. Descriptive statistics by group'
         )
       }
@@ -635,7 +633,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       if (note == 'Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.') {
         note_to_set <- switch(
           format,
-          'abnt' = 'MÃ©dia = mÃ©dia; DP = desvio padrÃ£o; EP = erro padrÃ£o; IC = intervalo de confianÃ§a; N = tamanho da amostra.',
+          'abnt' = 'MÃƒÂ©dia = mÃƒÂ©dia; DP = desvio padrÃƒÂ£o; EP = erro padrÃƒÂ£o; IC = intervalo de confianÃƒÂ§a; N = tamanho da amostra.',
           'apa' = 'M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.',
           'vancouver' = 'Mean = mean; SD = standard deviation; SE = standard error; CI = confidence interval; n = sample size.',
           'chicago' = 'Mean = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
@@ -653,7 +651,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       
       ci_note_text <- switch(
         format,
-        'abnt' = paste0('IC = ', self$options$ciWidth, '% Intervalo de ConfianÃ§a.'),
+        'abnt' = paste0('IC = ', self$options$ciWidth, '% Intervalo de ConfianÃƒÂ§a.'),
         paste0('CI = ', self$options$ciWidth, '% Confidence Interval.')
       )
       table$setNote(key = 'ci_note', note = ci_note_text)
@@ -667,7 +665,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       if (has_cov) {
         cov_note_text <- switch(
           format,
-          'abnt' = "Nota. EstatÃ­sticas ajustadas (MÃ©dias Marginais Estimadas) sÃ£o calculadas controlando para a covariÃ¡vel usando o pacote R 'emmeans' (Lenth, 2024).",
+          'abnt' = "Nota. EstatÃƒÂ­sticas ajustadas (MÃƒÂ©dias Marginais Estimadas) sÃƒÂ£o calculadas controlando para a covariÃƒÂ¡vel usando o pacote R 'emmeans' (Lenth, 2024).",
           "Note. Adjusted statistics (Estimated Marginal Means) are computed controlling for the covariate using the 'emmeans' R package (Lenth, 2024)."
         )
         table$setNote(key = 'covariate_note', note = cov_note_text)

@@ -69,7 +69,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       ci_method            <- if (!is.null(self$options$ci_method)) self$options$ci_method else "analytical"
       n_bootstrap          <- if (!is.null(self$options$n_bootstrap)) self$options$n_bootstrap else 1000
       
-      # 1. DIRECT CALCULATOR FROM TEST STATISTIC (Does not require data upload)
       if (calc_from_test_stat) {
         dt_table <- self$results$directCalcTable
         if (dt_table$rowCount > 0) dt_table$deleteRows()
@@ -249,7 +248,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       data <- self$data
       
-      # 2. CATEGORICAL EFFECT SIZES (Cramer's V, Odds Ratio, Relative Risk)
       if (show_categorical_es && !is.null(data)) {
         cat_tbl <- self$results$categoricalTable
         if (cat_tbl$rowCount > 0) cat_tbl$deleteRows()
@@ -281,7 +279,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             k_min <- min(r_dim - 1, c_dim - 1)
             v_est <- sqrt(chi_stat / (n_cat * max(1, k_min)))
             
-            # Cramer's V CI via bootstrap or analytic approximation
             z_crit <- stats::qnorm(1 - (1 - ci_level) / 2)
             se_v <- sqrt((1 - v_est^2) / n_cat)
             ci_lo_v <- max(0, v_est - z_crit * se_v)
@@ -298,18 +295,15 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               n_obs = n_cat
             )); row_c <- row_c + 1
             
-            # 2x2 Tables: Odds Ratio and Relative Risk
             if (r_dim == 2 && c_dim == 2) {
               a <- tab[1, 1]; b <- tab[1, 2]
               c_cell <- tab[2, 1]; d <- tab[2, 2]
               
-              # Haldane-Anscombe correction if any cell is 0
               if (any(c(a, b, c_cell, d) == 0)) {
                 a <- a + 0.5; b <- b + 0.5
                 c_cell <- c_cell + 0.5; d <- d + 0.5
               }
               
-              # Odds Ratio
               or_val <- (a * d) / (b * c_cell)
               se_ln_or <- sqrt(1 / a + 1 / b + 1 / c_cell + 1 / d)
               ci_lo_or <- exp(log(or_val) - z_crit * se_ln_or)
@@ -325,7 +319,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 n_obs = n_cat
               )); row_c <- row_c + 1
               
-              # Relative Risk
               p1 <- a / (a + b)
               p2 <- c_cell / (c_cell + d)
               rr_val <- if (p2 > 0) p1 / p2 else NA_real_
@@ -347,7 +340,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
-      # Stop early if no data uploaded and direct calc was active
       if (is.null(data)) {
         if (calc_from_test_stat) {
           self$results$text$setContent("Direct test statistic calculations computed successfully without raw data.")
@@ -557,7 +549,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }
         }
       } else {
-        # Longitudinal mode
         if (long_format == "wide") {
           if (private$.is_defined(wave_vars) && length(wave_vars) >= 2) {
             wave_pairs <- combn(wave_vars, 2, simplify = FALSE)
@@ -629,7 +620,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
-      # Forest Plot Setup
       if (show_es_plot) {
         image <- self$results$esPlot
         image$setSize(plot_w, plot_h)
@@ -757,7 +747,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance"))
       }
       
-      # ROBUST METHODS (Algina-Keselman-Penfield d_R & Akritas-Arnold relative effect)
       if (method == "algina_keselman_d") {
         m_ta <- mean(ga, trim = 0.20)
         m_tb <- mean(gb, trim = 0.20)
@@ -766,7 +755,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         sw <- sqrt(((n1 - 1) * stats::var(wa) + (n2 - 1) * stats::var(wb)) / (n1 + n2 - 2))
         es_val <- if (sw > 0) 0.642 * (m_ta - m_tb) / sw else NA_real_
         
-        # Percentile Bootstrap CI (Algina, Keselman & Penfield, 2005)
         boot_dr <- function() {
           b1 <- sample(ga, n1, replace = TRUE)
           b2 <- sample(gb, n2, replace = TRUE)
@@ -791,7 +779,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         p_hat <- mean(comp_mat)
         es_val <- 2 * p_hat - 1
         
-        # Brunner-Munzel variance for relative effect
         r_all <- rank(c(ga, gb))
         r_a <- r_all[1:n1]; r_b <- r_all[(n1 + 1):(n1 + n2)]
         r_int_a <- rank(ga); r_int_b <- rank(gb)

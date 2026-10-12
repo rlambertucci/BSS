@@ -13,7 +13,7 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         '<ul>',
         '<li><b>Methodology:</b> Imputes missing values by modeling each incomplete variable conditionally on the others ',
         'using univariate regression models iteratively <i>(van Buuren & Groothuis-Oudshoorn, 2011)</i>.</li>',
-        '<li><b>Algorithms:</b> <b>pmm</b> (Predictive Mean Matching — robust, default), ',
+        '<li><b>Algorithms:</b> <b>pmm</b> (Predictive Mean Matching â€” robust, default), ',
         '<b>norm</b> (Bayesian linear regression), <b>logreg</b> (binary logistic regression), ',
         'and <b>polyreg</b> (polytomous regression for nominal categories).</li>',
         '<li><b>Aggregation:</b> Pools <i>m</i> simulated datasets by calculating the <b>Mean</b> for continuous ',
@@ -1208,7 +1208,7 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         matplot(
           t(mean_mat), type = "l", lty = 1,
           col = grDevices::rainbow(ncol(mean_mat)),
-          main = paste0(v, " — Iteration Mean"),
+          main = paste0(v, " â€” Iteration Mean"),
           xlab = "Iteration", ylab = "Mean", cex.main = 0.9
         )
         
@@ -1217,12 +1217,12 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
           matplot(
             t(sd_mat), type = "l", lty = 1,
             col = grDevices::rainbow(ncol(sd_mat)),
-            main = paste0(v, " — Iteration SD"),
+            main = paste0(v, " â€” Iteration SD"),
             xlab = "Iteration", ylab = "SD", cex.main = 0.9
           )
         } else {
           graphics::plot.new()
-          graphics::title(main = paste0(v, " — SD N/A"), cex.main = 0.9)
+          graphics::title(main = paste0(v, " â€” SD N/A"), cex.main = 0.9)
         }
       }
       TRUE

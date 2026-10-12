@@ -1,4 +1,3 @@
-# Correlation Comparison Implementation
 
 correlationComparisonClass <- R6::R6Class(
   "correlationComparisonClass",
@@ -225,7 +224,7 @@ correlationComparisonClass <- R6::R6Class(
       
       if (isTRUE(self$options$show_ci_plot)) {
         plot_df <- data.frame(
-          label    = c("r₁₂ (Var 1 vs Var 2)", "r₁₃ (Var 1 vs Var 3)"),
+          label    = c("râ‚â‚‚ (Var 1 vs Var 2)", "râ‚â‚ƒ (Var 1 vs Var 3)"),
           r        = c(r12, r13),
           ci_lower = c(l1, l2),
           ci_upper = c(u1, u2),
@@ -247,7 +246,7 @@ correlationComparisonClass <- R6::R6Class(
       
       table$setNote(
         "citation",
-        "Note. Steiger's Z-test for non-overlapping dependent correlations (r₁₂ vs r₃₄ measured in the same sample). Citations: Steiger, J. H. (1980). Psychol Bull, 87(2), 244-251; Raghunathan, T. E. et al. (1996). Psychol Methods, 1(2), 178-183."
+        "Note. Steiger's Z-test for non-overlapping dependent correlations (râ‚â‚‚ vs râ‚ƒâ‚„ measured in the same sample). Citations: Steiger, J. H. (1980). Psychol Bull, 87(2), 244-251; Raghunathan, T. E. et al. (1996). Psychol Methods, 1(2), 178-183."
       )
       
       if (private$.is_empty(n) || private$.is_empty(r12) || private$.is_empty(r34) ||
@@ -321,7 +320,7 @@ correlationComparisonClass <- R6::R6Class(
       
       if (isTRUE(self$options$show_ci_plot)) {
         plot_df <- data.frame(
-          label    = c("r₁₂ (Var 1 vs Var 2)", "r₃₄ (Var 3 vs Var 4)"),
+          label    = c("râ‚â‚‚ (Var 1 vs Var 2)", "râ‚ƒâ‚„ (Var 3 vs Var 4)"),
           r        = c(r12, r34),
           ci_lower = c(l1, l2),
           ci_upper = c(u1, u2),
@@ -414,7 +413,7 @@ correlationComparisonClass <- R6::R6Class(
       
       ov_table$setNote(
         "citation",
-        "Note. Cochran's Q (χ²) test for correlation homogeneity across k independent groups based on Fisher's z-transformation. Citation: Cochran, W. G. (1954). Biometrics, 10(1), 101-129."
+        "Note. Cochran's Q (Ï‡Â²) test for correlation homogeneity across k independent groups based on Fisher's z-transformation. Citation: Cochran, W. G. (1954). Biometrics, 10(1), 101-129."
       )
       
       if (isTRUE(self$options$show_ellipse_plot)) {

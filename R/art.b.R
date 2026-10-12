@@ -370,7 +370,6 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             t_r <- private$.safe_extract(ph_df, j, c("t.ratio", "z.ratio", "t value", "z value"))
             p_v <- private$.safe_extract(ph_df, j, c("p.value", "Pr(>|t|)", "Pr(>|z|)"))
             
-            # Nonparametric effect sizes: Vargha-Delaney A and Rank-Biserial r_rb
             a_val <- NA_real_
             r_rb_val <- NA_real_
             sides <- strsplit(comp, " - ")[[1]]
@@ -422,7 +421,6 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               }
             }
             
-            # Analytical fallback if empirical bootstrap did not converge
             if (is.na(a_val) && !is.na(t_r) && !is.na(df) && df > 0) {
               scale_fac <- if (is_paired) 1 else 2
               d_approx <- (scale_fac * t_r) / sqrt(df)

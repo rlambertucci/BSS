@@ -246,7 +246,6 @@ samplesizeClass <- R6::R6Class(
       }
     },
     
-    # Power & Sample Size for t-tests (BSS-FEAT-016)
     .runPowerT = function() {
       t_type  <- self$options$t_test_type
       d       <- self$options$t_effect_size
@@ -264,11 +263,11 @@ samplesizeClass <- R6::R6Class(
         return()
       }
       if (is.null(alpha) || alpha <= 0 || alpha >= 1) {
-        self$results$text_power_t$setContent("Significance level (α) must be between 0 and 1.")
+        self$results$text_power_t$setContent("Significance level (Î±) must be between 0 and 1.")
         return()
       }
       if (is.null(power) || power <= 0 || power >= 1) {
-        self$results$text_power_t$setContent("Target power (1 - β) must be between 0 and 1.")
+        self$results$text_power_t$setContent("Target power (1 - Î²) must be between 0 and 1.")
         return()
       }
       
@@ -312,7 +311,7 @@ samplesizeClass <- R6::R6Class(
       self$results$text_power_t$setContent(paste0(
         "Power Analysis for t-test complete: Required sample size is ",
         n_per_group, if (t_type == "two_sample") " subjects per group (Total N = " else " subjects (Total N = ",
-        total_n, ") for ", round(power * 100, 1), "% power at α = ", alpha, "."
+        total_n, ") for ", round(power * 100, 1), "% power at Î± = ", alpha, "."
       ))
       
       if (show_cv) {
@@ -359,7 +358,7 @@ samplesizeClass <- R6::R6Class(
         ggplot2::labs(
           title = "Power Sensitivity Curve (t-test)",
           x = "Sample Size per Group (n)",
-          y = "Statistical Power (1 - β)",
+          y = "Statistical Power (1 - Î²)",
           color = "Effect Size"
         ) +
         ggtheme +
@@ -372,7 +371,6 @@ samplesizeClass <- R6::R6Class(
       TRUE
     },
     
-    # Equivalence Testing (TOST) (BSS-FEAT-017)
     .runTOST = function() {
       eq_bound   <- abs(self$options$tost_eq_bound)
       true_diff  <- if (!is.null(self$options$tost_true_diff)) self$options$tost_true_diff else 0.0
@@ -384,15 +382,15 @@ samplesizeClass <- R6::R6Class(
       table$setRow(rowNo = 1, values = list())
       
       if (is.null(eq_bound) || eq_bound <= 0) {
-        self$results$text_tost$setContent("Equivalence Bound (Δ) must be strictly positive (Δ > 0).")
+        self$results$text_tost$setContent("Equivalence Bound (Î”) must be strictly positive (Î” > 0).")
         return()
       }
       if (abs(true_diff) >= eq_bound) {
-        self$results$text_tost$setContent("True difference (|δ|) must be strictly smaller than equivalence bound (Δ).")
+        self$results$text_tost$setContent("True difference (|Î´|) must be strictly smaller than equivalence bound (Î”).")
         return()
       }
       if (is.null(alpha) || alpha <= 0 || alpha >= 0.5) {
-        self$results$text_tost$setContent("Significance level (α) must be between 0 and 0.5.")
+        self$results$text_tost$setContent("Significance level (Î±) must be between 0 and 0.5.")
         return()
       }
       if (is.null(power) || power <= 0 || power >= 1) {
@@ -427,11 +425,10 @@ samplesizeClass <- R6::R6Class(
         "TOST Equivalence Sample Size: Required sample size is ",
         n_req, if (!is_paired) " subjects per group (Total N = " else " pairs (Total N = ",
         total_n, ") to establish equivalence within [ -", eq_bound, ", +", eq_bound,
-        " ] with ", round(power * 100, 1), "% power at nominal α = ", alpha, " (Lakens, 2013; Schuirmann, 1987)."
+        " ] with ", round(power * 100, 1), "% power at nominal Î± = ", alpha, " (Lakens, 2013; Schuirmann, 1987)."
       ))
     },
     
-    # Proportions & McNemar Test (BSS-FEAT-018)
     .runProportions = function() {
       prop_type <- self$options$prop_test_type
       p1        <- self$options$prop_p1
@@ -447,7 +444,7 @@ samplesizeClass <- R6::R6Class(
       table$setRow(rowNo = 1, values = list())
       
       if (is.null(alpha) || alpha <= 0 || alpha >= 1 || is.null(power) || power <= 0 || power >= 1) {
-        self$results$text_proportions$setContent("α and target power must be strictly between 0 and 1.")
+        self$results$text_proportions$setContent("Î± and target power must be strictly between 0 and 1.")
         return()
       }
       
@@ -456,7 +453,7 @@ samplesizeClass <- R6::R6Class(
       
       if (prop_type == "two_prop") {
         if (is.null(p1) || is.null(p2) || p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1 || p1 == p2) {
-          self$results$text_proportions$setContent("Proportions p₁ and p₂ must be between 0 and 1, and p₁ ≠ p₂.")
+          self$results$text_proportions$setContent("Proportions pâ‚ and pâ‚‚ must be between 0 and 1, and pâ‚ â‰  pâ‚‚.")
           return()
         }
         alt_arg <- switch(alt, two_sided = "two.sided", one_sided = "one.sided", "two.sided")
@@ -465,7 +462,6 @@ samplesizeClass <- R6::R6Class(
         }, error = function(e) NULL)
         
         if (is.null(pwr_res)) {
-          # Fleiss formula fallback
           p_bar <- (p1 + p2) / 2
           n_raw <- ((z_alpha * sqrt(2 * p_bar * (1 - p_bar)) + z_beta * sqrt(p1 * (1 - p1) + p2 * (1 - p2))) / (p1 - p2))^2
           n_per_group <- ceiling(n_raw)
@@ -486,12 +482,12 @@ samplesizeClass <- R6::R6Class(
         self$results$text_proportions$setContent(paste0(
           "Two-proportion test complete: Required sample size is ", n_per_group,
           " subjects per group (Total N = ", total_n, ") for ", round(power * 100, 1),
-          "% power at α = ", alpha, " (Fleiss et al., 2003)."
+          "% power at Î± = ", alpha, " (Fleiss et al., 2003)."
         ))
         
       } else if (prop_type == "one_prop") {
         if (is.null(p1) || is.null(p0) || p1 <= 0 || p1 >= 1 || p0 <= 0 || p0 >= 1 || p1 == p0) {
-          self$results$text_proportions$setContent("Proportions p₁ and null value p₀ must be between 0 and 1, and p₁ ≠ p₀.")
+          self$results$text_proportions$setContent("Proportions pâ‚ and null value pâ‚€ must be between 0 and 1, and pâ‚ â‰  pâ‚€.")
           return()
         }
         n_raw <- ((z_alpha * sqrt(p0 * (1 - p0)) + z_beta * sqrt(p1 * (1 - p1))) / (p1 - p0))^2
@@ -508,12 +504,12 @@ samplesizeClass <- R6::R6Class(
         ))
         self$results$text_proportions$setContent(paste0(
           "One-sample proportion test complete: Required sample size is ", n_req,
-          " subjects for ", round(power * 100, 1), "% power at α = ", alpha, "."
+          " subjects for ", round(power * 100, 1), "% power at Î± = ", alpha, "."
         ))
         
       } else if (prop_type == "mcnemar") {
         if (is.null(p12) || is.null(p21) || p12 <= 0 || p21 <= 0 || (p12 + p21) >= 1 || p12 == p21) {
-          self$results$text_proportions$setContent("Discordant proportions p₁₂ and p₂₁ must be positive with (p₁₂ + p₂₁) < 1, and p₁₂ ≠ p₂₁.")
+          self$results$text_proportions$setContent("Discordant proportions pâ‚â‚‚ and pâ‚‚â‚ must be positive with (pâ‚â‚‚ + pâ‚‚â‚) < 1, and pâ‚â‚‚ â‰  pâ‚‚â‚.")
           return()
         }
         p_disc <- p12 + p21
@@ -532,7 +528,7 @@ samplesizeClass <- R6::R6Class(
         ))
         self$results$text_proportions$setContent(paste0(
           "McNemar paired proportions test complete: Required sample size is ", n_pairs,
-          " matched pairs for ", round(power * 100, 1), "% power at α = ", alpha,
+          " matched pairs for ", round(power * 100, 1), "% power at Î± = ", alpha,
           " (McNemar, 1947; Connor, 1987)."
         ))
       }

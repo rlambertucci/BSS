@@ -108,7 +108,7 @@ outliersClass <- R6::R6Class(
         '<li><b>Robust MCD (Minimum Covariance Determinant):</b> Highly robust against masking and swamping by computing location and scatter from the most concentrated subset of observations. <i>Rousseeuw & Van Driessen (1999).</i></li>',
         '</ul>',
         '<p style=\"font-style: italic; padding-top: 10px;\">',
-        'Observations with D² exceeding the critical χ² value at the selected α level are identified as multivariate outliers.',
+        'Observations with DÂ² exceeding the critical Ï‡Â² value at the selected Î± level are identified as multivariate outliers.',
         '</p>',
         '</div>'
       )
@@ -629,7 +629,6 @@ outliersClass <- R6::R6Class(
       }
     },
     
-    # Multivariate Outliers: Mahalanobis & Robust MCD (BSS-FEAT-019..021)
     .runMahalanobis = function() {
       vars <- self$options$vars_mah
       if (is.null(vars) || length(vars) < 2) return()
@@ -643,7 +642,6 @@ outliersClass <- R6::R6Class(
       alpha_opt <- self$options$alpha_mah
       alpha     <- switch(alpha_opt, p001 = 0.001, p01 = 0.01, p05 = 0.05, 0.001)
       
-      # Extract matrix of complete cases
       df_sub <- self$data[vars]
       complete_idx <- which(stats::complete.cases(df_sub))
       if (length(complete_idx) <= length(vars)) {
@@ -707,7 +705,6 @@ outliersClass <- R6::R6Class(
         }
       }
       
-      # Chi-Square QQ-Plot
       if (isTRUE(self$options$dispPlot_mah)) {
         theo_quant <- stats::qchisq((seq_len(n) - 0.5) / n, df = p)
         emp_quant  <- sort(d2)
@@ -715,7 +712,6 @@ outliersClass <- R6::R6Class(
         self$results$mahPlot$setState(list(df = qq_df, crit = crit_val, p = p, method = method_label))
       }
       
-      # Save flag variable
       if (self$results$treatedData_mah$isNotFilled()) {
         self$results$treatedData_mah$set(
           keys = "mah_outlier",
@@ -743,10 +739,10 @@ outliersClass <- R6::R6Class(
         ggplot2::geom_hline(yintercept = crit, linetype = "dotted", color = "#c0392b", linewidth = 0.9) +
         ggplot2::geom_point(color = "#2c3e50", size = 2.5, alpha = 0.8) +
         ggplot2::labs(
-          title = paste0("Chi-Square QQ-Plot (Mahalanobis D², df = ", p_df, ")"),
+          title = paste0("Chi-Square QQ-Plot (Mahalanobis DÂ², df = ", p_df, ")"),
           x = "Theoretical Chi-Square Quantiles",
-          y = "Empirical Mahalanobis D²",
-          caption = paste0("Dotted red line: Critical χ² cutoff = ", round(crit, 2))
+          y = "Empirical Mahalanobis DÂ²",
+          caption = paste0("Dotted red line: Critical Ï‡Â² cutoff = ", round(crit, 2))
         ) +
         ggtheme +
         ggplot2::theme(

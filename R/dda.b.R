@@ -140,7 +140,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
         })
         if (is.null(scores) || is.null(centroids)) return()
         
-        # 1. Linear Discriminant Coefficients
         if (isTRUE(self$options$coef)) {
           table <- self$results$coef
           tryCatch({
@@ -181,7 +180,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$coef$setState(NULL), silent=TRUE) }
         
-        # 2. Proportion of trace
         if (isTRUE(self$options$prop)) {
           table <- self$results$prop
           tryCatch({
@@ -208,7 +206,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$prop$setRow(rowNo=1, values=list(name="Proportion(%)")), silent=TRUE) }
         
-        # 3. Group centroids
         if (isTRUE(self$options$gc)) {
           table <- self$results$gc
           tryCatch({
@@ -249,7 +246,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$gc$setState(NULL), silent=TRUE) }
         
-        # 4. Box M test for covariance homogeneity
         if (isTRUE(self$options$boxM)) {
           tableBox <- self$results$boxMTable
           tryCatch({
@@ -320,13 +316,11 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         }
         
-        # 5. Classification matrix & LOOCV
         if (isTRUE(self$options$classTable)) {
           tableClass <- self$results$classTable
           tryCatch({
             tableClass$clear()
             
-            # Dynamically add prediction columns for each group
             current_cols <- private$.getColumnNames(tableClass)
             for (g in group_levels) {
               col_id <- paste0("pred_", g)
@@ -335,11 +329,9 @@ DDAClass <- if (requireNamespace('jmvcore'))
               }
             }
             
-            # Apparent predictions
             pred_app <- stats::predict(lda.results)$class
             tab_app  <- table(Actual = data[[dep]], Predicted = factor(pred_app, levels = group_levels))
             
-            # LOOCV predictions
             lda_cv <- tryCatch({
               MASS::lda(formula, data = data, CV = TRUE)
             }, error = function(e) NULL)
@@ -347,7 +339,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
             pred_cv <- if (!is.null(lda_cv)) lda_cv$class else NULL
             tab_cv  <- if (!is.null(pred_cv)) table(Actual = data[[dep]], Predicted = factor(pred_cv, levels = group_levels)) else NULL
             
-            # Fill Original rows
             for (g in group_levels) {
               row_vals <- list(
                 method      = "Original (Apparent)",
@@ -361,7 +352,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
               tableClass$addRow(rowKey = paste0("app_", g), values = row_vals)
             }
             
-            # Fill LOOCV rows
             if (!is.null(tab_cv)) {
               for (g in group_levels) {
                 row_vals <- list(
@@ -380,7 +370,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
             total_cases <- sum(tab_app)
             acc_app <- (sum(diag(tab_app)) / total_cases) * 100
             
-            # Cohen's Kappa for apparent predictions
             p_obs <- sum(diag(tab_app)) / total_cases
             p_exp <- sum(rowSums(tab_app) * colSums(tab_app)) / (total_cases^2)
             kappa_app <- if (p_exp < 1) (p_obs - p_exp) / (1 - p_exp) else 1
@@ -395,7 +384,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         }
         
-        # 6. Canonical DDA Biplot
         if (isTRUE(self$options$plot)) {
           plotData <- data.frame(Group = data[[dep]], scores)
           centroids_plot <- centroids
@@ -413,7 +401,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           ))
         }
         
-        # 7. Structure coefficients
         if (isTRUE(self$options$structCoef)) {
           table <- self$results$structCoefTable
           tryCatch({
@@ -464,7 +451,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$structCoefTable$setState(NULL), silent=TRUE) }
         
-        # 8. Discriminant scores
         if (isTRUE(self$options$discScores)) {
           table <- self$results$discScoresTable
           tryCatch({
@@ -499,7 +485,6 @@ DDAClass <- if (requireNamespace('jmvcore'))
           })
         } else { try(self$results$discScoresTable$setState(NULL), silent=TRUE) }
         
-        # 9. Pairwise effect sizes (d & g)
         if (isTRUE(self$options$pairwiseES)) {
           tableES <- self$results$pairwiseESTable
           try(tableES$clearFootnotes(), silent = TRUE)
