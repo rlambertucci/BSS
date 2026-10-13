@@ -9,24 +9,31 @@ maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
 date: '2026-10-13'
 type: R
 description: >-
-  The BSS module provides a comprehensive suite of statistical tools organized 
-  according to the main stages of data analysis. It includes: (1) data
-  screening, cleaning and presentation tools, such as outlier detection (Dixon’s
-  Q Test, IQR, modified Z-score, Mahalanobis & MCD), missing data imputation
-  (missRanger and MICE with Rubin rules pooling), and highly customizable group
-  comparison plots (bar charts, boxplots, and mean-dispersion graphs) for both
-  cross-sectional and longitudinal designs, including automated
-  publication-ready descriptive tables (APA, ABNT, Vancouver, and Chicago
-  styles, APA HTML export, and correlation matrices). (2) association analyses,
-  including correlation comparison (independent, dependent, and Jennrich matrix
-  test) and network modeling for continuous and mixed data with bridge
-  centrality and community detection; (3) post-analysis tools for result
-  interpretation, including pairwise effect size estimation with conversions and
-  forest plots, and post hoc analysis for MANOVA using descriptive discriminant
-  analysis (DDA) with Box's M test and LOOCV classification; and (4) study
-  planning tools, including sample size calculation for finite populations,
-  animal experimental designs (Resource Equation Approach), t-test power curves,
-  TOST equivalence tests, and proportion tests.
+  The BSS module provides a comprehensive suite of advanced statistical tools
+  for behavioral and health sciences organized across the main stages of
+  empirical workflows: (1) Data Screening & Preparation: multi-method outlier
+  detection (Dixon's Q, IQR, Hubert adjusted boxplot, modified Z-score,
+  Mahalanobis & MCD), missing data patterns and imputation (missRanger and MICE
+  with Rubin rules pooling), and power/bounded normality transformations
+  (Box-Cox, Yeo-Johnson, Johnson curves, Arcsine, Logit) with Anderson-Darling
+  and Shapiro-Francia tests; (2) Associations & Network Modeling: network
+  analysis for continuous (GGM) and mixed (MGM) data with bridge centrality,
+  community detection (Walktrap, Louvain) and layout seeds, and correlation
+  comparisons (independent, dependent overlapping/non-overlapping, raw data, and
+  Jennrich matrix equality); (3) Nonparametric ANOVA, Effect Sizes & Post-Hocs:
+  Aligned Rank Transform (ART) factorial/mixed ANOVA with partial eta-sq,
+  partial omega-sq, epsilon-sq, Kendall's W and FDR control, pairwise effect
+  sizes (Cohen's d, dz, dav, drm, Hedges' g/gz, Glass' delta/dz, r_rb, robust
+  d_R, Akritas-Arnold delta, CLES, Cramér's V, OR, RR, Cohen's h, and GzLM AME)
+  with Sawilowsky benchmarks, multi-metric conversions and forest plots, and
+  post-hoc MANOVA via Descriptive Discriminant Analysis (DDA) with Box's M test
+  and LOOCV; and (4) Study Planning & Presentation: sample size determination
+  (finite populations, animal designs via Resource Equation with dropout
+  adjustment and Power-ANOVA comparison, t-test power curves, TOST equivalence,
+  and proportions), and publication-ready customizable comparison plots (bar,
+  boxplot, mean-dispersion, and density with theoretical Normal, Gamma, and
+  Inverse Gaussian curves) with APA, ABNT, Vancouver, Chicago descriptive
+  tables, APA 7th HTML export, and correlation heatmaps.
 analyses:
   - title: Outliers detection and treatment
     name: outliers
