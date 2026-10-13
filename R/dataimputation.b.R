@@ -419,12 +419,14 @@ dataimputationClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Clas
         }
       }
       
-      if (isTRUE(self)) {
-        models_list <- if (!is.null(wide_to_long_map)) completed_wide_list else lapply(seq_len(mice_obj), function(i) mice::complete(mice_obj, action = i))
-        private$.runModelPooling(
-          models_list, data, self, self,
-          self, self
-        )
+      if (isTRUE(self$options$enable_model_pooling_mice_long)) {
+        models_list <- if (!is.null(wide_to_long_map)) completed_wide_list else lapply(seq_len(mice_obj$m), function(i) mice::complete(mice_obj, action = i))
+        if (!is.null(models_list)) {
+          private$.runModelPooling(
+            models_list, data, self$options$model_dep_mice_long, self$options$model_indep_mice_long,
+            self$options$model_type_mice_long, self$results$modelPoolingTable_mice_long
+          )
+        }
       }
       private$.fill_imputed_table(data, pooled_data, vars_to_impute, self$results$imputedData_mice_long)
       

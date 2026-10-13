@@ -38,7 +38,7 @@ children:
             margin: large
             children:
               - type: Label
-                label: "Use for Repeated Measures ANOVA, Mixed Design ANOVA, or ANCOVA."
+                label: "Use for Repeated Measures ANOVA or Mixed Design ANOVA."
               - type: ComboBox
                 name: long_format
                 label: Data Format

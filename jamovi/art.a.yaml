@@ -2,7 +2,7 @@ name: art
 title: Aligned Rank Transform (ART)
 menuGroup: BSS
 menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
-menuSubtitle: Nonparametric Factorial and Mixed ANOVAs/ANCOVAs
+menuSubtitle: Nonparametric Factorial and Mixed ANOVAs
 version: '1.0.0'
 jas: '1.2'
 

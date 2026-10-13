@@ -617,6 +617,79 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               }
             }
           }
+        } else if (long_format == "long") {
+          if (private$.is_defined(dep_vars) && private$.is_defined(time_var) && private$.is_defined(subject_id_var)) {
+            if (time_var %in% names(data) && subject_id_var %in% names(data)) {
+              time_lvls <- sort(unique(stats::na.omit(as.character(data[[time_var]]))))
+              if (length(time_lvls) >= 2) {
+                t_pairs <- combn(time_lvls, 2, simplify = FALSE)
+                for (dv in dep_vars) {
+                  if (!(dv %in% names(data))) next
+                  for (tp in t_pairs) {
+                    t1 <- tp[[1]]; t2 <- tp[[2]]
+                    d1 <- data[as.character(data[[time_var]]) == t1 & !is.na(data[[time_var]]), c(subject_id_var, dv)]
+                    d2 <- data[as.character(data[[time_var]]) == t2 & !is.na(data[[time_var]]), c(subject_id_var, dv)]
+                    m_df <- merge(d1, d2, by = subject_id_var, suffixes = c("_1", "_2"))
+                    c1 <- private$.to_numeric_vec(m_df[[paste0(dv, "_1")]])
+                    c2 <- private$.to_numeric_vec(m_df[[paste0(dv, "_2")]])
+                    valid <- !is.na(c1) & !is.na(c2)
+                    c1 <- c1[valid]; c2 <- c2[valid]
+                    n_obs <- length(c1)
+                    if (n_obs < 3) next
+                    result <- tryCatch({
+                      private$.compute_dependent_paired(c1, c2, t1, t2, t1, es_method_long, ci_method, ci_level, n_bootstrap, cov_col = NULL, benchmark = benchmark_std)
+                    }, error = function(e) {
+                      list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Error: ", e$message))
+                    })
+                    n_rows <- n_rows + 1
+                    comp_str <- paste0(t1, " vs ", t2)
+                    table$addRow(rowKey = n_rows, values = list(
+                      dv             = dv,
+                      iv             = time_var,
+                      comparison     = comp_str,
+                      method         = result$method,
+                      es_value       = result$es_value,
+                      ci_lower       = result$ci_lower,
+                      ci_upper       = result$ci_upper,
+                      interpretation = result$interpretation,
+                      n_obs          = n_obs
+                    ))
+                    if (is.finite(result$es_value)) {
+                      plot_entries[[length(plot_entries) + 1]] <- list(
+                        label    = paste0(dv, ": ", comp_str),
+                        estimate = result$es_value,
+                        ci_lower = result$ci_lower,
+                        ci_upper = result$ci_upper
+                      )
+                    }
+                    if (isTRUE(show_conversions) && !is.na(result$es_value)) {
+                      convs <- private$.convert_metrics(result$es_value, es_method_long, benchmark_std)
+                      n_conv <- n_conv + 1
+                      conversion_tbl$addRow(rowKey = n_conv, values = list(
+                        dv             = dv,
+                        comparison     = comp_str,
+                        cohen_d        = convs$cohen_d,
+                        correlation_r  = convs$correlation_r,
+                        eta_squared    = convs$eta_squared,
+                        odds_ratio     = convs$odds_ratio,
+                        auc            = convs$auc,
+                        interpretation = convs$interpretation
+                      ))
+                    }
+                    if (isTRUE(show_cles_long)) {
+                      cles_result <- private$.compute_cles_paired(c1, c2)
+                      n_cles_long <- n_cles_long + 1
+                      clesTable$addRow(rowKey = n_cles_long, values = list(
+                        dv         = dv,
+                        comparison = comp_str,
+                        cles       = cles_result$cles
+                      ))
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
       

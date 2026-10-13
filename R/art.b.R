@@ -214,6 +214,14 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         return()
       }
       
+      for (p in predictors) {
+        col_raw <- data[[p]]
+        if (is.numeric(col_raw) && length(unique(stats::na.omit(col_raw))) > 10) {
+          self$results$text$setContent(paste0('Notice: Predictor ', p, ' appears to be a continuous numeric variable. Aligned Rank Transform requires discrete categorical factors. Continuous covariates cannot be aligned without distorting interaction tests. Use General Linear Models or Quade non-parametric ANCOVA instead.'))
+          self$results$text$setVisible(TRUE)
+          return()
+        }
+      }
       process_data <- droplevels(process_data)
       
       safe_name_map <- setNames(make.names(vars_in_model), vars_in_model)
