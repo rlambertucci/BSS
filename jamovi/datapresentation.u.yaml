@@ -72,6 +72,10 @@ children:
           - type: ComboBox
             name: plotType
             label: Plot Type
+          - type: ComboBox
+            name: theo_dist
+            label: Theoretical Distribution Curve
+            enable: (plotType == 'density')
 
           - type: ComboBox
             name: intStyle

@@ -167,6 +167,10 @@ options:
       options:
         - title: Cohen's dz
           name: cohens_dz
+        - title: "Cohen's dav (Morris & DeShon, 2002; Lakens, 2013)"
+          name: cohens_dav
+        - title: "Cohen's drm (Morris & DeShon, 2002; Lakens, 2013)"
+          name: cohens_drm
         - title: Hedges' gz
           name: hedges_gz
         - title: Glass' Delta z
@@ -262,7 +266,7 @@ options:
       default: 450
 
     - name: show_categorical_es
-      title: Categorical Effect Sizes (Cramér's V, Odds Ratio, Relative Risk)
+      title: Categorical Effect Sizes (Cramér's V, Odds Ratio, Relative Risk, Cohen's h)
       type: Bool
       default: false
 

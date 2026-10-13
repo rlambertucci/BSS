@@ -180,6 +180,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 es_method_long,
                 options=list(
                     "cohens_dz",
+                    "cohens_dav",
+                    "cohens_drm",
                     "hedges_gz",
                     "glass_dz",
                     "rank_biserial_paired"),

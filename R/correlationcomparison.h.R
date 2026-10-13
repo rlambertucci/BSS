@@ -7,6 +7,10 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
     public = list(
         initialize = function(
             mode = "independent",
+            independent_input_type = "summary",
+            indep_var_x = NULL,
+            indep_var_y = NULL,
+            indep_group = NULL,
             independent_n1 = 20,
             independent_n2 = 20,
             independent_r1 = 0,
@@ -51,6 +55,39 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "partial_comparison",
                     "jennrich"),
                 default="independent")
+            private$..independent_input_type <- jmvcore::OptionList$new(
+                "independent_input_type",
+                independent_input_type,
+                options=list(
+                    "summary",
+                    "raw"),
+                default="summary")
+            private$..indep_var_x <- jmvcore::OptionVariable$new(
+                "indep_var_x",
+                indep_var_x,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..indep_var_y <- jmvcore::OptionVariable$new(
+                "indep_var_y",
+                indep_var_y,
+                suggested=list(
+                    "continuous"),
+                permitted=list(
+                    "numeric"),
+                default=NULL)
+            private$..indep_group <- jmvcore::OptionVariable$new(
+                "indep_group",
+                indep_group,
+                suggested=list(
+                    "nominal",
+                    "ordinal"),
+                permitted=list(
+                    "factor",
+                    "numeric"),
+                default=NULL)
             private$..independent_n1 <- jmvcore::OptionInteger$new(
                 "independent_n1",
                 independent_n1,
@@ -196,6 +233,10 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 default=TRUE)
 
             self$.addOption(private$..mode)
+            self$.addOption(private$..independent_input_type)
+            self$.addOption(private$..indep_var_x)
+            self$.addOption(private$..indep_var_y)
+            self$.addOption(private$..indep_group)
             self$.addOption(private$..independent_n1)
             self$.addOption(private$..independent_n2)
             self$.addOption(private$..independent_r1)
@@ -225,6 +266,10 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
         }),
     active = list(
         mode = function() private$..mode$value,
+        independent_input_type = function() private$..independent_input_type$value,
+        indep_var_x = function() private$..indep_var_x$value,
+        indep_var_y = function() private$..indep_var_y$value,
+        indep_group = function() private$..indep_group$value,
         independent_n1 = function() private$..independent_n1$value,
         independent_n2 = function() private$..independent_n2$value,
         independent_r1 = function() private$..independent_r1$value,
@@ -253,6 +298,10 @@ correlationComparisonOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R
         show_ci_plot = function() private$..show_ci_plot$value),
     private = list(
         ..mode = NA,
+        ..independent_input_type = NA,
+        ..indep_var_x = NA,
+        ..indep_var_y = NA,
+        ..indep_group = NA,
         ..independent_n1 = NA,
         ..independent_n2 = NA,
         ..independent_r1 = NA,
@@ -313,6 +362,10 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 visible="(mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison')",
                 clearWith=list(
                     "mode",
+                    "independent_input_type",
+                    "indep_var_x",
+                    "indep_var_y",
+                    "indep_group",
                     "independent_n1",
                     "independent_n2",
                     "independent_r1",
@@ -645,6 +698,10 @@ correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::
 #' 
 #' @param data .
 #' @param mode .
+#' @param independent_input_type .
+#' @param indep_var_x .
+#' @param indep_var_y .
+#' @param indep_group .
 #' @param independent_n1 .
 #' @param independent_n2 .
 #' @param independent_r1 .
@@ -693,6 +750,10 @@ correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::
 correlationComparison <- function(
     data,
     mode = "independent",
+    independent_input_type = "summary",
+    indep_var_x = NULL,
+    indep_var_y = NULL,
+    indep_group = NULL,
     independent_n1 = 20,
     independent_n2 = 20,
     independent_r1 = 0,
@@ -723,6 +784,9 @@ correlationComparison <- function(
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("correlationComparison requires jmvcore to be installed (restart may be required)")
 
+    if ( ! missing(indep_var_x)) indep_var_x <- jmvcore::resolveQuo(jmvcore::enquo(indep_var_x))
+    if ( ! missing(indep_var_y)) indep_var_y <- jmvcore::resolveQuo(jmvcore::enquo(indep_var_y))
+    if ( ! missing(indep_group)) indep_group <- jmvcore::resolveQuo(jmvcore::enquo(indep_group))
     if ( ! missing(multi_var_x)) multi_var_x <- jmvcore::resolveQuo(jmvcore::enquo(multi_var_x))
     if ( ! missing(multi_var_y)) multi_var_y <- jmvcore::resolveQuo(jmvcore::enquo(multi_var_y))
     if ( ! missing(multi_group)) multi_group <- jmvcore::resolveQuo(jmvcore::enquo(multi_group))
@@ -735,6 +799,9 @@ correlationComparison <- function(
     if (missing(data))
         data <- jmvcore::marshalData(
             parent.frame(),
+            `if`( ! missing(indep_var_x), indep_var_x, NULL),
+            `if`( ! missing(indep_var_y), indep_var_y, NULL),
+            `if`( ! missing(indep_group), indep_group, NULL),
             `if`( ! missing(multi_var_x), multi_var_x, NULL),
             `if`( ! missing(multi_var_y), multi_var_y, NULL),
             `if`( ! missing(multi_group), multi_group, NULL),
@@ -751,6 +818,10 @@ correlationComparison <- function(
 
     options <- correlationComparisonOptions$new(
         mode = mode,
+        independent_input_type = independent_input_type,
+        indep_var_x = indep_var_x,
+        indep_var_y = indep_var_y,
+        indep_group = indep_group,
         independent_n1 = independent_n1,
         independent_n2 = independent_n2,
         independent_r1 = independent_r1,

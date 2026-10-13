@@ -74,6 +74,39 @@ children:
               - type: CheckBox
                 name: sacrifice_animals
 
+          - type: LayoutBox
+            margin: large
+            children:
+              - type: TextBox
+                name: dropout_animals
+                label: "Expected Attrition / Dropout Rate (%)"
+                format: number
+          - type: CollapseBox
+            label: "Power-based ANOVA Settings (Optional Comparison)"
+            collapsed: true
+            stretchFactor: 1
+            children:
+              - type: LayoutBox
+                margin: large
+                children:
+                  - type: CheckBox
+                    name: calc_power_anova_animals
+                    label: "Calculate Power-based ANOVA Sample Size"
+                  - type: TextBox
+                    name: power_f_animals
+                    label: "Effect Size (Cohen's f)"
+                    format: number
+                    enable: (calc_power_anova_animals)
+                  - type: TextBox
+                    name: power_alpha_animals
+                    label: "Significance Level (α)"
+                    format: number
+                    enable: (calc_power_anova_animals)
+                  - type: TextBox
+                    name: power_target_animals
+                    label: "Target Power (1 - β)"
+                    format: number
+                    enable: (calc_power_anova_animals)
       - type: Content
         name: power_t
         children:

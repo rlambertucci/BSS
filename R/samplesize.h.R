@@ -16,6 +16,11 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             nGroups_animals = 2,
             nMeasures_animals = 2,
             sacrifice_animals = FALSE,
+            dropout_animals = 10,
+            calc_power_anova_animals = FALSE,
+            power_f_animals = 0.4,
+            power_alpha_animals = 0.05,
+            power_target_animals = 0.8,
             t_test_type = "two_sample",
             t_effect_size = 0.5,
             t_alpha = 0.05,
@@ -97,6 +102,34 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "sacrifice_animals",
                 sacrifice_animals,
                 default=FALSE)
+            private$..dropout_animals <- jmvcore::OptionNumber$new(
+                "dropout_animals",
+                dropout_animals,
+                min=0,
+                max=50,
+                default=10)
+            private$..calc_power_anova_animals <- jmvcore::OptionBool$new(
+                "calc_power_anova_animals",
+                calc_power_anova_animals,
+                default=FALSE)
+            private$..power_f_animals <- jmvcore::OptionNumber$new(
+                "power_f_animals",
+                power_f_animals,
+                min=0.05,
+                max=2,
+                default=0.4)
+            private$..power_alpha_animals <- jmvcore::OptionNumber$new(
+                "power_alpha_animals",
+                power_alpha_animals,
+                min=0.001,
+                max=0.2,
+                default=0.05)
+            private$..power_target_animals <- jmvcore::OptionNumber$new(
+                "power_target_animals",
+                power_target_animals,
+                min=0.5,
+                max=0.99,
+                default=0.8)
             private$..t_test_type <- jmvcore::OptionList$new(
                 "t_test_type",
                 t_test_type,
@@ -209,6 +242,11 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..nGroups_animals)
             self$.addOption(private$..nMeasures_animals)
             self$.addOption(private$..sacrifice_animals)
+            self$.addOption(private$..dropout_animals)
+            self$.addOption(private$..calc_power_anova_animals)
+            self$.addOption(private$..power_f_animals)
+            self$.addOption(private$..power_alpha_animals)
+            self$.addOption(private$..power_target_animals)
             self$.addOption(private$..t_test_type)
             self$.addOption(private$..t_effect_size)
             self$.addOption(private$..t_alpha)
@@ -242,6 +280,11 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         nGroups_animals = function() private$..nGroups_animals$value,
         nMeasures_animals = function() private$..nMeasures_animals$value,
         sacrifice_animals = function() private$..sacrifice_animals$value,
+        dropout_animals = function() private$..dropout_animals$value,
+        calc_power_anova_animals = function() private$..calc_power_anova_animals$value,
+        power_f_animals = function() private$..power_f_animals$value,
+        power_alpha_animals = function() private$..power_alpha_animals$value,
+        power_target_animals = function() private$..power_target_animals$value,
         t_test_type = function() private$..t_test_type$value,
         t_effect_size = function() private$..t_effect_size$value,
         t_alpha = function() private$..t_alpha$value,
@@ -274,6 +317,11 @@ samplesizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..nGroups_animals = NA,
         ..nMeasures_animals = NA,
         ..sacrifice_animals = NA,
+        ..dropout_animals = NA,
+        ..calc_power_anova_animals = NA,
+        ..power_f_animals = NA,
+        ..power_alpha_animals = NA,
+        ..power_target_animals = NA,
         ..t_test_type = NA,
         ..t_effect_size = NA,
         ..t_alpha = NA,
@@ -596,6 +644,11 @@ samplesizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param nGroups_animals .
 #' @param nMeasures_animals .
 #' @param sacrifice_animals .
+#' @param dropout_animals .
+#' @param calc_power_anova_animals .
+#' @param power_f_animals .
+#' @param power_alpha_animals .
+#' @param power_target_animals .
 #' @param t_test_type .
 #' @param t_effect_size .
 #' @param t_alpha .
@@ -650,6 +703,11 @@ samplesize <- function(
     nGroups_animals = 2,
     nMeasures_animals = 2,
     sacrifice_animals = FALSE,
+    dropout_animals = 10,
+    calc_power_anova_animals = FALSE,
+    power_f_animals = 0.4,
+    power_alpha_animals = 0.05,
+    power_target_animals = 0.8,
     t_test_type = "two_sample",
     t_effect_size = 0.5,
     t_alpha = 0.05,
@@ -687,6 +745,11 @@ samplesize <- function(
         nGroups_animals = nGroups_animals,
         nMeasures_animals = nMeasures_animals,
         sacrifice_animals = sacrifice_animals,
+        dropout_animals = dropout_animals,
+        calc_power_anova_animals = calc_power_anova_animals,
+        power_f_animals = power_f_animals,
+        power_alpha_animals = power_alpha_animals,
+        power_target_animals = power_target_animals,
         t_test_type = t_test_type,
         t_effect_size = t_effect_size,
         t_alpha = t_alpha,

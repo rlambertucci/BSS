@@ -53,6 +53,14 @@ items:
           title: Partial ω²
           type: number
           format: dp:3
+        - name: eps_sq
+          title: Partial ε²
+          type: number
+          format: dp:3
+        - name: kendall_w
+          title: Kendall's W
+          type: number
+          format: dp:3
 
     - name: posthocTable
       title: Pairwise Post-Hoc Tests (art.con)
@@ -198,4 +206,3 @@ items:
         - subject_id_var
         - time_var
         - wave_vars
-        - run_analysis

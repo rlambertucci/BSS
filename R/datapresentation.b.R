@@ -749,24 +749,75 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                     }
                     if (opts$showPoints) gg <- gg + ggplot2::geom_point(data = plot_data, ggplot2::aes(x = x_var, y = y, fill = fill_var), color = "black", shape = 1, position = jitter_pos, size = opts$pointSize, alpha = opts$pointAlpha, inherit.aes = FALSE)
                     gg
+                  },
+                  density = {
+                    theo <- if (!is.null(opts$theo_dist)) opts$theo_dist else "none"
+                    gg <- ggplot2::ggplot(plot_data, ggplot2::aes(x = y, fill = fill_var, color = fill_var)) +
+                      ggplot2::geom_density(alpha = 0.35, linewidth = opts$lineWidth)
+                    if (theo == "normal") {
+                      for (lvl in unique(plot_data$fill_var)) {
+                        sub_y <- plot_data$y[plot_data$fill_var == lvl]
+                        sub_y <- sub_y[!is.na(sub_y)]
+                        if (length(sub_y) >= 3 && stats::sd(sub_y) > 0) {
+                          m <- mean(sub_y)
+                          s <- stats::sd(sub_y)
+                          gg <- gg + ggplot2::stat_function(fun = stats::dnorm, args = list(mean = m, sd = s), linetype = "dashed", linewidth = 0.8)
+                        }
+                      }
+                    } else if (theo == "gamma") {
+                      for (lvl in unique(plot_data$fill_var)) {
+                        sub_y <- plot_data$y[plot_data$fill_var == lvl]
+                        sub_y <- sub_y[!is.na(sub_y) & sub_y > 0]
+                        if (length(sub_y) >= 3 && stats::sd(sub_y) > 0) {
+                          m <- mean(sub_y)
+                          v <- stats::var(sub_y)
+                          sh <- m^2 / v
+                          ra <- m / v
+                          gg <- gg + ggplot2::stat_function(fun = stats::dgamma, args = list(shape = sh, rate = ra), linetype = "dashed", linewidth = 0.8)
+                        }
+                      }
+                    } else if (theo == "inv_gaussian") {
+                      dinvgauss_fn <- function(x, mu, lambda) {
+                        res <- rep(0, length(x))
+                        pos <- x > 0
+                        if (any(pos)) {
+                          xp <- x[pos]
+                          res[pos] <- sqrt(lambda / (2 * pi * xp^3)) * exp(-lambda * (xp - mu)^2 / (2 * mu^2 * xp))
+                        }
+                        res
+                      }
+                      for (lvl in unique(plot_data$fill_var)) {
+                        sub_y <- plot_data$y[plot_data$fill_var == lvl]
+                        sub_y <- sub_y[!is.na(sub_y) & sub_y > 0]
+                        if (length(sub_y) >= 3 && stats::sd(sub_y) > 0) {
+                          mu_ig <- mean(sub_y)
+                          lam_inv <- mean(1 / sub_y) - 1 / mu_ig
+                          if (lam_inv > 0) {
+                            lam_ig <- 1 / lam_inv
+                            gg <- gg + ggplot2::stat_function(fun = dinvgauss_fn, args = list(mu = mu_ig, lambda = lam_ig), linetype = "dashed", linewidth = 0.8)
+                          }
+                        }
+                      }
+                    }
+                    gg
                   }
       )
       
       p <- p + ggplot2::scale_fill_manual(values = colors) + ggplot2::scale_color_manual(values = colors)
       y_expand <- if (opts$removeGap) ggplot2::expansion(mult = c(0, 0.05)) else ggplot2::waiver()
       
-      if (opts$customYAxis) {
+      if (opts$customYAxis && opts$plotType != 'density') {
         y_breaks <- if (opts$yStep > 0) seq(opts$yMin, opts$yMax, by = opts$yStep) else ggplot2::waiver()
         p <- p + ggplot2::scale_y_continuous(expand = y_expand, limits = c(opts$yMin, opts$yMax), breaks = y_breaks)
       } else {
         p <- p + ggplot2::scale_y_continuous(expand = y_expand)
       }
       
-      label_x <- if(opts$xLabel != '') opts$xLabel else (if(opts$analysisType == 'longitudinal') "Time" else opts$group[1])
+      label_x <- if(opts$xLabel != '') opts$xLabel else (if(opts$plotType == 'density') dep else (if(opts$analysisType == 'longitudinal') "Time" else opts$group[1]))
       plot_title <- if(opts$titleText != '') opts$titleText else NULL
       
       p <- p + custom_theme + ggplot2::labs(title = plot_title,
-                                            x = label_x, y = if(opts$yLabel != '') opts$yLabel else dep,
+                                            x = label_x, y = if(opts$yLabel != '') opts$yLabel else (if(opts$plotType == 'density') "Density" else dep),
                                             fill = plot_data$leg_title[1], color = plot_data$leg_title[1])
       if (isTRUE(opts$exportPlots)) {
         private$.exportVectorPlot(p, dep, opts)

@@ -310,6 +310,16 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                         `name`="part_omega_sq", 
                         `title`="Partial \u03C9\u00B2", 
                         `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="eps_sq", 
+                        `title`="Partial \u03B5\u00B2", 
+                        `type`="number", 
+                        `format`="dp:3"),
+                    list(
+                        `name`="kendall_w", 
+                        `title`="Kendall's W", 
+                        `type`="number", 
                         `format`="dp:3"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -468,8 +478,7 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "long_format",
                     "subject_id_var",
                     "time_var",
-                    "wave_vars",
-                    "run_analysis")))}))
+                    "wave_vars")))}))
 
 artBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "artBase",

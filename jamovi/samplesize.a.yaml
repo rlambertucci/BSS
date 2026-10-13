@@ -74,6 +74,38 @@ options:
     title: Animals Sacrificed at Each Measure (Designs 2 and 3)
     type: Bool
     default: false
+  - name: dropout_animals
+    title: Expected Attrition / Dropout Rate (%)
+    type: Number
+    min: 0
+    max: 50
+    default: 10
+
+  - name: calc_power_anova_animals
+    title: Compare with Power-based ANOVA (Festing & Altman, 2002)
+    type: Bool
+    default: false
+
+  - name: power_f_animals
+    title: Effect Size (Cohen's f)
+    type: Number
+    min: 0.05
+    max: 2.0
+    default: 0.40
+
+  - name: power_alpha_animals
+    title: Significance Level (α)
+    type: Number
+    min: 0.001
+    max: 0.20
+    default: 0.05
+
+  - name: power_target_animals
+    title: Target Power (1 - β)
+    type: Number
+    min: 0.50
+    max: 0.99
+    default: 0.80
 
   # Power & Sample Size for t-tests (BSS-FEAT-016)
   - name: t_test_type

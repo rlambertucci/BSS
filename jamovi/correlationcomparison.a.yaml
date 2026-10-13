@@ -27,6 +27,44 @@ options:
         - name: jennrich
           title: Correlation Matrix Equality (Jennrich Test)
       default: independent
+    - name: independent_input_type
+      title: Data Source (Independent)
+      type: List
+      options:
+        - name: summary
+          title: Summary Statistics (r and N)
+        - name: raw
+          title: Raw Data (Variables & Grouping Factor)
+      default: summary
+
+    - name: indep_var_x
+      title: Variable X (Raw Data)
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: indep_var_y
+      title: Variable Y (Raw Data)
+      type: Variable
+      suggested:
+        - continuous
+      permitted:
+        - numeric
+      default: null
+
+    - name: indep_group
+      title: Grouping Variable (2 Levels)
+      type: Variable
+      suggested:
+        - nominal
+        - ordinal
+      permitted:
+        - factor
+        - numeric
+      default: null
 
     - name: independent_n1
       title: Sample Size (Group 1)

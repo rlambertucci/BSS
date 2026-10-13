@@ -335,6 +335,21 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 interpretation = private$.interpret_ratio(rr_val),
                 n_obs = n_cat
               )); row_c <- row_c + 1
+              p1 <- a / (a + b)
+              p2 <- c_cell / (c_cell + d)
+              h_val <- 2 * asin(sqrt(p1)) - 2 * asin(sqrt(p2))
+              se_h <- sqrt(1 / (a + b) + 1 / (c_cell + d))
+              ci_lo_h <- h_val - z_crit * se_h
+              ci_hi_h <- h_val + z_crit * se_h
+              cat_tbl$addRow(rowKey = row_c, values = list(
+                pair = paste(cat1, "×", cat2),
+                metric = "Cohen's h",
+                value = h_val,
+                ci_lower = ci_lo_h,
+                ci_upper = ci_hi_h,
+                interpretation = private$.interpret_cohen_h(h_val),
+                n_obs = n_cat
+              )); row_c <- row_c + 1
             }
           }
         }
@@ -737,6 +752,14 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       return("Large (\u2265 0.8)")
     },
     
+    .interpret_cohen_h = function(h) {
+      if (is.null(h) || is.na(h) || !is.finite(h)) return("Inconclusive")
+      abs_h <- abs(h)
+      if (abs_h < 0.2) return("Negligible (< 0.2)")
+      if (abs_h < 0.5) return("Small (0.2 - 0.5)")
+      if (abs_h < 0.8) return("Medium (0.5 - 0.8)")
+      return("Large (≥ 0.8)")
+    },
     .interpret_ratio = function(r) {
       if (is.null(r) || is.na(r) || !is.finite(r)) return("Inconclusive")
       eff <- if (r < 1 && r > 0) 1 / r else r
@@ -1034,6 +1057,8 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       res <- tryCatch({
         switch(method,
                cohens_dz            = effectsize::cohens_d(col1, col2, paired = TRUE, ci = ci_level),
+               cohens_dav           = effectsize::repeated_measures_d(col1, col2, method = "av", ci = ci_level),
+               cohens_drm           = effectsize::repeated_measures_d(col1, col2, method = "rm", ci = ci_level),
                hedges_gz            = effectsize::hedges_g(col1, col2, paired = TRUE, ci = ci_level),
                glass_dz             = {
                  if (ref_wave == name1) {
@@ -1060,6 +1085,8 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           res_b <- tryCatch({
             switch(method,
                    cohens_dz            = effectsize::cohens_d(b1, b2, paired = TRUE, ci = NULL)[[1]],
+                   cohens_dav           = effectsize::repeated_measures_d(b1, b2, method = "av", ci = NULL)[[1]],
+                   cohens_drm           = effectsize::repeated_measures_d(b1, b2, method = "rm", ci = NULL)[[1]],
                    hedges_gz            = effectsize::hedges_g(b1, b2, paired = TRUE, ci = NULL)[[1]],
                    rank_biserial_paired = effectsize::rank_biserial(b1, b2, paired = TRUE, ci = NULL)[[1]]
             )

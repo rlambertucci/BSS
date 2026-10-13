@@ -60,18 +60,46 @@ correlationComparisonClass <- R6::R6Class(
     
     .runIndependent = function() {
       table <- self$results$comparisonTable
-      n1 <- self$options$independent_n1
-      n2 <- self$options$independent_n2
-      r1 <- self$options$independent_r1
-      r2 <- self$options$independent_r2
-      
+      input_type <- self$options$independent_input_type
       table$setNote(
         "citation",
         "Note. Fisher's Z-transformation is used to compare two independent correlation coefficients. Confidence interval for difference based on Zou (2007). Citations: Fisher, R. A. (1921). Metron, 1, 3-32; Zou, G. Y. (2007). Psychol Methods, 12(4), 399-413."
       )
-      
-      if (private$.is_empty(n1) || private$.is_empty(n2) || private$.is_empty(r1) || private$.is_empty(r2)) return()
-      
+      if (input_type == "raw") {
+        data <- self$data
+        vx <- self$options$indep_var_x
+        vy <- self$options$indep_var_y
+        vg <- self$options$indep_group
+        if (is.null(data) || is.null(vx) || is.null(vy) || is.null(vg)) return()
+        if (!(vx %in% names(data)) || !(vy %in% names(data)) || !(vg %in% names(data))) return()
+        x_vec <- as.numeric(data[[vx]])
+        y_vec <- as.numeric(data[[vy]])
+        g_fac <- as.factor(data[[vg]])
+        valid <- !is.na(x_vec) & !is.na(y_vec) & !is.na(g_fac)
+        x_vec <- x_vec[valid]; y_vec <- y_vec[valid]; g_fac <- droplevels(g_fac[valid])
+        lvls <- levels(g_fac)
+        if (length(lvls) != 2) {
+          table$setNote("warning", "Warning: Grouping variable must contain exactly 2 levels for independent comparison.")
+          return()
+        }
+        idx1 <- g_fac == lvls[1]
+        idx2 <- g_fac == lvls[2]
+        n1 <- sum(idx1)
+        n2 <- sum(idx2)
+        if (n1 < 4 || n2 < 4) {
+          table$setNote("warning", "Warning: Sample size in each group must be at least 4.")
+          return()
+        }
+        r1 <- stats::cor(x_vec[idx1], y_vec[idx1])
+        r2 <- stats::cor(x_vec[idx2], y_vec[idx2])
+        table$setNote("raw_data_note", paste0("Note. Estimated correlations from raw data: ", lvls[1], " (n = ", n1, ", r = ", round(r1, 3), ") vs ", lvls[2], " (n = ", n2, ", r = ", round(r2, 3), ")."))
+      } else {
+        n1 <- self$options$independent_n1
+        n2 <- self$options$independent_n2
+        r1 <- self$options$independent_r1
+        r2 <- self$options$independent_r2
+        if (private$.is_empty(n1) || private$.is_empty(n2) || private$.is_empty(r1) || private$.is_empty(r2)) return()
+      }
       if (n1 < 4 || n2 < 4) {
         table$setNote("warning", "Warning: Sample size in each group must be at least 4.")
         return()
@@ -84,7 +112,6 @@ correlationComparisonClass <- R6::R6Class(
         table$setNote("warning", "Warning: Fisher's Z-transformation is undefined for perfect correlations (|r| = 1).")
         return()
       }
-      
       z1 <- atanh(r1)
       z2 <- atanh(r2)
       se_diff <- sqrt((1 / (n1 - 3)) + (1 / (n2 - 3)))

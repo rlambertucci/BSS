@@ -15,6 +15,10 @@ items:
       visible: (mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison')
       clearWith:
         - mode
+        - independent_input_type
+        - indep_var_x
+        - indep_var_y
+        - indep_group
         - independent_n1
         - independent_n2
         - independent_r1

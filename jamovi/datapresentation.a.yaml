@@ -77,7 +77,23 @@ options:
           title: Box Plot
         - name: meandp
           title: Mean & Dispersion
+        - name: density
+          title: Density Distribution (Empirical & Theoretical)
       default: bar
+
+    - name: theo_dist
+      title: Theoretical Distribution Curve
+      type: List
+      options:
+        - name: none
+          title: None (Empirical Only)
+        - name: normal
+          title: Normal Distribution
+        - name: gamma
+          title: Gamma Distribution (> 0)
+        - name: inv_gaussian
+          title: Inverse Gaussian Distribution (> 0)
+      default: none
 
     - name: intStyle
       title: Interaction Style

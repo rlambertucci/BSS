@@ -304,10 +304,15 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         
         pes <- NA_real_
         pos <- NA_real_
+        eps <- NA_real_
+        w_ken <- NA_real_
         if (!is.na(f_val) && !is.na(df_num) && !is.na(df_res) && df_res > 0) {
           pes <- (f_val * df_num) / ((f_val * df_num) + df_res)
           val_pos <- (df_num * (f_val - 1)) / (df_num * (f_val - 1) + df_res + 1)
           pos <- max(0, val_pos)
+          val_eps <- (df_num * (f_val - 1)) / ((f_val * df_num) + df_res)
+          eps <- max(0, val_eps)
+          w_ken <- (f_val * df_num) / ((f_val * df_num) + df_res)
         }
         
         anova_table$addRow(rowKey = i, values = list(
@@ -317,7 +322,9 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           f_value       = f_val,
           p_value       = p_val,
           part_eta_sq   = pes,
-          part_omega_sq = pos
+          part_omega_sq = pos,
+          eps_sq        = eps,
+          kendall_w     = w_ken
         ))
       }
       
@@ -513,13 +520,13 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       p3 <- if (length(predictors) >= 3) predictors[3] else NULL
       
       if (is.null(p2)) {
-        p <- ggplot2::ggplot(df, ggplot2::aes_string(x = p1, y = dep_var)) +
+        p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[p1]], y = .data[[dep_var]])) +
           ggplot2::stat_summary(fun = mean, geom = "point", size = 3, color = "#2c3e50") +
           ggplot2::stat_summary(fun.data = ggplot2::mean_cl_boot, geom = "errorbar", width = 0.2, color = "#2c3e50") +
           ggplot2::labs(title = paste("Marginal Means of", dep_var, "by", p1)) +
           ggtheme
       } else {
-        p <- ggplot2::ggplot(df, ggplot2::aes_string(x = p1, y = dep_var, color = p2, group = p2)) +
+        p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[p1]], y = .data[[dep_var]], color = .data[[p2]], group = .data[[p2]])) +
           ggplot2::stat_summary(fun = mean, geom = "point", size = 3) +
           ggplot2::stat_summary(fun = mean, geom = "line", linewidth = 0.8) +
           ggplot2::stat_summary(fun.data = ggplot2::mean_cl_boot, geom = "errorbar", width = 0.2) +

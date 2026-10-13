@@ -14,6 +14,7 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             cov = NULL,
             cov_long = NULL,
             plotType = "bar",
+            theo_dist = "none",
             intStyle = "legend",
             showLines = TRUE,
             errorType = "sd",
@@ -131,8 +132,18 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 options=list(
                     "bar",
                     "boxplot",
-                    "meandp"),
+                    "meandp",
+                    "density"),
                 default="bar")
+            private$..theo_dist <- jmvcore::OptionList$new(
+                "theo_dist",
+                theo_dist,
+                options=list(
+                    "none",
+                    "normal",
+                    "gamma",
+                    "inv_gaussian"),
+                default="none")
             private$..intStyle <- jmvcore::OptionList$new(
                 "intStyle",
                 intStyle,
@@ -593,6 +604,7 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             self$.addOption(private$..cov)
             self$.addOption(private$..cov_long)
             self$.addOption(private$..plotType)
+            self$.addOption(private$..theo_dist)
             self$.addOption(private$..intStyle)
             self$.addOption(private$..showLines)
             self$.addOption(private$..errorType)
@@ -656,6 +668,7 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         cov = function() private$..cov$value,
         cov_long = function() private$..cov_long$value,
         plotType = function() private$..plotType$value,
+        theo_dist = function() private$..theo_dist$value,
         intStyle = function() private$..intStyle$value,
         showLines = function() private$..showLines$value,
         errorType = function() private$..errorType$value,
@@ -718,6 +731,7 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         ..cov = NA,
         ..cov_long = NA,
         ..plotType = NA,
+        ..theo_dist = NA,
         ..intStyle = NA,
         ..showLines = NA,
         ..errorType = NA,
@@ -1038,6 +1052,7 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 #' @param cov .
 #' @param cov_long .
 #' @param plotType .
+#' @param theo_dist .
 #' @param intStyle .
 #' @param showLines .
 #' @param errorType .
@@ -1119,6 +1134,7 @@ DataPresentation <- function(
     cov,
     cov_long,
     plotType = "bar",
+    theo_dist = "none",
     intStyle = "legend",
     showLines = TRUE,
     errorType = "sd",
@@ -1204,6 +1220,7 @@ DataPresentation <- function(
         cov = cov,
         cov_long = cov_long,
         plotType = plotType,
+        theo_dist = theo_dist,
         intStyle = intStyle,
         showLines = showLines,
         errorType = errorType,

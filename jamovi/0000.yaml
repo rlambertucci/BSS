@@ -1,12 +1,12 @@
 ---
 title: BSS
 name: BSS
-version: 0.5.0
+version: 0.6.0
 jms: '1.0'
 authors:
   - Rafael Lambertucci
 maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
-date: '2026-10-11'
+date: '2026-10-13'
 type: R
 description: >-
   The BSS module provides a comprehensive suite of statistical tools organized 
