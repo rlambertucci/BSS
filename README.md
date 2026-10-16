@@ -1,10 +1,10 @@
 # BSS: Comprehensive Statistical Suite for jamovi & R
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/rlambertucci/BSS)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/rlambertucci/BSS)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-green.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
 [![jamovi](https://img.shields.io/badge/jamovi-module-orange.svg)](https://www.jamovi.org)
 
-**BSS** is an advanced statistical analysis module developed by **Prof. Rafael Lambertucci** (Federal University of São Paulo — UNIFESP) for **jamovi** and **R**. It extends standard analytic pipelines with robust, non-parametric, multivariate, psychometric, and design-planning tools tailored for biomedical, psychological, and behavioral research.
+**BSS** is an advanced statistical analysis suite developed by **Prof. Rafael Lambertucci** (Federal University of São Paulo — UNIFESP) for **jamovi** and **R**. It extends standard analytic pipelines with robust, non-parametric, multivariate, psychometric, and design-planning tools tailored for biomedical, psychological, and behavioral research.
 
 ---
 
@@ -20,13 +20,13 @@ The package provides 10 integrated analysis engines:
    - Pattern visualization, Little’s MCAR test, and modern multiple imputation algorithms via Random Forest (`missRanger`) and Chained Equations (`MICE`).
 
 3. **Descriptive Discriminant Analysis (`dda`):**
-   - Canonic post-hoc analysis for MANOVA, canonical correlation ratios ($\eta^2$), structural coefficients (Courville & Thompson, 2001), and cross-validation (*jackknife*).
+   - Canonical post-hoc analysis for MANOVA, canonical correlation ratios ($\eta^2$), structural coefficients (Courville & Thompson, 2001), and cross-validation (*jackknife*).
 
 4. **Aligned Rank Transform (`art`):**
    - Nonparametric factorial ANOVA for multifactor designs and interaction testing (Wobbrock et al., 2011) with post-hoc pairwise contrast tests (`art.con`).
 
 5. **Comprehensive Effect Sizes (`effectsize`):**
-   - Pairwise standardized and non-parametric effect sizes for independent and repeated-measures designs: Cohen's $d$, Hedges' $g$, Glass's $\Delta$ (honoring control group), Glass's $\Delta_z$ longitudinal (Becker, 1988), Common Language Effect Size (CLES / $P(A > B)$), and fast bootstrap confidence intervals.
+   - Pairwise standardized and non-parametric effect sizes for independent and repeated-measures designs: Cohen's $d$, Hedges' $g$, Glass's $\Delta$ (honoring control group), Glass's $\Delta_z$ longitudinal (Becker, 1988), Common Language Effect Size (CLES / $P(A > B)$), and bootstrap confidence intervals.
 
 6. **Sample Size & Resource Equation (`samplesize`):**
    - Survey sampling for finite populations (Cochran, 1977; Slovin, 1960) and laboratory animal sample size calculation using Mead's Resource Equation Approach (Festing & Altman, 2002; Charan & Kantharia, 2013; Arifin & Wan Mohammad, 2017) across completely randomized, factorial, and repeated measures designs.
@@ -49,37 +49,6 @@ The package provides 10 integrated analysis engines:
 
 ---
 
-## 📦 Installation
-
-### Inside jamovi
-1. Open jamovi.
-2. Click on the **Modules** button (top right `+` icon).
-3. Select **jamovi library** or install locally using `.jmo` package.
-
-### In R
-```r
-# Install devtools if not already installed
-if (!requireNamespace("devtools", quietly = TRUE))
-  install.packages("devtools")
-
-# Install BSS directly from GitHub
-devtools::install_github("rlambertucci/BSS")
-```
-
----
-
-## 🛡️ Scientific Audit & Quality Assurance
-
-Starting with version `0.3.0`, the entire BSS codebase underwent an exhaustive mathematical, statistical, and computational audit. A total of **54 issue tickets** (38 statistical/methodological and 16 architectural/computational) were systematically investigated, patched, and independently validated across 10 audit cycles.
-
-Detailed reports and validation test suites can be found in the repository:
-- [General Inventory (Phase 1)](docs/audit/FASE1_INVENTARIO_GERAL.md)
-- [Global Audit Matrix](docs/audit/MATRIZ_GLOBAL_AUDITORIA.md)
-- Independent Validation Reports: `docs/audit/VALIDACAO_*.md`
-- Regression Test Suites: `tests/validation/test_*_fixes.R`
-
----
-
 ## 📖 Citation
 
 If you use BSS in your research, please cite:
@@ -89,7 +58,7 @@ If you use BSS in your research, please cite:
   author = {Lambertucci, Rafael},
   title = {BSS: Comprehensive Statistical Suite for jamovi and R},
   year = {2026},
-  version = {0.3.0},
+  version = {0.6.0},
   url = {https://github.com/rlambertucci/BSS}
 }
 ```
@@ -97,4 +66,5 @@ If you use BSS in your research, please cite:
 ---
 
 ## 📄 License
+
 This package is licensed under the [GNU General Public License (GPL >= 2)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html).
