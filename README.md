@@ -19,7 +19,7 @@ The package provides 10 integrated analysis engines:
 2. **Missing Data Analysis & Imputation (`dataimputation`):**
    - Pattern visualization, Little’s MCAR test, and modern multiple imputation algorithms via Random Forest (`missRanger`) and Chained Equations (`MICE`).
    - Regression-model pooling uses the fitted models' residual degrees of freedom after missing-case omission and rank determination. If a fitted model has no positive residual degrees of freedom, or these differ across completed datasets, pooling is unavailable with an explanatory note rather than reporting unsupported p-values and confidence intervals.
-   - Keyboard assignment uses the native transfer arrows: select variables, Tab to an arrow, use Up/Down to choose the destination, and press Enter. See [keyboard navigation](docs/IMPUTATION-KEYBOARD.md).
+   - Keyboard assignment uses the native transfer arrows: select variables, Tab to an arrow, use Up/Down to choose the destination, and press Enter.
 
 3. **Descriptive Discriminant Analysis (`dda`):**
    - Scores retain original spreadsheet row identifiers and can be saved through the native discriminant-score Output control.
@@ -46,7 +46,7 @@ The package provides 10 integrated analysis engines:
 
 9. **Data Presentation & Normative Tables (`datapresentation`):**
    - High-quality visualization (bar charts, boxplots, mean & dispersion graphs with individual jittered data points, and empirical density plots) and automated descriptive tables formatted according to major scientific style guides: **APA (7th ed.)**, **ABNT (NBR 14724)**, **Vancouver (ICMJE)**, and **Chicago (17th ed.)**.
-   - Normal (default), Gamma, and Inverse Gaussian summaries for bar and mean-dispersion plots. Gamma and Inverse Gaussian use descriptive maximum-likelihood fits by group and occasion, with fitted SD, asymptotic SE, or profile-likelihood confidence intervals; they are not imported GZLM estimates and do not support covariate adjustment. Density plots are empirical only. See [distribution-dependent presentation](docs/DATA-PRESENTATION-DISTRIBUTIONS.md) for methods and limitations.
+   - Normal (default), Gamma, and Inverse Gaussian summaries for bar and mean-dispersion plots. Gamma and Inverse Gaussian use descriptive maximum-likelihood fits by group and occasion, with fitted SD, asymptotic SE, or profile-likelihood confidence intervals; they are not imported GZLM estimates and do not support covariate adjustment. Density plots are empirical only.
 
    - Copy tables and save figures through jamovi's native result menu; analyses do not write figure files to an arbitrary directory. Edit table titles and annotations with the native result controls. Correlation coefficients remain numeric, with separate significance symbols. Rows with missing grouping values are excluded consistently from both descriptive tables and plots.
 
@@ -54,12 +54,6 @@ The package provides 10 integrated analysis engines:
     - Box-Cox (with optional automatic positive shift), Yeo-Johnson, and Johnson curve translation systems ($S_U, S_B, S_L, S_N$).
     - Automated Shapiro-Wilk diagnostics (before/after), Q-Q plots, histograms, and spreadsheet variable export.
     - Selected Q-Q, histogram, and density panels share one before/after diagnostic image per variable, including native figure export.
-
----
-
-## Windows Builds
-
-Use the isolated locale-safe launcher and two-build comparison described in [docs/BUILD-WINDOWS.md](docs/BUILD-WINDOWS.md). Build outputs stay outside the source checkout.
 
 ---
 
