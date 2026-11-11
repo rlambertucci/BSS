@@ -1,9 +1,9 @@
 ---
 name:  dataimputation
-title: Missing data analysis and imputation
+title: "Missing Data Analysis and Imputation"
 menuGroup: BSS
 menuSubgroup: Data Preparation & Screening
-menuSubtitle: MissRanger and Multiple Imputation by Chained Equations (MICE) 
+menuSubtitle: missRanger and Multiple Imputation by Chained Equations (MICE)
 version: '1.0.0'
 jas: '1.2'
 
@@ -12,14 +12,14 @@ options:
       type: Data
 
     - name: mode
-      title: Analysis Mode
+      title: "Analysis mode"
       type: List
       options:
-        - title: MICE (Cross-sectional)
+        - title: "MICE (cross-sectional)"
           name: mice_cs
-        - title: MICE (Longitudinal)
+        - title: "MICE (longitudinal)"
           name: mice_long
-        - title: missRanger (Random Forest)
+        - title: "missRanger (random forest)"
           name: missranger
       default: mice_cs
 
@@ -33,7 +33,6 @@ options:
       permitted:
         - numeric
         - factor
-        - id
 
     - name: predictor_vars_mice_cs
       title: Predictor Variables (optional)
@@ -47,97 +46,104 @@ options:
         - factor
 
     - name: imputation_method_mice_cs
-      title: Imputation Method
+      title: "Imputation method"
       type: List
       options:
-        - title: PMM — Predictive Mean Matching
+        - title: "PMM — predictive mean matching"
           name: pmm
-        - title: Norm — Bayesian Linear Regression
+        - title: "Bayesian linear regression"
           name: norm
-        - title: Logreg — Logistic Regression (binary)
+        - title: "Logistic regression (binary)"
           name: logreg
-        - title: Polyreg — Polytomous Regression
+        - title: "Polytomous regression"
           name: polyreg
       default: pmm
 
     - name: num_imputations_mice_cs
-      title: Number of Imputations (m)
+      title: "Number of imputations (m)"
       type: Integer
       default: 5
       min: 2
       max: 50
 
     - name: maxiter_mice_cs
-      title: Maximum Iterations
+      title: "Maximum iterations"
       type: Integer
       default: 10
       min: 1
       max: 100
 
+    - name: use_seed_mice_cs
+      title: Use a fixed seed
+      type: Bool
+      default: false
+
     - name: seed_mice_cs
-      title: Seed (leave empty for random)
-      type: String
-      default: ""
+      title: Seed
+      type: Integer
+      default: 0
+      min: -2147483647
+      max: 2147483647
 
     - name: run_imputation_mice_cs
-      title: Run Imputation
+      title: "Imputation results"
       type: Bool
       default: false
 
     - name: show_pattern_plot_mice_cs
-      title: Missing Data Pattern
+      title: "Missing data pattern"
       type: Bool
       default: false
 
     - name: show_pattern_table_mice_cs
-      title: Missing Data Patterns Table
+      title: "Missing data patterns table"
       type: Bool
       default: false
 
     - name: show_correlation_plot_mice_cs
-      title: Missingness Correlation Heatmap
+      title: "Missingness correlation heatmap"
       type: Bool
       default: false
 
     - name: show_trace_plot_mice_cs
-      title: Convergence Trace Plot
+      title: "Convergence trace plot"
       type: Bool
       default: false
 
     - name: show_density_plot_mice_cs
-      title: Observed vs Imputed Distribution
+      title: "Observed vs imputed distribution"
       type: Bool
       default: false
 
     - name: show_strip_plot_mice_cs
-      title: Strip Plot by Variable
+      title: "Strip plot by variable"
       type: Bool
       default: false
 
     - name: show_pooled_summary_mice_cs
-      title: Pooled Parameter Summary (Rubin's Rules)
+      title: "Pooled parameter summary (Rubin's rules)"
       type: Bool
       default: false
 
     - name: show_upset_plot_mice_cs
-      title: Missing Data UpSet Plot
+      title: "Missing data UpSet plot"
       type: Bool
       default: false
 
     - name: enable_model_pooling_mice_cs
-      title: Predictive Modeling with Pooling
+      title: "Predictive modeling with pooling"
       type: Bool
       default: false
 
     - name: model_type_mice_cs
-      title: Model Type
+      title: "Model type"
       type: List
       options:
-        - title: Linear Regression (OLS)
+        - title: "Linear regression (OLS)"
           name: lm
-        - title: Logistic Regression (Binary)
+        - title: "Logistic regression (binary)"
           name: logit
-        - title: ANOVA (Linear Model)
+        - title: "ANOVA (linear model)"
           name: anova
       default: lm
 
@@ -164,7 +170,7 @@ options:
 
 
     - name: imputedColsOutput_mice_cs
-      title: Save Imputed Variables (Pooled)
+      title: "Save aggregated imputed variables (single dataset)"
       type: Output
 
     - name: vars_mice_long
@@ -177,7 +183,6 @@ options:
       permitted:
         - numeric
         - factor
-        - id
 
     - name: predictor_vars_mice_long
       title: Predictor Variables (optional)
@@ -191,10 +196,10 @@ options:
         - factor
 
     - name: data_format_mice_long
-      title: Data Format
+      title: "Data format"
       type: List
       options:
-        - title: Cross-sectional / Long format
+        - title: "Cross-sectional / long format"
           name: long
         - title: Wide format (repeated measures)
           name: wide
@@ -253,93 +258,100 @@ options:
         - factor
 
     - name: imputation_method_mice_long
-      title: Imputation Method
+      title: "Imputation method"
       type: List
       options:
-        - title: 2l.pmm — Multilevel PMM (longitudinal)
+        - title: "Two-level predictive mean matching"
           name: 2l.pmm
-        - title: 2l.continuous — Multilevel Normal (longitudinal)
+        - title: "Two-level normal imputation"
           name: 2l.continuous
       default: 2l.pmm
 
     - name: num_imputations_mice_long
-      title: Number of Imputations (m)
+      title: "Number of imputations (m)"
       type: Integer
       default: 5
       min: 2
       max: 50
 
     - name: maxiter_mice_long
-      title: Maximum Iterations
+      title: "Maximum iterations"
       type: Integer
       default: 10
       min: 1
       max: 100
 
+    - name: use_seed_mice_long
+      title: Use a fixed seed
+      type: Bool
+      default: false
+
     - name: seed_mice_long
-      title: Seed (leave empty for random)
-      type: String
-      default: ""
+      title: Seed
+      type: Integer
+      default: 0
+      min: -2147483647
+      max: 2147483647
 
     - name: run_imputation_mice_long
-      title: Run Imputation
+      title: "Imputation results"
       type: Bool
       default: false
 
     - name: show_pattern_plot_mice_long
-      title: Missing Data Pattern
+      title: "Missing data pattern"
       type: Bool
       default: false
 
     - name: show_pattern_table_mice_long
-      title: Missing Data Patterns Table
+      title: "Missing data patterns table"
       type: Bool
       default: false
 
     - name: show_correlation_plot_mice_long
-      title: Missingness Correlation Heatmap
+      title: "Missingness correlation heatmap"
       type: Bool
       default: false
 
     - name: show_trace_plot_mice_long
-      title: Convergence Trace Plot
+      title: "Convergence trace plot"
       type: Bool
       default: false
 
     - name: show_density_plot_mice_long
-      title: Observed vs Imputed Distribution
+      title: "Observed vs imputed distribution"
       type: Bool
       default: false
 
     - name: show_strip_plot_mice_long
-      title: Strip Plot by Variable
+      title: "Strip plot by variable"
       type: Bool
       default: false
 
     - name: show_pooled_summary_mice_long
-      title: Pooled Parameter Summary (Rubin's Rules)
+      title: "Pooled parameter summary (Rubin's rules)"
       type: Bool
       default: false
 
     - name: show_upset_plot_mice_long
-      title: Missing Data UpSet Plot
+      title: "Missing data UpSet plot"
       type: Bool
       default: false
 
     - name: enable_model_pooling_mice_long
-      title: Predictive Modeling with Pooling
+      title: "Predictive modeling with pooling"
       type: Bool
       default: false
 
     - name: model_type_mice_long
-      title: Model Type
+      title: "Model type"
       type: List
       options:
-        - title: Linear Regression (OLS)
+        - title: "Linear regression (OLS)"
           name: lm
-        - title: Logistic Regression (Binary)
+        - title: "Logistic regression (binary)"
           name: logit
-        - title: ANOVA (Linear Model)
+        - title: "ANOVA (linear model)"
           name: anova
       default: lm
 
@@ -366,7 +378,7 @@ options:
 
 
     - name: imputedColsOutput_mice_long
-      title: Save Imputed Variables (Pooled)
+      title: "Save aggregated imputed variables (single dataset)"
       type: Output
 
     - name: vars_mr
@@ -379,7 +391,6 @@ options:
       permitted:
         - numeric
         - factor
-        - id
 
     - name: predictor_vars_mr
       title: Predictor Variables (optional)
@@ -393,97 +404,104 @@ options:
         - factor
 
     - name: use_multiple_imputation_mr
-      title: Use Multiple Imputation
+      title: "Use multiple imputation"
       type: Bool
       default: false
 
     - name: num_imputations_mr
-      title: Number of Imputations (Mean/Mode)
+      title: "Number of imputations (mean/mode)"
       type: Integer
       default: 5
       min: 2
       max: 50
 
     - name: maxiter_mr
-      title: Maximum Iterations
+      title: "Maximum iterations"
       type: Integer
       default: 10
       min: 1
       max: 100
 
     - name: num_trees_mr
-      title: Number of Trees
+      title: "Number of trees"
       type: Integer
       default: 100
       min: 1
       max: 200
 
     - name: pmm_k_mr
-      title: Number of Donors for PMM
+      title: "Number of donors for PMM"
       type: Integer
       default: 5
       min: 0
       max: 20
 
+    - name: use_seed_mr
+      title: Use a fixed seed
+      type: Bool
+      default: false
+
     - name: seed_mr
-      title: Seed (leave empty for random)
-      type: String
-      default: ""
+      title: Seed
+      type: Integer
+      default: 0
+      min: -2147483647
+      max: 2147483647
 
     - name: run_imputation_mr
-      title: Run Imputation
+      title: "Imputation results"
       type: Bool
       default: false
 
     - name: show_pattern_plot_mr
-      title: Missing Pattern Plot
+      title: "Missing pattern plot"
       type: Bool
       default: false
 
     - name: show_pattern_table_mr
-      title: Missing Data Patterns Table
+      title: "Missing data patterns table"
       type: Bool
       default: false
 
     - name: show_correlation_plot_mr
-      title: Missingness Correlation Heatmap
+      title: "Missingness correlation heatmap"
       type: Bool
       default: false
 
     - name: show_density_plot_mr
-      title: Observed vs Imputed Distribution
+      title: "Observed vs imputed distribution"
       type: Bool
       default: false
 
     - name: show_strip_plot_mr
-      title: Strip Plot by Variable
+      title: "Strip plot by variable"
       type: Bool
       default: false
 
     - name: show_pooled_summary_mr
-      title: Pooled Parameter Summary
+      title: "Pooled parameter summary"
       type: Bool
       default: false
 
     - name: show_upset_plot_mr
-      title: Missing Data UpSet Plot
+      title: "Missing data UpSet plot"
       type: Bool
       default: false
 
     - name: enable_model_pooling_mr
-      title: Predictive Modeling with Pooling
+      title: "Predictive modeling with pooling"
       type: Bool
       default: false
 
     - name: model_type_mr
-      title: Model Type
+      title: "Model type"
       type: List
       options:
-        - title: Linear Regression (OLS)
+        - title: "Linear regression (OLS)"
           name: lm
-        - title: Logistic Regression (Binary)
+        - title: "Logistic regression (binary)"
           name: logit
-        - title: ANOVA (Linear Model)
+        - title: "ANOVA (linear model)"
           name: anova
       default: lm
 
@@ -510,5 +528,5 @@ options:
 
 
     - name: imputedColsOutput_mr
-      title: Save Imputed Variables
+      title: "Save final imputed variables (single dataset)"
       type: Output

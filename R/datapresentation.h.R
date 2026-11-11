@@ -22,9 +22,6 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             showPoints = FALSE,
             showTable = TRUE,
             tableFormat = "apa",
-            tableTitle = "Table 1. Descriptive statistics by group",
-            tableNote = "Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.",
-            themePlot = "classic",
             colorPalette = "set1",
             color1 = "none",
             color2 = "none",
@@ -57,17 +54,11 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             barAlpha = 1,
             pointSize = 2,
             pointAlpha = 0.5,
-            showFormattedTable = FALSE,
             showCorrMatrix = FALSE,
             corrMethod = "pearson",
             showCorrHeatmap = FALSE,
             corrCluster = FALSE,
-            exportPlots = FALSE,
-            exportFormat = "pdf",
-            exportDpi = 300,
-            exportDir = "",
-            exportWidth = 7,
-            exportHeight = 5, ...) {
+            summary_distribution = "normal", ...) {
 
             super$initialize(
                 package="BSS",
@@ -138,6 +129,7 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             private$..theo_dist <- jmvcore::OptionList$new(
                 "theo_dist",
                 theo_dist,
+                hidden=TRUE,
                 options=list(
                     "none",
                     "normal",
@@ -186,24 +178,6 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     "vancouver",
                     "chicago"),
                 default="apa")
-            private$..tableTitle <- jmvcore::OptionString$new(
-                "tableTitle",
-                tableTitle,
-                default="Table 1. Descriptive statistics by group")
-            private$..tableNote <- jmvcore::OptionString$new(
-                "tableNote",
-                tableNote,
-                default="Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.")
-            private$..themePlot <- jmvcore::OptionList$new(
-                "themePlot",
-                themePlot,
-                options=list(
-                    "classic",
-                    "minimal",
-                    "bw",
-                    "gray",
-                    "light"),
-                default="classic")
             private$..colorPalette <- jmvcore::OptionList$new(
                 "colorPalette",
                 colorPalette,
@@ -542,10 +516,6 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 min=0,
                 max=1,
                 default=0.5)
-            private$..showFormattedTable <- jmvcore::OptionBool$new(
-                "showFormattedTable",
-                showFormattedTable,
-                default=FALSE)
             private$..showCorrMatrix <- jmvcore::OptionBool$new(
                 "showCorrMatrix",
                 showCorrMatrix,
@@ -565,36 +535,14 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 "corrCluster",
                 corrCluster,
                 default=FALSE)
-            private$..exportPlots <- jmvcore::OptionBool$new(
-                "exportPlots",
-                exportPlots,
-                default=FALSE)
-            private$..exportFormat <- jmvcore::OptionList$new(
-                "exportFormat",
-                exportFormat,
+            private$..summary_distribution <- jmvcore::OptionList$new(
+                "summary_distribution",
+                summary_distribution,
                 options=list(
-                    "pdf",
-                    "svg",
-                    "both"),
-                default="pdf")
-            private$..exportDpi <- jmvcore::OptionNumber$new(
-                "exportDpi",
-                exportDpi,
-                min=300,
-                max=1200,
-                default=300)
-            private$..exportDir <- jmvcore::OptionString$new(
-                "exportDir",
-                exportDir,
-                default="")
-            private$..exportWidth <- jmvcore::OptionNumber$new(
-                "exportWidth",
-                exportWidth,
-                default=7)
-            private$..exportHeight <- jmvcore::OptionNumber$new(
-                "exportHeight",
-                exportHeight,
-                default=5)
+                    "normal",
+                    "gamma",
+                    "inv_gaussian"),
+                default="normal")
 
             self$.addOption(private$..analysisType)
             self$.addOption(private$..deps)
@@ -612,9 +560,6 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             self$.addOption(private$..showPoints)
             self$.addOption(private$..showTable)
             self$.addOption(private$..tableFormat)
-            self$.addOption(private$..tableTitle)
-            self$.addOption(private$..tableNote)
-            self$.addOption(private$..themePlot)
             self$.addOption(private$..colorPalette)
             self$.addOption(private$..color1)
             self$.addOption(private$..color2)
@@ -647,17 +592,11 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
             self$.addOption(private$..barAlpha)
             self$.addOption(private$..pointSize)
             self$.addOption(private$..pointAlpha)
-            self$.addOption(private$..showFormattedTable)
             self$.addOption(private$..showCorrMatrix)
             self$.addOption(private$..corrMethod)
             self$.addOption(private$..showCorrHeatmap)
             self$.addOption(private$..corrCluster)
-            self$.addOption(private$..exportPlots)
-            self$.addOption(private$..exportFormat)
-            self$.addOption(private$..exportDpi)
-            self$.addOption(private$..exportDir)
-            self$.addOption(private$..exportWidth)
-            self$.addOption(private$..exportHeight)
+            self$.addOption(private$..summary_distribution)
         }),
     active = list(
         analysisType = function() private$..analysisType$value,
@@ -676,9 +615,6 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         showPoints = function() private$..showPoints$value,
         showTable = function() private$..showTable$value,
         tableFormat = function() private$..tableFormat$value,
-        tableTitle = function() private$..tableTitle$value,
-        tableNote = function() private$..tableNote$value,
-        themePlot = function() private$..themePlot$value,
         colorPalette = function() private$..colorPalette$value,
         color1 = function() private$..color1$value,
         color2 = function() private$..color2$value,
@@ -711,17 +647,11 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         barAlpha = function() private$..barAlpha$value,
         pointSize = function() private$..pointSize$value,
         pointAlpha = function() private$..pointAlpha$value,
-        showFormattedTable = function() private$..showFormattedTable$value,
         showCorrMatrix = function() private$..showCorrMatrix$value,
         corrMethod = function() private$..corrMethod$value,
         showCorrHeatmap = function() private$..showCorrHeatmap$value,
         corrCluster = function() private$..corrCluster$value,
-        exportPlots = function() private$..exportPlots$value,
-        exportFormat = function() private$..exportFormat$value,
-        exportDpi = function() private$..exportDpi$value,
-        exportDir = function() private$..exportDir$value,
-        exportWidth = function() private$..exportWidth$value,
-        exportHeight = function() private$..exportHeight$value),
+        summary_distribution = function() private$..summary_distribution$value),
     private = list(
         ..analysisType = NA,
         ..deps = NA,
@@ -739,9 +669,6 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         ..showPoints = NA,
         ..showTable = NA,
         ..tableFormat = NA,
-        ..tableTitle = NA,
-        ..tableNote = NA,
-        ..themePlot = NA,
         ..colorPalette = NA,
         ..color1 = NA,
         ..color2 = NA,
@@ -774,17 +701,11 @@ DataPresentationOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         ..barAlpha = NA,
         ..pointSize = NA,
         ..pointAlpha = NA,
-        ..showFormattedTable = NA,
         ..showCorrMatrix = NA,
         ..corrMethod = NA,
         ..showCorrHeatmap = NA,
         ..corrCluster = NA,
-        ..exportPlots = NA,
-        ..exportFormat = NA,
-        ..exportDpi = NA,
-        ..exportDir = NA,
-        ..exportWidth = NA,
-        ..exportHeight = NA)
+        ..summary_distribution = NA)
 )
 
 DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -794,10 +715,8 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
         messages = function() private$.items[["messages"]],
         descriptiveTable = function() private$.items[["descriptiveTable"]],
         plots = function() private$.items[["plots"]],
-        formattedTable = function() private$.items[["formattedTable"]],
         corrMatrixTable = function() private$.items[["corrMatrixTable"]],
-        corrHeatmapPlot = function() private$.items[["corrHeatmapPlot"]],
-        exportNotice = function() private$.items[["exportNotice"]]),
+        corrHeatmapPlot = function() private$.items[["corrHeatmapPlot"]]),
     private = list(),
     public=list(
         initialize=function(options) {
@@ -816,8 +735,6 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 title="Descriptive Statistics",
                 visible="(showTable)",
                 refs=list(
-                    "dplyr",
-                    "tidyr",
                     "emmeans"),
                 clearWith=list(
                     "analysisType",
@@ -832,65 +749,55 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     "tableTitle",
                     "tableNote",
                     "ciWidth",
-                    "intStyle"),
+                    "intStyle",
+                    "plotType",
+                    "summary_distribution"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="n", 
-                        `title`="N", 
+                        `name`="n",
+                        `title`="N",
                         `type`="integer"),
                     list(
-                        `name`="mean", 
-                        `title`="M", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="mean",
+                        `title`="M",
+                        `type`="number"),
                     list(
-                        `name`="sd", 
-                        `title`="SD", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="sd",
+                        `title`="SD",
+                        `type`="number"),
                     list(
-                        `name`="se", 
-                        `title`="SE", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="se",
+                        `title`="SE",
+                        `type`="number"),
                     list(
-                        `name`="ci_lower", 
-                        `title`="CI Lower", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="ci_lower",
+                        `title`="CI Lower",
+                        `type`="number"),
                     list(
-                        `name`="ci_upper", 
-                        `title`="CI Upper", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="ci_upper",
+                        `title`="CI Upper",
+                        `type`="number"),
                     list(
-                        `name`="median", 
-                        `title`="Mdn", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="median",
+                        `title`="Mdn",
+                        `type`="number"),
                     list(
-                        `name`="min", 
-                        `title`="Min", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="min",
+                        `title`="Min",
+                        `type`="number"),
                     list(
-                        `name`="max", 
-                        `title`="Max", 
-                        `type`="number", 
-                        `format`="dp:2"))))
+                        `name`="max",
+                        `title`="Max",
+                        `type`="number"))))
             self$add(jmvcore::Array$new(
                 options=options,
                 name="plots",
                 title="Group Comparison Plot",
-                refs=list(
-                    "ggplot2",
-                    "dplyr",
-                    "tidyr"),
                 clearWith=list(
                     "analysisType",
                     "deps",
@@ -900,12 +807,13 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     "cov",
                     "cov_long",
                     "plotType",
+                    "summary_distribution",
+                    "theo_dist",
                     "intStyle",
                     "showLines",
                     "errorType",
                     "ciWidth",
                     "showPoints",
-                    "themePlot",
                     "colorPalette",
                     "color1",
                     "color2",
@@ -943,27 +851,8 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     title="$key",
                     width=600,
                     height=500,
-                    requiresData=TRUE,
+                    requiresData=FALSE,
                     renderFun=".plotGroup")))
-            self$add(jmvcore::Html$new(
-                options=options,
-                name="formattedTable",
-                title="APA 7th Formatted Table (Export Ready)",
-                visible="(showFormattedTable)",
-                refs=list(
-                    "APA2020"),
-                clearWith=list(
-                    "analysisType",
-                    "deps",
-                    "group",
-                    "rm_vars",
-                    "group_long",
-                    "cov",
-                    "cov_long",
-                    "tableFormat",
-                    "tableTitle",
-                    "tableNote",
-                    "ciWidth")))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="corrMatrixTable",
@@ -975,26 +864,26 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                     "analysisType",
                     "deps",
                     "rm_vars",
+                    "group",
+                    "group_long",
                     "corrMethod"),
                 columns=list(
                     list(
-                        `name`="num", 
-                        `title`="", 
+                        `name`="num",
+                        `title`="",
                         `type`="text"),
                     list(
-                        `name`="var", 
-                        `title`="Variable", 
+                        `name`="var",
+                        `title`="Variable",
                         `type`="text"),
                     list(
-                        `name`="mean", 
-                        `title`="M", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="mean",
+                        `title`="M",
+                        `type`="number"),
                     list(
-                        `name`="sd", 
-                        `title`="SD", 
-                        `type`="number", 
-                        `format`="dp:2"))))
+                        `name`="sd",
+                        `title`="SD",
+                        `type`="number"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="corrHeatmapPlot",
@@ -1002,22 +891,18 @@ DataPresentationResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6
                 width=550,
                 height=450,
                 visible="(showCorrHeatmap)",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 renderFun=".plotCorrHeatmap",
                 refs=list(
-                    "ggplot2",
                     "MurtaghLegendre2014"),
                 clearWith=list(
                     "analysisType",
                     "deps",
                     "rm_vars",
+                    "group",
+                    "group_long",
                     "corrMethod",
-                    "corrCluster")))
-            self$add(jmvcore::Html$new(
-                options=options,
-                name="exportNotice",
-                title="Vector Figure Export Status",
-                visible="(exportPlots)"))}))
+                    "corrCluster")))}))
 
 DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     "DataPresentationBase",
@@ -1042,7 +927,7 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 
 #' Data Presentation
 #'
-#' 
+#'
 #' @param data .
 #' @param analysisType .
 #' @param deps .
@@ -1060,9 +945,6 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 #' @param showPoints .
 #' @param showTable .
 #' @param tableFormat .
-#' @param tableTitle .
-#' @param tableNote .
-#' @param themePlot .
 #' @param colorPalette .
 #' @param color1 .
 #' @param color2 .
@@ -1095,26 +977,18 @@ DataPresentationBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 #' @param barAlpha .
 #' @param pointSize .
 #' @param pointAlpha .
-#' @param showFormattedTable .
 #' @param showCorrMatrix .
 #' @param corrMethod .
 #' @param showCorrHeatmap .
 #' @param corrCluster .
-#' @param exportPlots .
-#' @param exportFormat .
-#' @param exportDpi .
-#' @param exportDir .
-#' @param exportWidth .
-#' @param exportHeight .
+#' @param summary_distribution .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$messages} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$descriptiveTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$plots} \tab \tab \tab \tab \tab One plot per dependent variable \cr
-#'   \code{results$formattedTable} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$corrMatrixTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$corrHeatmapPlot} \tab \tab \tab \tab \tab an image \cr
-#'   \code{results$exportNotice} \tab \tab \tab \tab \tab a html \cr
 #' }
 #'
 #' Tables can be converted to data frames with \code{asDF} or \code{\link{as.data.frame}}. For example:
@@ -1142,9 +1016,6 @@ DataPresentation <- function(
     showPoints = FALSE,
     showTable = TRUE,
     tableFormat = "apa",
-    tableTitle = "Table 1. Descriptive statistics by group",
-    tableNote = "Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.",
-    themePlot = "classic",
     colorPalette = "set1",
     color1 = "none",
     color2 = "none",
@@ -1177,17 +1048,11 @@ DataPresentation <- function(
     barAlpha = 1,
     pointSize = 2,
     pointAlpha = 0.5,
-    showFormattedTable = FALSE,
     showCorrMatrix = FALSE,
     corrMethod = "pearson",
     showCorrHeatmap = FALSE,
     corrCluster = FALSE,
-    exportPlots = FALSE,
-    exportFormat = "pdf",
-    exportDpi = 300,
-    exportDir = "",
-    exportWidth = 7,
-    exportHeight = 5) {
+    summary_distribution = "normal") {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
         stop("DataPresentation requires jmvcore to be installed (restart may be required)")
@@ -1228,9 +1093,6 @@ DataPresentation <- function(
         showPoints = showPoints,
         showTable = showTable,
         tableFormat = tableFormat,
-        tableTitle = tableTitle,
-        tableNote = tableNote,
-        themePlot = themePlot,
         colorPalette = colorPalette,
         color1 = color1,
         color2 = color2,
@@ -1263,17 +1125,11 @@ DataPresentation <- function(
         barAlpha = barAlpha,
         pointSize = pointSize,
         pointAlpha = pointAlpha,
-        showFormattedTable = showFormattedTable,
         showCorrMatrix = showCorrMatrix,
         corrMethod = corrMethod,
         showCorrHeatmap = showCorrHeatmap,
         corrCluster = corrCluster,
-        exportPlots = exportPlots,
-        exportFormat = exportFormat,
-        exportDpi = exportDpi,
-        exportDir = exportDir,
-        exportWidth = exportWidth,
-        exportHeight = exportHeight)
+        summary_distribution = summary_distribution)
 
     analysis <- DataPresentationClass$new(
         options = options,

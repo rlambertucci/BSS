@@ -263,7 +263,9 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 title="Nonparametric ANOVA Results (Aligned Rank Transform)",
                 visible="(run_analysis)",
                 refs=list(
-                    "ARTool"),
+                    "ARTool",
+                    "Wobbrock2011",
+                    "effectsize"),
                 clearWith=list(
                     "mode",
                     "dep_var_cs",
@@ -278,56 +280,46 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "run_analysis"),
                 columns=list(
                     list(
-                        `name`="factor", 
-                        `title`="Term", 
+                        `name`="factor",
+                        `title`="Term",
                         `type`="text"),
                     list(
-                        `name`="df", 
-                        `title`="df", 
-                        `type`="number", 
-                        `format`="dp:0"),
+                        `name`="df",
+                        `title`="df",
+                        `type`="number"),
                     list(
-                        `name`="df_res", 
-                        `title`="df.res", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="df_res",
+                        `title`="Residual df",
+                        `type`="number"),
                     list(
-                        `name`="f_value", 
-                        `title`="F", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="f_value",
+                        `title`="F",
+                        `type`="number"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p",
+                        `type`="number",
                         `format`="pvalue"),
                     list(
-                        `name`="part_eta_sq", 
-                        `title`="Partial \u03B7\u00B2", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="part_eta_sq",
+                        `title`="Partial \u03B7\u00B2",
+                        `type`="number"),
                     list(
-                        `name`="part_omega_sq", 
-                        `title`="Partial \u03C9\u00B2", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="part_omega_sq",
+                        `title`="Partial \u03C9\u00B2 (F-based approx.)",
+                        `type`="number"),
                     list(
-                        `name`="eps_sq", 
-                        `title`="Partial \u03B5\u00B2", 
-                        `type`="number", 
-                        `format`="dp:3"),
-                    list(
-                        `name`="kendall_w", 
-                        `title`="Kendall's W", 
-                        `type`="number", 
-                        `format`="dp:3"))))
+                        `name`="eps_sq",
+                        `title`="Partial \u03B5\u00B2",
+                        `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="posthocTable",
-                title="Pairwise Post-Hoc Tests (art.con)",
+                title="Pairwise Post-Hoc Tests",
                 visible="(run_analysis && run_posthoc)",
                 refs=list(
                     "ARTool",
+                    "Elkin2021",
                     "emmeans",
                     "Benjamini1995",
                     "VarghaDelaney2000",
@@ -349,50 +341,44 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "run_analysis"),
                 columns=list(
                     list(
-                        `name`="factor", 
-                        `title`="Factor / Interaction", 
-                        `type`="text", 
+                        `name`="factor",
+                        `title`="Factor / Interaction",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="contrast", 
-                        `title`="Contrast", 
+                        `name`="contrast",
+                        `title`="Contrast",
                         `type`="text"),
                     list(
-                        `name`="estimate", 
-                        `title`="Estimate", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="estimate",
+                        `title`="Estimate",
+                        `type`="number"),
                     list(
-                        `name`="se", 
-                        `title`="SE", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="se",
+                        `title`="SE",
+                        `type`="number"),
                     list(
-                        `name`="df", 
-                        `title`="df", 
-                        `type`="number", 
-                        `format`="dp:2"),
+                        `name`="df",
+                        `title`="df",
+                        `type`="number"),
                     list(
-                        `name`="t_ratio", 
-                        `title`="t", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="t_ratio",
+                        `title`="t",
+                        `type`="number"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p",
+                        `type`="number",
                         `format`="pvalue"),
                     list(
-                        `name`="vd_a", 
-                        `title`="A (Vargha-Delaney)", 
-                        `type`="number", 
-                        `format`="dp:3", 
+                        `name`="vd_a",
+                        `title`="A (Vargha-Delaney)",
+                        `type`="number",
                         `visible`="(calc_nonparametric_es)"),
                     list(
-                        `name`="r_rb", 
-                        `title`="r_rb (Rank-biserial)", 
-                        `type`="number", 
-                        `format`="dp:3", 
+                        `name`="r_rb",
+                        `title`="Rank-biserial correlation",
+                        `type`="number",
                         `visible`="(calc_nonparametric_es)"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -421,23 +407,22 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "run_analysis"),
                 columns=list(
                     list(
-                        `name`="factor", 
-                        `title`="Factor / Interaction", 
-                        `type`="text", 
+                        `name`="factor",
+                        `title`="Factor / Interaction",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="contrast", 
-                        `title`="Contrast", 
+                        `name`="contrast",
+                        `title`="Contrast",
                         `type`="text"),
                     list(
-                        `name`="method", 
-                        `title`="Method", 
+                        `name`="method",
+                        `title`="Method",
                         `type`="text"),
                     list(
-                        `name`="es_value", 
-                        `title`="Effect Size", 
-                        `type`="number", 
-                        `format`="dp:3"))))
+                        `name`="es_value",
+                        `title`="Effect Size",
+                        `type`="number"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="artPlot",
@@ -446,9 +431,7 @@ artResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 height=450,
                 renderFun=".renderArtPlot",
                 visible="(run_analysis && show_plot)",
-                requiresData=TRUE,
-                refs=list(
-                    "ggplot2"),
+                requiresData=FALSE,
                 clearWith=list(
                     "mode",
                     "dep_var_cs",
@@ -503,7 +486,7 @@ artBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 
 #' Aligned Rank Transform (ART)
 #'
-#' 
+#'
 #' @param data .
 #' @param mode .
 #' @param dep_var_cs .

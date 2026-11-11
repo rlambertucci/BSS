@@ -13,6 +13,13 @@ items:
       type: Table
       rows: 1
       visible: (mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison')
+      refs:
+        - Fisher1921
+        - Fisher1925
+        - Williams1959
+        - DunnClark1969
+        - Raghunathan1996
+        - Zou2007
       clearWith:
         - mode
         - independent_input_type
@@ -114,7 +121,6 @@ items:
           - name: z
             title: Fisher's z
             type: number
-            format: dp:3
           - name: ci_lower
             title: 95% CI Lower
             type: number
@@ -125,7 +131,7 @@ items:
             format: zto
 
     - name: multiGroupOverallTable
-      title: Multi-Group Homogeneity Test (Fisher's Q / χ²)
+      title: "Multi-Group Homogeneity Test (Cochran's Q)"
       type: Table
       rows: 1
       visible: (mode == 'multigroup')
@@ -147,7 +153,6 @@ items:
           - name: q_stat
             title: Cochran's Q (χ²)
             type: number
-            format: dp:3
           - name: df
             title: df
             type: integer
@@ -157,7 +162,7 @@ items:
             format: zto,pvalue
 
     - name: partialTable
-      title: Partial Correlation Comparison (r_XY.Z between Groups)
+      title: "Partial Correlation Comparison Between Groups"
       type: Table
       rows: 1
       visible: (mode == 'partial_comparison')
@@ -183,17 +188,16 @@ items:
             title: N₂
             type: integer
           - name: r_partial_g1
-            title: r_XY.Z (G1)
+            title: "Partial correlation (G1)"
             type: number
             format: zto
           - name: r_partial_g2
-            title: r_XY.Z (G2)
+            title: "Partial correlation (G2)"
             type: number
             format: zto
           - name: z_stat
             title: z
             type: number
-            format: dp:3
           - name: p_value
             title: p
             type: number
@@ -206,9 +210,11 @@ items:
       height: 350
       renderFun: .renderCIPlot
       visible: (mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison' && show_ci_plot)
-      refs:
-        - ggplot2
       clearWith:
+        - independent_input_type
+        - indep_var_x
+        - indep_var_y
+        - indep_group
         - mode
         - independent_n1
         - independent_n2
@@ -232,10 +238,9 @@ items:
       type: Image
       width: 600
       height: 450
+      requiresData: true
       renderFun: .renderEllipsePlot
       visible: ((mode == 'multigroup' || mode == 'partial_comparison') && show_ellipse_plot)
-      refs:
-        - ggplot2
       clearWith:
         - mode
         - multi_var_x
@@ -277,7 +282,6 @@ items:
           - name: chisq
             title: "χ² Statistic"
             type: number
-            format: dp:3
           - name: df
             title: df
             type: integer

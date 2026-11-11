@@ -1,6 +1,6 @@
 ---
 name: dataimputation
-title: Missing data analysis and imputation
+title: "Missing Data Analysis and Imputation"
 jrs: '1.1'
 
 items:
@@ -26,7 +26,6 @@ items:
       - name: pct_missing
         title: Missing (%)
         type: number
-        format: dp:1
       - name: n_valid
         title: Valid (N)
         type: integer
@@ -51,7 +50,6 @@ items:
       - name: pct_cases
         title: Cases (%)
         type: number
-        format: dp:1
       - name: n_observed
         title: Observed Vars
         type: integer
@@ -60,7 +58,7 @@ items:
         type: text
 
   - name: imputedData_mice_cs
-    title: Imputed Values (Pooled)
+    title: Imputed Values (Single Aggregated Dataset)
     type: Table
     visible: (mode == 'mice_cs' && run_imputation_mice_cs)
     refs:
@@ -73,16 +71,17 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
     columns:
       - name: variable
         title: Variable
         type: text
         combineBelow: true
-      - name: original
-        title: Original Value
-        type: text
       - name: imputed
-        title: Pooled Imputed Value
+        title: Aggregated Numeric Value
+        type: number
+      - name: imputedLabel
+        title: Category
         type: text
       - name: rowNumber
         title: Row
@@ -103,6 +102,7 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
     columns:
       - name: variable
         title: Variable
@@ -116,39 +116,30 @@ items:
       - name: mean_obs
         title: Observed Mean
         type: number
-        format: dp:3
       - name: sd_obs
         title: Observed SD
         type: number
-        format: dp:3
       - name: mean_pooled
         title: Pooled Mean
         type: number
-        format: dp:3
       - name: se_pooled
         title: Pooled SE
         type: number
-        format: dp:3
       - name: var_within
         title: Within-Var (U)
         type: number
-        format: dp:4
       - name: var_between
         title: Between-Var (B)
         type: number
-        format: dp:4
       - name: fmi
         title: FMI
         type: number
-        format: dp:3
       - name: ci_lower
         title: 95% CI Lower
         type: number
-        format: dp:3
       - name: ci_upper
         title: 95% CI Upper
         type: number
-        format: dp:3
 
   - name: upsetPlot_mice_cs
     title: Missing Data UpSet Plot
@@ -160,7 +151,6 @@ items:
     requiresData: true
     refs:
       - Lex2014
-      - ggplot2
     clearWith:
       - vars_mice_cs
       - predictor_vars_mice_cs
@@ -181,6 +171,7 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
       - model_type_mice_cs
       - model_dep_mice_cs
       - model_indep_mice_cs
@@ -191,19 +182,15 @@ items:
       - name: estimate
         title: Estimate (Q)
         type: number
-        format: dp:3
       - name: std_error
         title: SE (sqrt(T))
         type: number
-        format: dp:3
       - name: statistic
         title: Statistic
         type: number
-        format: dp:3
       - name: df
         title: df (adj)
         type: number
-        format: dp:2
       - name: p_value
         title: p
         type: number
@@ -211,22 +198,18 @@ items:
       - name: ci_lower
         title: 95% CI Lower
         type: number
-        format: dp:3
       - name: ci_upper
         title: 95% CI Upper
         type: number
-        format: dp:3
       - name: rvi
         title: RVI
         type: number
-        format: dp:3
       - name: fmi
         title: FMI
         type: number
-        format: dp:3
 
   - name: patternPlot_mice_cs
-    title: Missing Data Pattern (md.pattern)
+    title: "Missing Data Pattern"
     type: Image
     width: 700
     height: 500
@@ -239,6 +222,15 @@ items:
       - vars_mice_cs
       - predictor_vars_mice_cs
 
+  - name: correlationInfo_mice_cs
+    title: Missingness Heatmap Availability
+    type: Preformatted
+    visible: (mode == 'mice_cs' && show_correlation_plot_mice_cs)
+    clearWith:
+      - vars_mice_cs
+      - predictor_vars_mice_cs
+      - show_correlation_plot_mice_cs
+
   - name: correlationPlot_mice_cs
     title: Missingness Correlation Heatmap
     type: Image
@@ -246,7 +238,7 @@ items:
     height: 500
     renderFun: .renderCorrelationPlotMiceCS
     visible: (mode == 'mice_cs' && show_correlation_plot_mice_cs)
-    requiresData: true
+    requiresData: false
     refs:
       - GGally
     clearWith:
@@ -260,7 +252,7 @@ items:
     height: 500
     renderFun: .renderTracePlotMiceCS
     visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_trace_plot_mice_cs)
-    requiresData: true
+    requiresData: false
     refs:
       - mice
     clearWith:
@@ -271,6 +263,7 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
 
   - name: densityPlot_mice_cs
     title: Observed vs Imputed Distribution
@@ -279,7 +272,7 @@ items:
     height: 500
     renderFun: .renderDensityPlotMiceCS
     visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_density_plot_mice_cs)
-    requiresData: true
+    requiresData: false
     refs:
       - mice
     clearWith:
@@ -290,6 +283,7 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
 
   - name: stripPlot_mice_cs
     title: Strip Plot by Variable
@@ -298,7 +292,7 @@ items:
     height: 500
     renderFun: .renderStripPlotMiceCS
     visible: (mode == 'mice_cs' && run_imputation_mice_cs && show_strip_plot_mice_cs)
-    requiresData: true
+    requiresData: false
     refs:
       - mice
     clearWith:
@@ -309,10 +303,11 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
 
   - name: imputedColsOutput_mice_cs
     type: Output
-    title: Imputed Variables (MICE Cross-sectional)
+    title: Aggregated Imputed Variables (MICE Cross-sectional)
     initInRun: true
     clearWith:
       - data
@@ -322,6 +317,7 @@ items:
       - num_imputations_mice_cs
       - maxiter_mice_cs
       - seed_mice_cs
+      - use_seed_mice_cs
       - run_imputation_mice_cs
 
   - name: imputationInfo_mice_long
@@ -348,7 +344,6 @@ items:
       - name: pct_missing
         title: Missing (%)
         type: number
-        format: dp:1
       - name: n_valid
         title: Valid (N)
         type: integer
@@ -375,7 +370,6 @@ items:
       - name: pct_cases
         title: Cases (%)
         type: number
-        format: dp:1
       - name: n_observed
         title: Observed Vars
         type: integer
@@ -384,7 +378,7 @@ items:
         type: text
 
   - name: imputedData_mice_long
-    title: Imputed Values (Pooled)
+    title: Imputed Values (Single Aggregated Dataset)
     type: Table
     visible: (mode == 'mice_long' && run_imputation_mice_long)
     refs:
@@ -398,6 +392,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - data_format_mice_long
       - wave_vars_mice_long
       - subject_id_var_mice_long
@@ -409,11 +404,11 @@ items:
         title: Variable
         type: text
         combineBelow: true
-      - name: original
-        title: Original Value
-        type: text
       - name: imputed
-        title: Pooled Imputed Value
+        title: Aggregated Numeric Value
+        type: number
+      - name: imputedLabel
+        title: Category
         type: text
       - name: rowNumber
         title: Row
@@ -435,6 +430,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - data_format_mice_long
       - wave_vars_mice_long
       - subject_id_var_mice_long
@@ -454,39 +450,30 @@ items:
       - name: mean_obs
         title: Observed Mean
         type: number
-        format: dp:3
       - name: sd_obs
         title: Observed SD
         type: number
-        format: dp:3
       - name: mean_pooled
         title: Pooled Mean
         type: number
-        format: dp:3
       - name: se_pooled
         title: Pooled SE
         type: number
-        format: dp:3
       - name: var_within
         title: Within-Var (U)
         type: number
-        format: dp:4
       - name: var_between
         title: Between-Var (B)
         type: number
-        format: dp:4
       - name: fmi
         title: FMI
         type: number
-        format: dp:3
       - name: ci_lower
         title: 95% CI Lower
         type: number
-        format: dp:3
       - name: ci_upper
         title: 95% CI Upper
         type: number
-        format: dp:3
 
   - name: upsetPlot_mice_long
     title: Missing Data UpSet Plot
@@ -498,7 +485,6 @@ items:
     requiresData: true
     refs:
       - Lex2014
-      - ggplot2
     clearWith:
       - vars_mice_long
       - predictor_vars_mice_long
@@ -522,6 +508,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - model_type_mice_long
       - model_dep_mice_long
       - model_indep_mice_long
@@ -532,19 +519,15 @@ items:
       - name: estimate
         title: Estimate (Q)
         type: number
-        format: dp:3
       - name: std_error
         title: SE (sqrt(T))
         type: number
-        format: dp:3
       - name: statistic
         title: Statistic
         type: number
-        format: dp:3
       - name: df
         title: df (adj)
         type: number
-        format: dp:2
       - name: p_value
         title: p
         type: number
@@ -552,22 +535,18 @@ items:
       - name: ci_lower
         title: 95% CI Lower
         type: number
-        format: dp:3
       - name: ci_upper
         title: 95% CI Upper
         type: number
-        format: dp:3
       - name: rvi
         title: RVI
         type: number
-        format: dp:3
       - name: fmi
         title: FMI
         type: number
-        format: dp:3
 
   - name: patternPlot_mice_long
-    title: Missing Data Pattern (md.pattern)
+    title: "Missing Data Pattern"
     type: Image
     width: 700
     height: 500
@@ -582,6 +561,17 @@ items:
       - wave_vars_mice_long
       - data_format_mice_long
 
+  - name: correlationInfo_mice_long
+    title: Missingness Heatmap Availability
+    type: Preformatted
+    visible: (mode == 'mice_long' && show_correlation_plot_mice_long)
+    clearWith:
+      - vars_mice_long
+      - predictor_vars_mice_long
+      - wave_vars_mice_long
+      - data_format_mice_long
+      - show_correlation_plot_mice_long
+
   - name: correlationPlot_mice_long
     title: Missingness Correlation Heatmap
     type: Image
@@ -589,7 +579,7 @@ items:
     height: 500
     renderFun: .renderCorrelationPlotMiceLong
     visible: (mode == 'mice_long' && show_correlation_plot_mice_long)
-    requiresData: true
+    requiresData: false
     refs:
       - GGally
     clearWith:
@@ -605,7 +595,7 @@ items:
     height: 500
     renderFun: .renderTracePlotMiceLong
     visible: (mode == 'mice_long' && run_imputation_mice_long && show_trace_plot_mice_long)
-    requiresData: true
+    requiresData: false
     refs:
       - mice
       - miceadds
@@ -617,6 +607,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - data_format_mice_long
       - wave_vars_mice_long
       - subject_id_var_mice_long
@@ -631,7 +622,7 @@ items:
     height: 500
     renderFun: .renderDensityPlotMiceLong
     visible: (mode == 'mice_long' && run_imputation_mice_long && show_density_plot_mice_long)
-    requiresData: true
+    requiresData: false
     refs:
       - mice
       - miceadds
@@ -643,6 +634,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - data_format_mice_long
       - wave_vars_mice_long
       - subject_id_var_mice_long
@@ -657,7 +649,7 @@ items:
     height: 500
     renderFun: .renderStripPlotMiceLong
     visible: (mode == 'mice_long' && run_imputation_mice_long && show_strip_plot_mice_long)
-    requiresData: true
+    requiresData: false
     refs:
       - mice
       - miceadds
@@ -669,6 +661,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - data_format_mice_long
       - wave_vars_mice_long
       - subject_id_var_mice_long
@@ -678,7 +671,7 @@ items:
 
   - name: imputedColsOutput_mice_long
     type: Output
-    title: Imputed Variables (MICE Longitudinal)
+    title: Aggregated Imputed Variables (MICE Longitudinal)
     initInRun: true
     clearWith:
       - data
@@ -688,6 +681,7 @@ items:
       - num_imputations_mice_long
       - maxiter_mice_long
       - seed_mice_long
+      - use_seed_mice_long
       - run_imputation_mice_long
       - data_format_mice_long
       - wave_vars_mice_long
@@ -718,7 +712,6 @@ items:
       - name: pct_missing
         title: Missing (%)
         type: number
-        format: dp:1
       - name: n_valid
         title: Valid (N)
         type: integer
@@ -743,7 +736,6 @@ items:
       - name: pct_cases
         title: Cases (%)
         type: number
-        format: dp:1
       - name: n_observed
         title: Observed Vars
         type: integer
@@ -752,7 +744,7 @@ items:
         type: text
 
   - name: imputedData_mr
-    title: Imputed Values (missRanger)
+    title: Imputed Values (Final Dataset, missRanger)
     type: Table
     visible: (mode == 'missranger' && run_imputation_mr)
     refs:
@@ -767,16 +759,17 @@ items:
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
+      - use_seed_mr
     columns:
       - name: variable
         title: Variable
         type: text
         combineBelow: true
-      - name: original
-        title: Original Value
-        type: text
       - name: imputed
-        title: Imputed Value
+        title: Imputed Numeric Value
+        type: number
+      - name: imputedLabel
+        title: Category
         type: text
       - name: rowNumber
         title: Row
@@ -798,6 +791,7 @@ items:
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
+      - use_seed_mr
     columns:
       - name: variable
         title: Variable
@@ -811,23 +805,18 @@ items:
       - name: mean_obs
         title: Observed Mean
         type: number
-        format: dp:3
       - name: sd_obs
         title: Observed SD
         type: number
-        format: dp:3
       - name: mean_imputed
-        title: Final/Pooled Mean
+        title: Final Dataset Mean
         type: number
-        format: dp:3
       - name: sd_imputed
-        title: Final/Pooled SD
+        title: Final Dataset SD
         type: number
-        format: dp:3
       - name: diff_mean
         title: Mean Difference
         type: number
-        format: dp:3
 
   - name: upsetPlot_mr
     title: Missing Data UpSet Plot
@@ -839,7 +828,6 @@ items:
     requiresData: true
     refs:
       - Lex2014
-      - ggplot2
     clearWith:
       - vars_mr
       - predictor_vars_mr
@@ -862,6 +850,7 @@ items:
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
+      - use_seed_mr
       - model_type_mr
       - model_dep_mr
       - model_indep_mr
@@ -872,19 +861,15 @@ items:
       - name: estimate
         title: Estimate (Q)
         type: number
-        format: dp:3
       - name: std_error
         title: SE (sqrt(T))
         type: number
-        format: dp:3
       - name: statistic
         title: Statistic
         type: number
-        format: dp:3
       - name: df
         title: df (adj)
         type: number
-        format: dp:2
       - name: p_value
         title: p
         type: number
@@ -892,22 +877,18 @@ items:
       - name: ci_lower
         title: 95% CI Lower
         type: number
-        format: dp:3
       - name: ci_upper
         title: 95% CI Upper
         type: number
-        format: dp:3
       - name: rvi
         title: RVI
         type: number
-        format: dp:3
       - name: fmi
         title: FMI
         type: number
-        format: dp:3
 
   - name: patternPlot_mr
-    title: Missing Data Pattern (md.pattern)
+    title: "Missing Data Pattern"
     type: Image
     width: 700
     height: 500
@@ -920,6 +901,15 @@ items:
       - vars_mr
       - predictor_vars_mr
 
+  - name: correlationInfo_mr
+    title: Missingness Heatmap Availability
+    type: Preformatted
+    visible: (mode == 'missranger' && show_correlation_plot_mr)
+    clearWith:
+      - vars_mr
+      - predictor_vars_mr
+      - show_correlation_plot_mr
+
   - name: correlationPlot_mr
     title: Missingness Correlation Heatmap
     type: Image
@@ -927,7 +917,7 @@ items:
     height: 500
     renderFun: .renderCorrelationPlotMR
     visible: (mode == 'missranger' && show_correlation_plot_mr)
-    requiresData: true
+    requiresData: false
     refs:
       - GGally
     clearWith:
@@ -941,7 +931,7 @@ items:
     height: 500
     renderFun: .renderDensityPlotMR
     visible: (mode == 'missranger' && run_imputation_mr && show_density_plot_mr)
-    requiresData: true
+    requiresData: false
     refs:
       - missRanger
     clearWith:
@@ -954,6 +944,7 @@ items:
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
+      - use_seed_mr
 
   - name: stripPlot_mr
     title: Strip Plot by Variable
@@ -962,7 +953,7 @@ items:
     height: 500
     renderFun: .renderStripPlotMR
     visible: (mode == 'missranger' && run_imputation_mr && show_strip_plot_mr)
-    requiresData: true
+    requiresData: false
     refs:
       - missRanger
     clearWith:
@@ -975,10 +966,11 @@ items:
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
+      - use_seed_mr
 
   - name: imputedColsOutput_mr
     type: Output
-    title: Imputed Variables (missRanger)
+    title: Final Imputed Variables (missRanger)
     initInRun: true
     clearWith:
       - data
@@ -991,3 +983,4 @@ items:
       - num_trees_mr
       - pmm_k_mr
       - seed_mr
+      - use_seed_mr

@@ -3,15 +3,111 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
   inherit = networkanalysisBase,
   private = list(
     
+    .network_warning = function(message) {
+      notice <- self$results$get("networkWarnings")
+      previous <- notice$content
+      if (length(previous) != 1 || is.na(previous)) previous <- ""
+      notice$setContent(paste(c(previous[nzchar(previous)], message), collapse = "\n"))
+      notice$setVisible(TRUE)
+    },
+
+    .report_network_groups = function(successful, errors) {
+      if (length(errors) > 0) {
+        private$.network_warning(paste0("Omitted groups: ", paste(unlist(errors), collapse = "; "), ". Retained groups: ", paste(successful, collapse = ", "), "."))
+      }
+    },
+
+    .split_network_groups = function(data, variables, grouping) {
+      if (nrow(data) == 0) jmvcore::reject("No cases available for network estimation.", code = "no_network_cases")
+      if (is.null(grouping) || !nzchar(grouping)) return(list(Overall = data[, variables, drop = FALSE]))
+      factor <- as.factor(data[[grouping]])
+      if (all(is.na(factor))) jmvcore::reject("No valid grouping values.", code = "no_group_levels")
+      split(data[, variables, drop = FALSE], factor, drop = FALSE)
+    },
+
+    .populate_network_weights = function(table, graphs, variables, grouping, node_column, enabled) {
+      table$deleteRows()
+      table$setVisible(isTRUE(enabled))
+      if (!isTRUE(enabled)) return()
+      for (group_name in names(graphs)) {
+        graph <- graphs[[group_name]]
+        for (index in seq_along(variables)) {
+          values <- list()
+          if (!is.null(grouping) && nzchar(grouping)) values$group <- group_name
+          values[[node_column]] <- variables[index]
+          for (column in seq_along(variables)) values[[paste0("weight_", column)]] <- as.numeric(graph[index, column])
+          table$addRow(rowKey = paste(match(group_name, names(graphs)), index, sep = ":"), values = values)
+        }
+      }
+    },
+
+    .node_communities = function(assignments, variables) {
+      if (length(assignments) == 0) return(NULL)
+      labels <- character()
+      assigned <- character()
+      groups <- list()
+      for (assignment in assignments) {
+        label <- trimws(assignment$label)
+        nodes <- unlist(assignment$variables, use.names = FALSE)
+        if (length(label) != 1 || is.na(label) || !nzchar(label) || length(nodes) == 0) jmvcore::reject("Each node community requires a non-empty name and at least one selected node.", code = "invalid_node_communities")
+        if (label %in% labels || anyNA(nodes) || anyDuplicated(nodes) || any(nodes %in% assigned)) jmvcore::reject("Community names must be unique and each node must belong to exactly one community.", code = "invalid_node_communities")
+        if (any(!nodes %in% variables)) jmvcore::reject("Community assignments contain variables not selected for this network; update the assignments.", code = "invalid_node_communities")
+        groups[[label]] <- match(nodes, variables)
+        labels <- c(labels, label)
+        assigned <- c(assigned, nodes)
+      }
+      if (!setequal(assigned, variables)) jmvcore::reject("Assign every selected network node to exactly one community, or clear all assignments to use automatic community detection.", code = "invalid_node_communities")
+      groups
+    },
+
+    .fit_network = function(data, variables, estimator, correlation) {
+      defaults <- c(EBICglasso = "EBICglasso", correlation = "cor", partial_correlation = "pcor")
+      if (!estimator %in% names(defaults)) stop("Unsupported network estimator.")
+      if (nrow(data) < 5 || length(variables) < 2) stop("Network estimation requires at least five observations and two variables.")
+      args <- list(data = data[, variables, drop = FALSE], default = unname(defaults[estimator]), corMethod = if (correlation == "auto") "cor_auto" else correlation, missing = "pairwise", verbose = FALSE)
+      recovered <- FALSE
+      result <- tryCatch(do.call(bootnet::estimateNetwork, args), error = function(error) {
+        if (identical(error$code, "restart")) stop(error)
+        if (correlation != "auto" || !grepl("positive.?definite", conditionMessage(error), ignore.case = TRUE)) stop(error)
+        args$corArgs <- list(forcePD = TRUE)
+        recovered <<- TRUE
+        do.call(bootnet::estimateNetwork, args)
+      })
+      graph <- result$graph
+      if (!is.matrix(graph) || !identical(dim(graph), c(length(variables), length(variables))) || any(!is.finite(graph)) || !isSymmetric(unname(graph), tol = 1e-8)) stop("The requested estimator did not return a finite symmetric graph with the selected node dimensions.")
+      dimnames(result$graph) <- list(variables, variables)
+      attr(result, "pd_recovery") <- recovered
+      result
+    },
+
+    .resampling_diagnostic = function(group, procedure, requested, completed, failed, status, regularized = 0L) {
+      table <- self$results$resamplingDiagnostics_net
+      table$addRow(rowKey = table$rowCount + 1L, values = list(group = group, procedure = procedure, requested = as.integer(requested), completed = as.integer(completed), failed = as.integer(failed), unattempted = as.integer(max(0, requested - completed - failed)), regularized = as.integer(regularized), status = status))
+    },
+    .with_seed = function(seed, code) {
+      seed_present <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      previous_seed <- if (seed_present) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+      on.exit({
+        if (seed_present) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+        else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(list = ".Random.seed", envir = .GlobalEnv)
+      }, add = TRUE)
+      set.seed(seed)
+      force(code)
+    },
+
     .getColumnNames = function(table) {
-      tryCatch(sapply(table$columns, function(col) col$name), error = function(e) character(0))
+      vapply(table$columns, function(column) column$name, character(1))
     },
     
     .computeCommunitiesAndBridge = function(adjMatrix, nodeLabels, nodeGroupsFromVar, communityAlgo) {
       communities_res <- NULL
       bridge_res <- NULL
       node_to_comm <- NULL
-      if (communityAlgo != "none" && requireNamespace("igraph", quietly = TRUE)) {
+      if (!is.null(nodeGroupsFromVar) && length(nodeGroupsFromVar) > 0) {
+        node_to_comm <- setNames(rep(NA_character_, length(nodeLabels)), nodeLabels)
+        for (community in names(nodeGroupsFromVar)) node_to_comm[nodeGroupsFromVar[[community]]] <- community
+        communities_res <- data.frame(node = nodeLabels, community = unname(node_to_comm), stringsAsFactors = FALSE)
+      } else if (communityAlgo != "none") {
         tryCatch({
           g <- igraph::graph_from_adjacency_matrix(abs(adjMatrix), mode = "undirected", weighted = TRUE, diag = FALSE)
           cl <- if (communityAlgo == "louvain") igraph::cluster_louvain(g) else igraph::cluster_walktrap(g)
@@ -19,39 +115,39 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           names(mem) <- nodeLabels
           node_to_comm <- mem
           communities_res <- data.frame(node = nodeLabels, community = paste0("Community ", mem), stringsAsFactors = FALSE)
-        }, error = function(e) {})
+        }, error = function(e) { private$.network_warning(conditionMessage(e)) })
       }
-      comm_for_bridge <- NULL
-      if (!is.null(nodeGroupsFromVar) && length(nodeGroupsFromVar) > 0) {
-        comm_for_bridge <- rep(NA_character_, length(nodeLabels))
-        names(comm_for_bridge) <- nodeLabels
-        for (g_name in names(nodeGroupsFromVar)) {
-          idx <- nodeGroupsFromVar[[g_name]]
-          comm_for_bridge[idx] <- g_name
-        }
-      } else if (!is.null(node_to_comm)) {
-        comm_for_bridge <- node_to_comm
-      }
+      comm_for_bridge <- node_to_comm
       if (!is.null(comm_for_bridge) && !anyNA(comm_for_bridge) && length(unique(comm_for_bridge)) >= 2) {
-        if (requireNamespace("networktools", quietly = TRUE)) {
-          tryCatch({
-            bc <- networktools::bridge(adjMatrix, communities = comm_for_bridge)
-            bridge_res <- data.frame(
-              node = nodeLabels,
-              community = as.character(comm_for_bridge),
-              bridgeStrength = as.numeric(bc$`Bridge Strength`),
-              bridgeBetweenness = as.numeric(bc$`Bridge Betweenness`),
-              bridgeCloseness = as.numeric(bc$`Bridge Closeness`),
-              bridgeEI1 = as.numeric(bc$`Bridge Expected Influence (1-step)`),
-              stringsAsFactors = FALSE
-            )
-          }, error = function(e) {})
-        }
+        tryCatch({
+          bc <- networktools::bridge(adjMatrix, communities = comm_for_bridge)
+          bridge_res <- data.frame(
+            node = nodeLabels,
+            community = as.character(comm_for_bridge),
+            bridgeStrength = as.numeric(bc$`Bridge Strength`),
+            bridgeBetweenness = as.numeric(bc$`Bridge Betweenness`),
+            bridgeCloseness = as.numeric(bc$`Bridge Closeness`),
+            bridgeEI1 = as.numeric(bc$`Bridge Expected Influence (1-step)`),
+            stringsAsFactors = FALSE
+          )
+        }, error = function(e) { private$.network_warning(conditionMessage(e)) })
       }
       return(list(communities = communities_res, bridge = bridge_res, nodeToComm = node_to_comm))
     },
 
+    .sync_weight_columns = function(table, variables, base_columns) {
+      column_ids <- paste0("weight_", seq_along(variables))
+      for (column in setdiff(private$.getColumnNames(table), c(base_columns, column_ids))) table$getColumn(column)$setVisible(FALSE)
+      for (index in seq_along(variables)) {
+        table$addColumn(name = column_ids[index], title = variables[index], type = "number")
+      }
+    },
+
     .init = function() {
+      if (is.null(self$results$get("networkWarnings"))) self$results$add(jmvcore::Notice$new(options = self$options, name = "networkWarnings", title = "Network estimation notices", type = jmvcore::NoticeType$WARNING, visible = FALSE))
+      private$.sync_weight_columns(self$results$weights_net, self$options$vars_net, c("group", "node"))
+      private$.sync_weight_columns(self$results$weights_mixed, c(self$options$varsCont_mixed, self$options$varsCat_mixed, self$options$varsCount_mixed), c("group", "rowname"))
+      self$results$mixedLimitations$setContent("Mixed-data networks (mgm) do not support bootstrap accuracy/stability or network comparison testing (NCT) in this module. Bootstrap and NCT are available only in the continuous-data workflow. Directed causal discovery (DAG) is not implemented in any workflow.")
       
       if (isTRUE(self$options$plotNetwork_net)) {
         width <- self$options$plotWidth_net
@@ -65,25 +161,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       }
       if (!is.null(self$results$clusteringPlot_net)) {
         self$results$clusteringPlot_net$setSize(width = 500, height = 600)
-      }
-      
-      summaryTable_net <- self$results$summary_net
-      if (!"group" %in% private$.getColumnNames(summaryTable_net)) {
-        try(summaryTable_net$insertColumn(1, name = "group", title = "Group", type = 'text', visible="(groupVar_net)"), silent = TRUE)
-      }
-      centralityTable_net <- self$results$centrality_net
-      if (!"group" %in% private$.getColumnNames(centralityTable_net)) {
-        try(centralityTable_net$insertColumn(1, name = "group", title = "Group", type = 'text', visible="(groupVar_net)"), silent = TRUE)
-      }
-      if (!"variable" %in% private$.getColumnNames(centralityTable_net)) {
-        try(centralityTable_net$addColumn(name = "variable", title = "Variable", type = 'text'), silent = TRUE)
-      }
-      clusteringTable_net <- self$results$clustering_net
-      if (!"group" %in% private$.getColumnNames(clusteringTable_net)) {
-        try(clusteringTable_net$insertColumn(1, name = "group", title = "Group", type = 'text', visible="(groupVar_net)"), silent = TRUE)
-      }
-      if (!"node" %in% private$.getColumnNames(clusteringTable_net)) {
-        try(clusteringTable_net$addColumn(name = "node", title = "Variable", type = 'text'), silent = TRUE)
       }
       
       if (isTRUE(self$options$plotNetwork_mixed)) {
@@ -100,25 +177,6 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         self$results$clusteringPlot_mixed$setSize(width = 600, height = 800)
       }
       
-      summaryTable_mixed <- self$results$summary_mixed
-      if (!"group" %in% private$.getColumnNames(summaryTable_mixed)) {
-        try(summaryTable_mixed$insertColumn(1, name = "group", title = "Group", type = 'text', visible="(groupVar_mixed)"), silent = TRUE)
-      }
-      centralityTable_mixed <- self$results$centrality_mixed
-      if (!"group" %in% private$.getColumnNames(centralityTable_mixed)) {
-        try(centralityTable_mixed$insertColumn(1, name = "group", title = "Group", type = 'text', visible="(groupVar_mixed)"), silent = TRUE)
-      }
-      if (!"variable" %in% private$.getColumnNames(centralityTable_mixed)) {
-        try(centralityTable_mixed$addColumn(name = "variable", title = "Variable", type = 'text'), silent = TRUE)
-      }
-      clusteringTable_mixed <- self$results$clustering_mixed
-      if (!"group" %in% private$.getColumnNames(clusteringTable_mixed)) {
-        try(clusteringTable_mixed$insertColumn(1, name = "group", title = "Group", type = 'text', visible="(groupVar_mixed)"), silent = TRUE)
-      }
-      if (!"node" %in% private$.getColumnNames(clusteringTable_mixed)) {
-        try(clusteringTable_mixed$addColumn(name = "node", title = "Variable", type = 'text'), silent = TRUE)
-      }
-      
       if (length(self$options$vars_net) < 3) {
         if (!is.null(self$results$instructions_net)) {
           self$results$instructions_net$setContent("Welcome to Network Analysis for Continuous Data!\n\nPlease select at least 3 variables in the 'Variables' box to begin.")
@@ -132,6 +190,9 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
     },
     
     .run = function() {
+      self$results$get("networkWarnings")$setVisible(FALSE)
+      self$results$get("networkWarnings")$setContent("")
+      for (name in c("edgeStability_net", "csStability_net", "nctGlobal_net", "nctEdges_net", "resamplingDiagnostics_net")) self$results$get(name)$deleteRows()
       mode <- self$options$mode
       if (mode == "continuous") {
         private$.runContinuous()
@@ -146,20 +207,20 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         instructions <- self$results$instructions_net
         instructions$setContent("Welcome to Network Analysis!\n\nPlease select at least 3 variables in the 'Variables' box to begin.")
         instructions$setVisible(TRUE)
-        try(self$results$summary_net$setVisible(FALSE), silent=TRUE); try(self$results$weights_net$setVisible(FALSE), silent=TRUE)
-        try(self$results$centrality_net$setVisible(FALSE), silent=TRUE); try(self$results$clustering_net$setVisible(FALSE), silent=TRUE)
-        try(self$results$networkPlot_net$setVisible(FALSE), silent=TRUE); try(self$results$centralityPlot_net$setVisible(FALSE), silent=TRUE)
-        try(self$results$clusteringPlot_net$setVisible(FALSE), silent=TRUE)
-        try(self$results$bridge_net$setVisible(FALSE), silent=TRUE); try(self$results$communities_net$setVisible(FALSE), silent=TRUE)
+        self$results$summary_net$setVisible(FALSE); self$results$weights_net$setVisible(FALSE)
+        self$results$centrality_net$setVisible(FALSE); self$results$clustering_net$setVisible(FALSE)
+        self$results$networkPlot_net$setVisible(FALSE); self$results$centralityPlot_net$setVisible(FALSE)
+        self$results$clusteringPlot_net$setVisible(FALSE)
+        self$results$bridge_net$setVisible(FALSE); self$results$communities_net$setVisible(FALSE)
         return()
       } else {
         self$results$instructions_net$setVisible(FALSE)
-        try(self$results$summary_net$setVisible(TRUE), silent=TRUE)
+        self$results$summary_net$setVisible(TRUE)
       }
       
       vars <- self$options$vars_net
       groupVarName <- self$options$groupVar_net
-      nodeGroupVarName <- self$options$nodeGroupVar_net
+      nodeCommunities <- self$options$nodeCommunities_net
       estimator <- self$options$estimator_net
       corMethod <- self$options$corMethod_net
       
@@ -174,75 +235,354 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       
       for (var in vars) {
         if (!is.numeric(data_subset[[var]])) {
-          jmvcore::reject(paste("Variable '", var, "' is not numeric."), code = "var_not_numeric"); return()
+          jmvcore::reject(paste0("Variable '", var, "' is not numeric."), code = "var_not_numeric"); return()
         }
         if (all(is.na(data_subset[[var]]))) {
-          jmvcore::reject(paste("Variable '", var, "' contains only missing values."), code = "var_all_na"); return()
+          jmvcore::reject(paste0("Variable '", var, "' contains only missing values."), code = "var_all_na"); return()
         }
       }
       
-      dataList <- list()
-      groupLevels <- NULL
       na_note <- NULL
-      
-      if (!is.null(groupVarName)) {
-        if (anyNA(data_subset[[groupVarName]])) {
-          n_total <- nrow(data_subset)
-          data_subset <- data_subset[!is.na(data_subset[[groupVarName]]), , drop=FALSE]
-          n_after_na_group <- nrow(data_subset)
-          na_note <- paste(n_total - n_after_na_group, "cases excluded due to missing values in the grouping variable.")
-        }
-        if (nrow(data_subset) == 0) { jmvcore::reject("No cases remaining after removing missing values in grouping variable.", code = "no_data_after_na_group"); return() }
-        if (!is.factor(data_subset[[groupVarName]])) { data_subset[[groupVarName]] <- as.factor(data_subset[[groupVarName]]) }
-        groupLevels <- levels(data_subset[[groupVarName]])
-        if (length(groupLevels) < 1) { jmvcore::reject("Grouping variable has no levels.", code="no_group_levels"); return() }
-        if (length(groupLevels) == 1) { jmvcore::reject("Grouping variable must have at least two levels.", code="only_one_group"); return() }
-        dataList <- split(data_subset[, vars, drop=FALSE], data_subset[[groupVarName]], drop=TRUE)
-      } else {
-        dataList <- list(Overall = data_subset[, vars, drop=FALSE])
-        groupLevels <- "Overall"
-        na_note <- "Missing data handled using pairwise deletion."
+      if (!is.null(groupVarName) && anyNA(data_subset[[groupVarName]])) {
+        excluded <- is.na(data_subset[[groupVarName]])
+        na_note <- paste(sum(excluded), "cases excluded due to missing grouping values.")
+        data_subset <- data_subset[!excluded, , drop = FALSE]
+      }
+      dataList <- private$.split_network_groups(data_subset, vars, groupVarName)
+      groupLevels <- names(dataList)
+
+      qgraph_groups <- private$.node_communities(nodeCommunities, vars)
+
+      estimates <- private$.estimate_continuous_groups(dataList, groupLevels, vars, estimator, corMethod, qgraph_groups, na_note)
+      networkGraphsList <- estimates$graphs
+      centralityDataList <- estimates$centrality
+      clusteringDataList <- estimates$clustering
+      bridgeDataList <- estimates$bridge
+      communitiesDataList <- estimates$communities
+      commMembershipList <- estimates$membership
+      estimation_errors <- estimates$errors
+      na_note <- estimates$na_note
+      nodeLabels <- vars
+      successful_groups <- names(networkGraphsList)
+      if (length(successful_groups) == 0) {
+        jmvcore::reject("Network estimation failed for all groups.", code="all_groups_failed"); return()
       }
       
-      qgraph_groups <- NULL
-      if (!is.null(nodeGroupVarName)) {
+      private$.report_network_groups(successful_groups, estimation_errors)
+      private$.continuous_summary(successful_groups, networkGraphsList, groupVarName, na_note)
+      
+      private$.populate_network_weights(self$results$weights_net, networkGraphsList, vars, groupVarName, "node", self$options$tableWeights_net)
+      
+      allCentralityDataList <- private$.continuous_centrality(successful_groups, centralityDataList, groupVarName)
+      
+      allClusteringDataList <- private$.continuous_clustering(successful_groups, clusteringDataList, groupVarName)
+
+      private$.continuous_bridge(successful_groups, bridgeDataList, groupVarName)
+
+      private$.continuous_communities(successful_groups, communitiesDataList, groupVarName)
+
+      if (isTRUE(self$options$plotNetwork_net) && length(networkGraphsList) > 0) {
+        commonLayout <- NULL
         tryCatch({
-          raw_labels <- as.character(data_full[[nodeGroupVarName]])
-          raw_labels <- raw_labels[!is.na(raw_labels) & raw_labels != ""]
-          node_group_mapping <- rep(NA, length(vars))
-          names(node_group_mapping) <- vars
-          matched_any <- FALSE
-          
-          for (label_str in raw_labels) {
-            parts <- strsplit(label_str, "=")[[1]]
-            if (length(parts) >= 2) {
-              v_name <- trimws(parts[1])
-              g_name <- trimws(paste(parts[-1], collapse="="))
-              if (v_name %in% vars) {
-                node_group_mapping[v_name] <- g_name
-                matched_any <- TRUE
-              }
-            }
-          }
-          if (matched_any) {
-            unique_groups <- unique(na.omit(node_group_mapping))
-            qgraph_groups <- list()
-            for (g in unique_groups) {
-              indices <- which(node_group_mapping == g)
-              qgraph_groups[[g]] <- indices
-            }
-          } else if (!is.null(nodeGroupVarName)) {
-            na_note <- if (is.null(na_note)) {
-              "Note: Node grouping variable must contain text formatted as 'VariableName = GroupName'."
-            } else {
-              paste(na_note, "Node grouping variable must contain text formatted as 'VariableName = GroupName'.")
+          graphs_for_layout <- networkGraphsList[successful_groups]
+          if (length(graphs_for_layout) > 0) {
+            commonLayout <- private$.with_seed(self$options$layoutSeed_net, do.call(qgraph::averageLayout, c(graphs_for_layout, list(layout = self$options$layoutAlgorithm_net))))
+            if (!is.null(commonLayout)) {
+              rownames(commonLayout) <- nodeLabels
             }
           }
         }, error = function(e) {
-          qgraph_groups <- NULL
+          jmvcore::reject(paste("Layout calculation failed:", e$message), code="layout_error")
         })
+
+        final_node_groups <- qgraph_groups
+        if (is.null(final_node_groups) && length(commMembershipList) > 0) {
+          first_mem <- commMembershipList[[1]]
+          if (!is.null(first_mem)) {
+            final_node_groups <- list()
+            for (u_c in unique(first_mem)) {
+              final_node_groups[[paste0("Comm ", u_c)]] <- which(first_mem == u_c)
+            }
+          }
+        }
+        plotState <- list(
+          graphs = networkGraphsList,
+          layoutSeed = self$options$layoutSeed_net,
+          layout = commonLayout,
+          labels = if(isTRUE(self$options$showLabels_net)) nodeLabels else FALSE,
+          groupNames = successful_groups,
+          nodeGroups = final_node_groups
+        )
+        self$results$networkPlot_net$setState(plotState)
       }
       
+      if (isTRUE(self$options$plotCentrality_net) && length(allCentralityDataList) > 0) {
+        combinedCentralityData <- do.call(rbind, c(allCentralityDataList, make.row.names = FALSE))
+        if (!is.null(combinedCentralityData) && !"group" %in% names(combinedCentralityData)) {
+          combinedCentralityData$group <- "Overall"
+        }
+        self$results$centralityPlot_net$setState(combinedCentralityData)
+      }
+      
+      if (isTRUE(self$options$plotClustering_net) && length(allClusteringDataList) > 0) {
+        combinedClusteringData <- do.call(rbind, c(allClusteringDataList, make.row.names = FALSE))
+        if (!is.null(combinedClusteringData) && !"group" %in% names(combinedClusteringData)) {
+          combinedClusteringData$group <- "Overall"
+        }
+        self$results$clusteringPlot_net$setState(combinedClusteringData)
+      }
+      
+      if (isTRUE(self$options$bootStability_net)) {
+        for (group_index in seq_along(successful_groups)) {
+          group <- successful_groups[group_index]
+          private$.runBootStability(dataList[[group]], vars, estimator, corMethod, self$options$bootN_net, self$results$edgeStability_net, self$results$csStability_net, group, group_index)
+        }
+      }
+
+      if (isTRUE(self$options$nctTest_net)) {
+        if (length(successful_groups) == 2) {
+          d_g1 <- dataList[[successful_groups[1]]]
+          d_g2 <- dataList[[successful_groups[2]]]
+          private$.runNCT(
+            d_g1, d_g2, vars, estimator, corMethod,
+            self$options$nctPermutations_net,
+            self$results$nctGlobal_net,
+            self$results$nctEdges_net,
+            groups = successful_groups
+          )
+        } else {
+          private$.network_warning("Network Comparison Test (NCT) was not run: it requires exactly 2 successfully estimated groups.")
+        }
+      }
+      
+
+    },
+    
+    .runMixed = function() {
+      
+      if (length(self$options$varsCont_mixed) == 0 && length(self$options$varsCat_mixed) == 0 && length(self$options$varsCount_mixed) == 0) {
+        instructions <- self$results$instructions_mixed
+        instructions$setContent("Welcome to Mixed Data Network Analysis (mgm)!\n\nPlease select at least 3 variables in total (Continuous, Categorical, or Count) to begin.")
+        instructions$setVisible(TRUE)
+        self$results$summary_mixed$setVisible(FALSE); self$results$weights_mixed$setVisible(FALSE)
+        self$results$centrality_mixed$setVisible(FALSE); self$results$clustering_mixed$setVisible(FALSE)
+        self$results$networkPlot_mixed$setVisible(FALSE); self$results$centralityPlot_mixed$setVisible(FALSE)
+        self$results$clusteringPlot_mixed$setVisible(FALSE)
+        self$results$bridge_mixed$setVisible(FALSE); self$results$communities_mixed$setVisible(FALSE)
+        return()
+      } else {
+        self$results$instructions_mixed$setVisible(FALSE)
+        self$results$summary_mixed$setVisible(TRUE)
+        self$results$weights_mixed$setVisible(isTRUE(self$options$tableWeights_mixed))
+        self$results$centrality_mixed$setVisible(isTRUE(self$options$tableCentrality_mixed))
+        self$results$clustering_mixed$setVisible(isTRUE(self$options$tableClustering_mixed))
+        self$results$networkPlot_mixed$setVisible(isTRUE(self$options$plotNetwork_mixed))
+        self$results$centralityPlot_mixed$setVisible(isTRUE(self$options$plotCentrality_mixed))
+        self$results$clusteringPlot_mixed$setVisible(isTRUE(self$options$plotClustering_mixed))
+      }
+      
+      varsContNames <- self$options$varsCont_mixed
+      varsCatNames <- self$options$varsCat_mixed
+      varsCountNames <- self$options$varsCount_mixed
+      groupVarName <- self$options$groupVar_mixed
+      nodeCommunities <- self$options$nodeCommunities_mixed
+      
+      allVarNames <- c(varsContNames, varsCatNames, varsCountNames)
+      if (length(allVarNames) < 3) {
+        jmvcore::reject("Please select at least 3 variables in total for Mixed Network estimation (mgm).", code = "not_enough_variables"); return()
+      }
+      
+      lambdaSelMethod <- self$options$lambdaSelMethod_mixed
+      kFolds <- self$options$kFolds_mixed
+      lambdaGam <- self$options$lambdaGam_mixed
+      ruleReg <- self$options$ruleReg_mixed
+      
+      data_full <- self$data
+      columnsToSelect <- allVarNames
+      if (!is.null(groupVarName) && nchar(groupVarName) > 0) {
+        columnsToSelect <- unique(c(allVarNames, groupVarName))
+      }
+      
+      data_subset <- data_full[, columnsToSelect, drop=FALSE]
+      if (nrow(data_subset) == 0) {
+        jmvcore::reject("Dataset is empty after selecting variables.", code = "empty_data_subset"); return()
+      }
+      
+      varTypes <- character(length(allVarNames))
+      varLevels <- numeric(length(allVarNames))
+      for (i in seq_along(allVarNames)) {
+        varName <- allVarNames[i]
+        if (all(is.na(data_subset[[varName]]))) {
+          jmvcore::reject(paste0("Variable '", varName, "' contains only missing values."), code = "var_all_na"); return()
+        }
+        if (varName %in% varsContNames) {
+          varTypes[i] <- "g"
+          varLevels[i] <- 1
+          if (!is.numeric(data_subset[[varName]])) {
+            jmvcore::reject(paste0("Continuous variable '", varName, "' is not numeric."), code = "cont_not_numeric"); return()
+          }
+        } else if (varName %in% varsCatNames) {
+          varTypes[i] <- "c"
+          if (!is.factor(data_subset[[varName]])) {
+            data_subset[[varName]] <- as.factor(data_subset[[varName]])
+          }
+          varLevels[i] <- nlevels(data_subset[[varName]])
+          if (varLevels[i] < 2) {
+            jmvcore::reject(paste0("Categorical variable '", varName, "' must have at least 2 levels."), code = "cat_not_enough_levels"); return()
+          }
+        } else if (varName %in% varsCountNames) {
+          varTypes[i] <- "p"
+          varLevels[i] <- 1
+          if (!is.numeric(data_subset[[varName]])) {
+            jmvcore::reject(paste0("Count variable '", varName, "' is not numeric."), code = "count_not_numeric"); return()
+          }
+          if (any(data_subset[[varName]] < 0 | data_subset[[varName]] != round(data_subset[[varName]]), na.rm = TRUE)) {
+            jmvcore::reject(paste0("Count variable '", varName, "' must contain non-negative integers."), code = "count_invalid_values"); return()
+          }
+        }
+      }
+      
+      na_note_global <- NULL
+      n_total_initial <- nrow(data_subset)
+      cols_for_na_omit <- allVarNames
+      if (!is.null(groupVarName) && nchar(groupVarName) > 0) {
+        cols_for_na_omit <- c(allVarNames, groupVarName)
+      }
+      data_subset_for_na <- data_subset[, cols_for_na_omit, drop = FALSE]
+      complete_cases_indices <- stats::complete.cases(data_subset_for_na)
+      data_subset <- data_subset[complete_cases_indices, , drop = FALSE]
+      n_after_na_global <- nrow(data_subset)
+      
+      if (n_after_na_global < n_total_initial) {
+        na_note_global <- paste(n_total_initial - n_after_na_global, "cases excluded due to missing values (listwise deletion based on selected variables and group variable).")
+      }
+      if (nrow(data_subset) < 10) {
+        jmvcore::reject("Insufficient data after listwise deletion of missing values (n < 10).", code = "insufficient_data_after_na"); return()
+      }
+      
+      dataList <- private$.split_network_groups(data_subset, allVarNames, groupVarName)
+      groupLevels <- names(dataList)
+
+      qgraph_groups <- private$.node_communities(nodeCommunities, allVarNames)
+
+      if (!requireNamespace("mgm", quietly = TRUE)) { jmvcore::reject("Package 'mgm' is required. Please install it.", code = "mgm_missing"); return() }
+      if (!requireNamespace("qgraph", quietly = TRUE)) { jmvcore::reject("Package 'qgraph' is required. Please install it.", code = "qgraph_missing"); return() }
+      if (!requireNamespace("igraph", quietly = TRUE)) { jmvcore::reject("Package 'igraph' is required. Please install it.", code = "igraph_missing"); return() }
+      if (!requireNamespace("dplyr", quietly = TRUE)) { jmvcore::reject("Package 'dplyr' is required. Please install it.", code = "dplyr_missing"); return() }
+      if (!requireNamespace("gtools", quietly = TRUE)) { jmvcore::reject("Package 'gtools' is required. Please install it.", code = "gtools_missing"); return() }
+      if (!requireNamespace("reshape2", quietly = TRUE)) { jmvcore::reject("Package 'reshape2' is required. Please install it.", code = "reshape2_missing"); return() }
+
+      estimates <- private$.estimate_mixed_groups(dataList, groupLevels, allVarNames, varsCatNames, varTypes, varLevels, lambdaSelMethod, ruleReg, kFolds, lambdaGam, qgraph_groups)
+      networkResultsList <- estimates$results
+      weightedAdjMatrices <- estimates$graphs
+      centralityDataList <- estimates$centrality
+      clusteringDataList <- estimates$clustering
+      bridgeDataList <- estimates$bridge
+      communitiesDataList <- estimates$communities
+      commMembershipList <- estimates$membership
+      estimation_errors <- estimates$errors
+      if (length(estimation_errors) > 0) {
+        if (length(weightedAdjMatrices) == 0) {
+          jmvcore::reject(paste("Network estimation failed for all groups. Summary of errors:\n", paste(estimation_errors, collapse="\n")), code="all_groups_failed_with_errors"); return()
+        }
+      }
+      successful_groups <- names(weightedAdjMatrices)
+      if (length(successful_groups) == 0) {
+        jmvcore::reject("No successful network estimations to report.", code="no_successful_groups"); return()
+      }
+
+      private$.report_network_groups(successful_groups, estimation_errors)
+      private$.mixed_summary(successful_groups, weightedAdjMatrices, groupVarName, groupLevels, na_note_global)
+
+      private$.populate_network_weights(self$results$weights_mixed, weightedAdjMatrices, allVarNames, groupVarName, "rowname", self$options$tableWeights_mixed)
+
+      allCentralityDataForPlot <- private$.mixed_centrality(successful_groups, centralityDataList, groupVarName, groupLevels)
+
+      allClusteringDataForPlot <- private$.mixed_clustering(successful_groups, clusteringDataList, groupVarName, groupLevels)
+
+      private$.mixed_bridge(successful_groups, bridgeDataList, groupVarName)
+
+      private$.mixed_communities(successful_groups, communitiesDataList, groupVarName)
+
+      if (isTRUE(self$options$plotNetwork_mixed) && length(weightedAdjMatrices) > 0) {
+        commonLayout <- NULL
+        graphs_for_layout <- weightedAdjMatrices[successful_groups]
+        if (length(graphs_for_layout) > 1) {
+          tryCatch({
+            commonLayout <- private$.with_seed(self$options$layoutSeed_mixed, do.call(qgraph::averageLayout, c(graphs_for_layout, list(layout = self$options$layoutAlgorithm_mixed))))
+            if (!is.null(commonLayout) && !is.null(allVarNames) && length(allVarNames) == nrow(commonLayout)) {
+              rownames(commonLayout) <- allVarNames
+            }
+          }, error = function(e) {
+            commonLayout <- NULL
+          })
+        }
+        if (is.null(commonLayout) && length(graphs_for_layout) > 0) {
+          first_graph_name <- names(graphs_for_layout)[1]
+          tryCatch({
+            q_obj <- private$.with_seed(self$options$layoutSeed_mixed, qgraph::qgraph(graphs_for_layout[[first_graph_name]], layout = self$options$layoutAlgorithm_mixed, DoNotPlot = TRUE))
+            commonLayout <- q_obj$layout
+            if (!is.null(commonLayout) && !is.null(allVarNames) && length(allVarNames) == nrow(commonLayout)) {
+              rownames(commonLayout) <- allVarNames
+            }
+          }, error = function(e) {
+            tryCatch({
+              q_obj_circ <- qgraph::qgraph(graphs_for_layout[[first_graph_name]], layout = "circle", DoNotPlot = TRUE)
+              commonLayout <- q_obj_circ$layout
+              if (!is.null(commonLayout) && !is.null(allVarNames) && length(allVarNames) == nrow(commonLayout)) {
+                rownames(commonLayout) <- allVarNames
+              }
+            }, error = function(e2) {
+              commonLayout <- NULL
+            })
+          })
+        }
+
+        final_node_groups_mixed <- qgraph_groups
+        if (is.null(final_node_groups_mixed) && length(commMembershipList) > 0) {
+          first_mem_m <- commMembershipList[[1]]
+          if (!is.null(first_mem_m)) {
+            final_node_groups_mixed <- list()
+            for (u_c in unique(first_mem_m)) {
+              final_node_groups_mixed[[paste0("Comm ", u_c)]] <- which(first_mem_m == u_c)
+            }
+          }
+        }
+        plotStateNetwork <- list(
+          graphs = graphs_for_layout,
+          layoutSeed = self$options$layoutSeed_mixed,
+          edgeColors = lapply(networkResultsList[successful_groups], function(fit) if(!is.null(fit) && !is.null(fit$pairwise) && !is.null(fit$pairwise$edgecolor_cb)) fit$pairwise$edgecolor_cb else if(!is.null(fit) && !is.null(fit$pairwise)) fit$pairwise$edgecolor else NULL),
+          layout = commonLayout,
+          labels = if(isTRUE(self$options$showLabels_mixed)) allVarNames else FALSE,
+          groupNames = successful_groups,
+          layoutAlgorithm = self$options$layoutAlgorithm_mixed,
+          nodeGroups = final_node_groups_mixed
+        )
+        self$results$networkPlot_mixed$setState(plotStateNetwork)
+      }
+
+      if (isTRUE(self$options$plotCentrality_mixed) && length(allCentralityDataForPlot) > 0) {
+        valid_cent_data_for_plot <- Filter(Negate(is.null), allCentralityDataForPlot)
+        if (length(valid_cent_data_for_plot) > 0) {
+          combinedCentralityData <- do.call(rbind, c(valid_cent_data_for_plot, make.row.names = FALSE))
+          if (!is.null(combinedCentralityData) && nrow(combinedCentralityData) > 0) {
+            self$results$centralityPlot_mixed$setState(combinedCentralityData)
+          }
+        }
+      }
+
+      if (isTRUE(self$options$plotClustering_mixed) && length(allClusteringDataForPlot) > 0) {
+        valid_clust_data_for_plot <- Filter(Negate(is.null), allClusteringDataForPlot)
+        if (length(valid_clust_data_for_plot) > 0) {
+          combinedClusteringData <- do.call(rbind, c(valid_clust_data_for_plot, make.row.names = FALSE))
+          if (!is.null(combinedClusteringData) && nrow(combinedClusteringData) > 0) {
+            self$results$clusteringPlot_mixed$setState(combinedClusteringData)
+          }
+        }
+      }
+    },
+
+    .estimate_continuous_groups = function(dataList, groupLevels, vars, estimator, corMethod, qgraph_groups, na_note) {
       networkGraphsList <- list()
       centralityDataList <- list()
       clusteringDataList <- list()
@@ -250,35 +590,22 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       communitiesDataList <- list()
       commMembershipList <- list()
       estimation_errors <- list()
-      
+
       if (!requireNamespace("bootnet", quietly = TRUE)) { jmvcore::reject("Package 'bootnet' required.", code = "bootnet_missing"); return() }
       if (!requireNamespace("qgraph", quietly = TRUE)) { jmvcore::reject("Package 'qgraph' required.", code = "qgraph_missing"); return() }
       
-      bootnet_default <- switch(estimator, "EBICglasso" = "EBICglasso", "correlation" = "cor", "partial_correlation" = "pcor", "EBICglasso")
-      bootnet_corMethod <- ifelse(corMethod == "auto", "cor_auto", corMethod)
-      
+
       for (groupName in groupLevels) {
+        private$.checkpoint(flush = FALSE)
         currentData <- dataList[[groupName]]
-        if (nrow(currentData) < 10) { estimation_errors[[groupName]] <- "Insufficient data (n < 10)"; next }
-        args <- list(data = currentData, default = bootnet_default, corMethod = bootnet_corMethod, missing = "pairwise")
+        if (nrow(currentData) < 10) { estimation_errors[[groupName]] <- paste0("Group \"", groupName, "\": Insufficient data (n=", nrow(currentData), ", required >=10)"); next }
         networkGraph <- NULL; nodeLabels <- vars
         tryCatch({
-          networkResults <- tryCatch({
-            do.call(bootnet::estimateNetwork, args)
-          }, error = function(e_est) {
-            if (grepl("matrix is not positive definite", e_est$message, ignore.case = TRUE)) {
-              cormat <- qgraph::cor_auto(currentData, missing = "pairwise", npd = "nearPD", verbose = FALSE)
-              args_npd <- list(data = cormat, default = bootnet_default, missing = "pairwise")
-              na_note <<- if (is.null(na_note)) {
-                "Note: Correlation matrix smoothed to nearest positive-definite matrix (nearPD)."
-              } else {
-                paste(na_note, "Correlation matrix smoothed to nearest positive-definite matrix (nearPD).")
-              }
-              do.call(bootnet::estimateNetwork, args_npd)
-            } else {
-              stop(e_est$message)
-            }
-          })
+          networkResults <- private$.fit_network(currentData, vars, estimator, corMethod)
+          if (isTRUE(attr(networkResults, "pd_recovery"))) {
+            recovery_note <- paste0("Auto-correlation positive-definite adjustment for group \"", groupName, "\": qgraph forcePD applied to the raw-data correlation calculation; requested estimator and original sample size retained.")
+            na_note <- paste(c(na_note, recovery_note), collapse = " ")
+          }
           if (!is.null(networkResults) && "graph" %in% names(networkResults)) {
             networkGraph <- networkResults$graph
             if(nrow(networkGraph) != length(nodeLabels) || ncol(networkGraph) != length(nodeLabels)) { stop("Estimated graph dimensions mismatch.") }
@@ -314,7 +641,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
             }
           }
           centralityDataList[[groupName]] <- centralityDataNorm
-          
+
           clusteringDataNorm <- NULL
           tryCatch({
             clust_res <- qgraph::clustcoef_auto(networkGraph)
@@ -324,8 +651,8 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
               return(rep(NA_real_, length(nodeLabels)))
             }
             clusteringDataRaw <- data.frame(
-              node = nodeLabels, 
-              Barrat = get_clust("Barrat"), 
+              node = nodeLabels,
+              Barrat = get_clust("Barrat"),
               Onnela = get_clust("Onnela"),
               WS = get_clust("WS"),
               Zhang = get_clust("Zhang")
@@ -356,9 +683,9 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
                 }
               }
             }
-          }, error = function(e) {})
+          }, error = function(e) { private$.network_warning(conditionMessage(e)) })
           clusteringDataList[[groupName]] <- clusteringDataNorm
-          
+
           commAlgo <- self$options$communityAlgorithm_net
           cb_res <- private$.computeCommunitiesAndBridge(networkGraph, nodeLabels, qgraph_groups, commAlgo)
           bridgeDataList[[groupName]] <- cb_res$bridge
@@ -366,508 +693,31 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           if (!is.null(cb_res$nodeToComm)) {
             commMembershipList[[groupName]] <- cb_res$nodeToComm
           }
-          
+
         }, error = function(e) {
           err_msg <- paste("Group", groupName, "-", e$message)
+          if (identical(e$code, "restart")) stop(e)
           if (grepl("matrix is not positive definite", e$message, ignore.case = TRUE)) {
             err_msg <- paste(err_msg, "(Pairwise deletion issue?)")
           }
-          estimation_errors[[groupName]] <- err_msg
-          networkGraphsList[[groupName]] <- NULL; centralityDataList[[groupName]] <- NULL; clusteringDataList[[groupName]] <- NULL
+          estimation_errors[[groupName]] <<- err_msg
+          networkGraphsList[[groupName]] <<- NULL; centralityDataList[[groupName]] <<- NULL; clusteringDataList[[groupName]] <<- NULL
         })
       }
-      
-      if (length(estimation_errors) > 0) {
-        jmvcore::reject(paste("Errors occurred during estimation for some groups:\n", paste(estimation_errors, collapse="\n")), code="group_estimation_error")
-      }
-      successful_groups <- names(networkGraphsList)
-      if (length(successful_groups) == 0) {
-        jmvcore::reject("Network estimation failed for all groups.", code="all_groups_failed"); return()
-      }
-      
-      summaryTable <- self$results$summary_net
-      try(summaryTable$setState(NULL), silent=TRUE)
-      try(summaryTable$deleteRows(), silent=TRUE)
-      try(summaryTable$deleteNote("na_handling"), silent=TRUE)
-      if (!is.null(na_note)) {
-        summaryTable$setNote("na_handling", na_note)
-      }
-      
-      for (groupName in successful_groups) {
-        networkGraph <- networkGraphsList[[groupName]]
-        tryCatch({
-          nNodes <- ncol(networkGraph)
-          adjMatrix <- networkGraph
-          adjMatrix[is.na(adjMatrix)] <- 0
-          nonZeroEdges <- sum(abs(adjMatrix[upper.tri(adjMatrix)]) > 1e-10)
-          possibleEdges <- nNodes * (nNodes - 1) / 2
-          sparsity <- if(possibleEdges > 0) 1 - (nonZeroEdges / possibleEdges) else 1
-          summaryRow <- list(nodes = nNodes, edges = paste(nonZeroEdges, "/", possibleEdges), sparsity = sparsity)
-          if (!is.null(groupVarName)) {
-            summaryRow <- c(list(group = groupName), summaryRow)
-          }
-          summaryTable$addRow(rowKey = groupName, values = summaryRow)
-        }, error = function(e) {
-          jmvcore::reject(paste("Failed to populate summary row for group", groupName, ":", e$message), code="summary_group_error")
-        })
-      }
-      
-      weightsTable <- self$results$weights_net
-      if (isTRUE(self$options$tableWeights_net) && is.null(groupVarName)) {
-        try(weightsTable$setVisible(TRUE), silent=TRUE)
-        tryCatch({
-          networkGraph <- networkGraphsList[[1]]
-          nodeNames <- rownames(networkGraph)
-          current_table_cols <- private$.getColumnNames(weightsTable)
-          cols_to_remove <- setdiff(current_table_cols, c("node", nodeNames))
-          for(col_name in cols_to_remove) {
-            if (col_name %in% private$.getColumnNames(weightsTable)) {
-              try(weightsTable$deleteColumn(name = col_name), silent=TRUE)
-            }
-          }
-          if (!"node" %in% private$.getColumnNames(weightsTable)) {
-            try(weightsTable$addColumn(name = "node", title = "", type = 'text'), silent = TRUE)
-          }
-          for (nodeName in nodeNames) {
-            if (!nodeName %in% private$.getColumnNames(weightsTable)) {
-              try(weightsTable$addColumn(name = nodeName, title = nodeName, type = 'number'), silent=TRUE)
-            }
-          }
-          try(weightsTable$setState(NULL), silent = TRUE)
-          try(weightsTable$deleteRows(), silent = TRUE)
-          if (length(nodeNames) > 0) {
-            adjMatrix <- networkGraph
-            for (row_node in nodeNames) {
-              row_values <- list(node = row_node)
-              for (col_node in nodeNames) {
-                row_values[[col_node]] <- adjMatrix[row_node, col_node]
-              }
-              try(weightsTable$addRow(rowKey = row_node, values = row_values), silent = TRUE)
-            }
-          }
-        }, error = function(e) {
-          jmvcore::reject(paste("Failed to populate weights table:", e$message), code="weights_table_error")
-          try(weightsTable$setState(NULL), silent=TRUE)
-          try(weightsTable$setVisible(FALSE), silent=TRUE)
-        })
-      } else {
-        try(weightsTable$setState(NULL), silent=TRUE)
-        try(weightsTable$setVisible(FALSE), silent=TRUE)
-      }
-      
-      centralityTable <- self$results$centrality_net
-      try(centralityTable$setState(NULL), silent=TRUE)
-      try(centralityTable$deleteRows(), silent=TRUE)
-      try(centralityTable$deleteNote("norm_z"), silent=TRUE)
-      allCentralityDataList <- list()
-      data_found_for_cent_table = FALSE
-      
-      if (isTRUE(self$options$tableCentrality_net) || isTRUE(self$options$plotCentrality_net)) {
-        for (groupName in successful_groups) {
-          centralityData <- centralityDataList[[groupName]]
-          if (!is.null(centralityData)) {
-            data_found_for_cent_table = TRUE
-            if (isTRUE(self$options$tableCentrality_net) && nrow(centralityData) > 0) {
-              for (i in 1:nrow(centralityData)) {
-                row_key <- paste(groupName, i, sep="_")
-                row_values <- list(
-                  variable = centralityData$variable[i],
-                  strength = centralityData$strength[i],
-                  closeness = centralityData$closeness[i],
-                  betweenness = centralityData$betweenness[i],
-                  expectedInfluence = centralityData$expectedInfluence[i]
-                )
-                if (!is.null(groupVarName)) {
-                  row_values <- c(list(group = groupName), row_values)
-                }
-                try(centralityTable$addRow(rowKey = row_key, values = row_values), silent = TRUE)
-              }
-            }
-            if (!is.null(groupVarName)) {
-              centralityData$group <- groupName
-            }
-            allCentralityDataList[[groupName]] <- centralityData
-          }
-        }
-        if (data_found_for_cent_table) {
-          try(centralityTable$setNote("norm_z", "Centrality values are z-score normalized."), silent=TRUE)
-        }
-      } else {
-        try(centralityTable$setState(NULL), silent=TRUE)
-      }
-      
-      clusteringTable <- self$results$clustering_net
-      try(clusteringTable$setState(NULL), silent=TRUE)
-      try(clusteringTable$deleteRows(), silent=TRUE)
-      try(clusteringTable$deleteNote("clust_norm_z"), silent=TRUE)
-      allClusteringDataList <- list()
-      data_found_for_clust_table = FALSE
-      
-      if (isTRUE(self$options$tableClustering_net) || isTRUE(self$options$plotClustering_net)) {
-        current_table_cols <- private$.getColumnNames(clusteringTable)
-        required_cols <- c("group", "node", "Barrat", "Onnela", "WS", "Zhang")
-        cols_to_remove <- setdiff(current_table_cols, required_cols)
-        for(col_name in cols_to_remove) {
-          if (col_name %in% private$.getColumnNames(clusteringTable)) {
-            try(clusteringTable$deleteColumn(name = col_name), silent=TRUE)
-          }
-        }
-        current_table_cols_after_remove <- private$.getColumnNames(clusteringTable)
-        cols_to_add <- setdiff(required_cols, current_table_cols_after_remove)
-        if ("group" %in% cols_to_add) {
-          try(clusteringTable$addColumn(name = "group", title = "Group", type = 'text', visible="(groupVar_net)"), silent = TRUE)
-        }
-        if ("node" %in% cols_to_add) {
-          try(clusteringTable$addColumn(name = "node", title = "Variable", type = 'text'), silent = TRUE)
-        }
-        for(col_name in setdiff(cols_to_add, c("node", "group"))) {
-          try(clusteringTable$addColumn(name = col_name, title = col_name, type = 'number'), silent = TRUE)
-        }
-        
-        for (groupName in successful_groups) {
-          clusteringData <- clusteringDataList[[groupName]]
-          if (!is.null(clusteringData)) {
-            data_found_for_clust_table = TRUE
-            if (isTRUE(self$options$tableClustering_net) && nrow(clusteringData) > 0) {
-              for (i in 1:nrow(clusteringData)) {
-                row_node_name <- clusteringData$node[i]
-                row_key <- paste(groupName, row_node_name, sep="_")
-                row_values <- list(
-                  node = clusteringData$node[i], 
-                  Barrat = clusteringData$Barrat[i], 
-                  Onnela = clusteringData$Onnela[i],
-                  WS = clusteringData$WS[i],
-                  Zhang = clusteringData$Zhang[i]
-                )
-                if (!is.null(groupVarName)) {
-                  row_values <- c(list(group = groupName), row_values)
-                }
-                try(clusteringTable$addRow(rowKey = row_key, values = row_values), silent = TRUE)
-              }
-            }
-            if (!is.null(groupVarName)) {
-              clusteringData$group <- groupName
-            }
-            allClusteringDataList[[groupName]] <- clusteringData
-          }
-        }
-        if (data_found_for_clust_table) {
-          try(clusteringTable$setNote("clust_norm_z", "Clustering values are z-score normalized."), silent=TRUE)
-        }
-      } else {
-        try(clusteringTable$setState(NULL), silent=TRUE)
-      }
-      
-      bridgeTable <- self$results$bridge_net
-      try(bridgeTable$setState(NULL), silent=TRUE)
-      try(bridgeTable$deleteRows(), silent=TRUE)
-      if (isTRUE(self$options$tableBridge_net)) {
-        for (groupName in successful_groups) {
-          bData <- bridgeDataList[[groupName]]
-          if (!is.null(bData) && nrow(bData) > 0) {
-            for (i in seq_len(nrow(bData))) {
-              row_key <- paste(groupName, bData$node[i], sep="_")
-              row_vals <- list(
-                node = bData$node[i],
-                community = bData$community[i],
-                bridgeStrength = bData$bridgeStrength[i],
-                bridgeBetweenness = bData$bridgeBetweenness[i],
-                bridgeCloseness = bData$bridgeCloseness[i],
-                bridgeEI1 = bData$bridgeEI1[i]
-              )
-              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
-              try(bridgeTable$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
-            }
-          }
-        }
-      }
-
-      commTable <- self$results$communities_net
-      try(commTable$setState(NULL), silent=TRUE)
-      try(commTable$deleteRows(), silent=TRUE)
-      if (isTRUE(self$options$tableCommunities_net)) {
-        for (groupName in successful_groups) {
-          cData <- communitiesDataList[[groupName]]
-          if (!is.null(cData) && nrow(cData) > 0) {
-            for (i in seq_len(nrow(cData))) {
-              row_key <- paste(groupName, cData$node[i], sep="_")
-              row_vals <- list(
-                node = cData$node[i],
-                community = cData$community[i]
-              )
-              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
-              try(commTable$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
-            }
-          }
-        }
-      }
-
-      if (isTRUE(self$options$plotNetwork_net) && length(networkGraphsList) > 0) {
-        commonLayout <- NULL
-        tryCatch({
-          graphs_for_layout <- networkGraphsList[successful_groups]
-          if (length(graphs_for_layout) > 0) {
-            commonLayout <- do.call(qgraph::averageLayout, c(graphs_for_layout, list(layout = self$options$layoutAlgorithm_net)))
-            if (!is.null(commonLayout)) {
-              rownames(commonLayout) <- nodeLabels
-            }
-          }
-        }, error = function(e) {
-          jmvcore::reject(paste("Layout calculation failed:", e$message), code="layout_error")
-          tryCatch({
-            commonLayout <- qgraph::averageLayout(networkGraphsList[[1]], layout = "circle")
-            if (!is.null(commonLayout)) {
-              rownames(commonLayout) <- nodeLabels
-            }
-          }, error=function(e2){})
-        })
-        
-        final_node_groups <- qgraph_groups
-        if (is.null(final_node_groups) && length(commMembershipList) > 0) {
-          first_mem <- commMembershipList[[1]]
-          if (!is.null(first_mem)) {
-            final_node_groups <- list()
-            for (u_c in unique(first_mem)) {
-              final_node_groups[[paste0("Comm ", u_c)]] <- which(first_mem == u_c)
-            }
-          }
-        }
-        plotState <- list(
-          graphs = networkGraphsList,
-          layoutSeed = self$options$layoutSeed_net, 
-          layout = commonLayout, 
-          labels = if(isTRUE(self$options$showLabels_net)) nodeLabels else FALSE, 
-          groupNames = successful_groups,
-          nodeGroups = final_node_groups
-        )
-        self$results$networkPlot_net$setState(plotState)
-      }
-      
-      if (isTRUE(self$options$plotCentrality_net) && length(allCentralityDataList) > 0) {
-        combinedCentralityData <- do.call(rbind, c(allCentralityDataList, make.row.names = FALSE))
-        if (!is.null(combinedCentralityData) && !"group" %in% names(combinedCentralityData)) {
-          combinedCentralityData$group <- "Overall"
-        }
-        self$results$centralityPlot_net$setState(combinedCentralityData)
-      }
-      
-      if (isTRUE(self$options$plotClustering_net) && length(allClusteringDataList) > 0) {
-        combinedClusteringData <- do.call(rbind, c(allClusteringDataList, make.row.names = FALSE))
-        if (!is.null(combinedClusteringData) && !"group" %in% names(combinedClusteringData)) {
-          combinedClusteringData$group <- "Overall"
-        }
-        self$results$clusteringPlot_net$setState(combinedClusteringData)
-      }
-      
-      if (isTRUE(self$options$bootStability_net) && length(successful_groups) > 0) {
-        target_group_for_boot <- successful_groups[1]
-        boot_data <- dataList[[target_group_for_boot]]
-        private$.runBootStability(
-          boot_data, vars, estimator, corMethod,
-          self$options$bootN_net,
-          self$results$edgeStability_net,
-          self$results$csStability_net
-        )
-      }
-      
-      if (isTRUE(self$options$nctTest_net)) {
-        if (length(successful_groups) == 2) {
-          d_g1 <- dataList[[successful_groups[1]]]
-          d_g2 <- dataList[[successful_groups[2]]]
-          private$.runNCT(
-            d_g1, d_g2, vars, estimator, corMethod,
-            self$options$nctPermutations_net,
-            self$results$nctGlobal_net,
-            self$results$nctEdges_net
-          )
-        } else {
-          self$results$nctGlobal_net$setNote("warning", "Network Comparison Test (NCT) requires a grouping variable with exactly 2 valid levels.")
-        }
-      }
-      
-      if (isTRUE(self$options$dagAnalysis_net)) {
-        dag_data <- data_subset[, vars, drop = FALSE]
-        private$.runDAG(
-          dag_data, vars, self$options$dagAlgorithm_net,
-          self$results$dagTable_net,
-          self$results$dagPlot_net
-        )
-      }
+      list(graphs = networkGraphsList, centrality = centralityDataList, clustering = clusteringDataList, bridge = bridgeDataList, communities = communitiesDataList, membership = commMembershipList, errors = estimation_errors, na_note = na_note)
     },
-    
-    .runMixed = function() {
-      
-      if (length(self$options$varsCont_mixed) == 0 && length(self$options$varsCat_mixed) == 0 && length(self$options$varsCount_mixed) == 0) {
-        instructions <- self$results$instructions_mixed
-        instructions$setContent("Welcome to Mixed Data Network Analysis (mgm)!\n\nPlease select at least 3 variables in total (Continuous, Categorical, or Count) to begin.")
-        instructions$setVisible(TRUE)
-        try(self$results$summary_mixed$setVisible(FALSE), silent=TRUE); try(self$results$weights_mixed$setVisible(FALSE), silent=TRUE)
-        try(self$results$centrality_mixed$setVisible(FALSE), silent=TRUE); try(self$results$clustering_mixed$setVisible(FALSE), silent=TRUE)
-        try(self$results$networkPlot_mixed$setVisible(FALSE), silent=TRUE); try(self$results$centralityPlot_mixed$setVisible(FALSE), silent=TRUE)
-        try(self$results$clusteringPlot_mixed$setVisible(FALSE), silent=TRUE)
-        try(self$results$bridge_mixed$setVisible(FALSE), silent=TRUE); try(self$results$communities_mixed$setVisible(FALSE), silent=TRUE)
-        return()
-      } else {
-        self$results$instructions_mixed$setVisible(FALSE)
-        try(self$results$summary_mixed$setVisible(TRUE), silent=TRUE)
-        try(self$results$weights_mixed$setVisible(isTRUE(self$options$tableWeights_mixed)), silent=TRUE)
-        try(self$results$centrality_mixed$setVisible(isTRUE(self$options$tableCentrality_mixed)), silent=TRUE)
-        try(self$results$clustering_mixed$setVisible(isTRUE(self$options$tableClustering_mixed)), silent=TRUE)
-        try(self$results$networkPlot_mixed$setVisible(isTRUE(self$options$plotNetwork_mixed)), silent=TRUE)
-        try(self$results$centralityPlot_mixed$setVisible(isTRUE(self$options$plotCentrality_mixed)), silent=TRUE)
-        try(self$results$clusteringPlot_mixed$setVisible(isTRUE(self$options$plotClustering_mixed)), silent=TRUE)
-      }
-      
-      varsContNames <- self$options$varsCont_mixed
-      varsCatNames <- self$options$varsCat_mixed
-      varsCountNames <- self$options$varsCount_mixed
-      groupVarName <- self$options$groupVar_mixed
-      nodeGroupVarName <- self$options$nodeGroupVar_mixed
-      
-      allVarNames <- c(varsContNames, varsCatNames, varsCountNames)
-      if (length(allVarNames) < 3) {
-        jmvcore::reject("Please select at least 3 variables in total for Mixed Network estimation (mgm).", code = "not_enough_variables"); return()
-      }
-      
-      lambdaSelMethod <- self$options$lambdaSelMethod_mixed
-      kFolds <- self$options$kFolds_mixed
-      lambdaGam <- self$options$lambdaGam_mixed
-      ruleReg <- self$options$ruleReg_mixed
-      
-      data_full <- self$data
-      columnsToSelect <- allVarNames
-      if (!is.null(groupVarName) && nchar(groupVarName) > 0) {
-        columnsToSelect <- unique(c(allVarNames, groupVarName))
-      }
-      
-      data_subset <- data_full[, columnsToSelect, drop=FALSE]
-      if (nrow(data_subset) == 0) {
-        jmvcore::reject("Dataset is empty after selecting variables.", code = "empty_data_subset"); return()
-      }
-      
-      varTypes <- character(length(allVarNames))
-      varLevels <- numeric(length(allVarNames))
-      for (i in seq_along(allVarNames)) {
-        varName <- allVarNames[i]
-        if (all(is.na(data_subset[[varName]]))) {
-          jmvcore::reject(paste("Variable '", varName, "' contains only missing values."), code = "var_all_na"); return()
-        }
-        if (varName %in% varsContNames) {
-          varTypes[i] <- "g"
-          varLevels[i] <- 1
-          if (!is.numeric(data_subset[[varName]])) {
-            jmvcore::reject(paste("Continuous variable '", varName, "' is not numeric."), code = "cont_not_numeric"); return()
-          }
-        } else if (varName %in% varsCatNames) {
-          varTypes[i] <- "c"
-          if (!is.factor(data_subset[[varName]])) {
-            data_subset[[varName]] <- as.factor(data_subset[[varName]])
-          }
-          varLevels[i] <- nlevels(data_subset[[varName]])
-          if (varLevels[i] < 2) {
-            jmvcore::reject(paste("Categorical variable '", varName, "' must have at least 2 levels."), code = "cat_not_enough_levels"); return()
-          }
-        } else if (varName %in% varsCountNames) {
-          varTypes[i] <- "p"
-          varLevels[i] <- 1
-          if (!is.numeric(data_subset[[varName]])) {
-            jmvcore::reject(paste("Count variable '", varName, "' is not numeric."), code = "count_not_numeric"); return()
-          }
-          if (any(data_subset[[varName]] < 0 | data_subset[[varName]] != round(data_subset[[varName]]), na.rm = TRUE)) {
-            jmvcore::reject(paste("Count variable '", varName, "' must contain non-negative integers."), code = "count_invalid_values"); return()
-          }
-        }
-      }
-      
-      na_note_global <- NULL
-      n_total_initial <- nrow(data_subset)
-      cols_for_na_omit <- allVarNames
-      if (!is.null(groupVarName) && nchar(groupVarName) > 0) {
-        cols_for_na_omit <- c(allVarNames, groupVarName)
-      }
-      data_subset_for_na <- data_subset[, cols_for_na_omit, drop = FALSE]
-      complete_cases_indices <- stats::complete.cases(data_subset_for_na)
-      data_subset <- data_subset[complete_cases_indices, , drop = FALSE]
-      n_after_na_global <- nrow(data_subset)
-      
-      if (n_after_na_global < n_total_initial) {
-        na_note_global <- paste(n_total_initial - n_after_na_global, "cases excluded due to missing values (listwise deletion based on selected variables and group variable).")
-      }
-      if (nrow(data_subset) < 10) {
-        jmvcore::reject("Insufficient data after listwise deletion of missing values (n < 10).", code = "insufficient_data_after_na"); return()
-      }
-      
-      dataList <- list()
-      groupLevels <- NULL
-      if (!is.null(groupVarName) && nchar(groupVarName) > 0) {
-        if (!is.factor(data_subset[[groupVarName]])) {
-          data_subset[[groupVarName]] <- as.factor(data_subset[[groupVarName]])
-        }
-        groupLevels <- levels(data_subset[[groupVarName]])
-        if (length(groupLevels) < 1) {
-          jmvcore::reject("Grouping variable has no levels after NA removal.", code="no_group_levels_after_na"); return()
-        }
-        dataList <- split(data_subset[, allVarNames, drop=FALSE], data_subset[[groupVarName]], drop=TRUE)
-      } else {
-        dataList <- list(Overall = data_subset[, allVarNames, drop=FALSE])
-        groupLevels <- "Overall"
-      }
-      
-      qgraph_groups <- NULL
-      if (!is.null(nodeGroupVarName)) {
-        tryCatch({
-          raw_labels <- as.character(data_full[[nodeGroupVarName]])
-          raw_labels <- raw_labels[!is.na(raw_labels) & raw_labels != ""]
-          node_group_mapping <- rep(NA, length(allVarNames))
-          names(node_group_mapping) <- allVarNames
-          matched_any <- FALSE
-          
-          for (label_str in raw_labels) {
-            parts <- strsplit(label_str, "=")[[1]]
-            if (length(parts) >= 2) {
-              v_name <- trimws(parts[1])
-              g_name <- trimws(paste(parts[-1], collapse="="))
-              if (v_name %in% allVarNames) {
-                node_group_mapping[v_name] <- g_name
-                matched_any <- TRUE
-              }
-            }
-          }
-          if (matched_any) {
-            unique_groups <- unique(na.omit(node_group_mapping))
-            qgraph_groups <- list()
-            for (g in unique_groups) {
-              indices <- which(node_group_mapping == g)
-              qgraph_groups[[g]] <- indices
-            }
-          } else if (!is.null(nodeGroupVarName)) {
-            na_note_global <- if (is.null(na_note_global)) {
-              "Note: Node grouping variable must contain text formatted as 'VariableName = GroupName'."
-            } else {
-              paste(na_note_global, "Node grouping variable must contain text formatted as 'VariableName = GroupName'.")
-            }
-          }
-        }, error = function(e) {
-          qgraph_groups <- NULL
-        })
-      }
-      
-      if (!requireNamespace("mgm", quietly = TRUE)) { jmvcore::reject("Package 'mgm' is required. Please install it.", code = "mgm_missing"); return() }
-      if (!requireNamespace("qgraph", quietly = TRUE)) { jmvcore::reject("Package 'qgraph' is required. Please install it.", code = "qgraph_missing"); return() }
-      if (!requireNamespace("igraph", quietly = TRUE)) { jmvcore::reject("Package 'igraph' is required. Please install it.", code = "igraph_missing"); return() }
-      if (!requireNamespace("dplyr", quietly = TRUE)) { jmvcore::reject("Package 'dplyr' is required. Please install it.", code = "dplyr_missing"); return() }
-      if (!requireNamespace("gtools", quietly = TRUE)) { jmvcore::reject("Package 'gtools' is required. Please install it.", code = "gtools_missing"); return() }
-      if (!requireNamespace("reshape2", quietly = TRUE)) { jmvcore::reject("Package 'reshape2' is required. Please install it.", code = "reshape2_missing"); return() }
-      
+
+    .estimate_mixed_groups = function(dataList, groupLevels, allVarNames, varsCatNames, varTypes, varLevels, lambdaSelMethod, ruleReg, kFolds, lambdaGam, qgraph_groups) {
       networkResultsList <- list(); weightedAdjMatrices <- list(); centralityDataList <- list(); clusteringDataList <- list(); bridgeDataList <- list(); communitiesDataList <- list(); commMembershipList <- list(); estimation_errors <- character()
       
       for (groupName in groupLevels) {
+        private$.checkpoint(flush = FALSE)
         currentDataGroup_for_estimation <- dataList[[groupName]][, allVarNames, drop=FALSE]
         min_n_group <- max(length(allVarNames) * 2, 20)
         if (nrow(currentDataGroup_for_estimation) < min_n_group) {
           msg <- paste0("Group '", groupName, "': Insufficient data (n=", nrow(currentDataGroup_for_estimation), ", required >=", min_n_group, ") for stable estimation.")
           estimation_errors <- c(estimation_errors, msg)
-          warning(msg); next
+          next
         }
         
         mgmFit <- NULL; adjMatrix <- NULL
@@ -894,7 +744,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           }
           
           if (!is.null(self$results$instructions_mixed)) {
-            self$results$instructions_mixed$setContent(paste("Estimating network for group:", groupName, "..."))
+            self$results$instructions_mixed$setContent(paste0("Estimating network for group: ", groupName, "..."))
             self$results$instructions_mixed$setVisible(TRUE)
           }
           mgmFit <- do.call(mgm::mgm, mgm_args)
@@ -927,6 +777,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           tryCatch({
             cent_obj_qgraph <- qgraph::centrality(adjMatrix, weighted = TRUE, signed = TRUE, all.shortest.paths = FALSE)
           }, error = function(e_cent) {
+            private$.network_warning(paste("Centrality for group", groupName, ":", conditionMessage(e_cent)))
             na_vec <- rep(NA_real_, num_vars)
             cent_obj_qgraph <<- list( Betweenness = na_vec, Closeness = na_vec, OutDegree = na_vec )
           })
@@ -962,16 +813,16 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
               return(rep(NA_real_, num_vars))
             }
             clusteringDataRaw <- data.frame(
-              node = allVarNames, 
-              Barrat = get_clust("Barrat"), 
+              node = allVarNames,
+              Barrat = get_clust("Barrat"),
               Onnela = get_clust("Onnela"),
               WS = get_clust("WS"),
               Zhang = get_clust("Zhang")
             )
             rownames(clusteringDataRaw) <- NULL
             clusteringDataList[[groupName]] <- clusteringDataRaw
-          }, error = function(e) {})
-          
+          }, error = function(e) { private$.network_warning(conditionMessage(e)) })
+
           commAlgo_mixed <- self$options$communityAlgorithm_mixed
           cb_res_mixed <- private$.computeCommunitiesAndBridge(adjMatrix, allVarNames, qgraph_groups, commAlgo_mixed)
           bridgeDataList[[groupName]] <- cb_res_mixed$bridge
@@ -979,7 +830,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           if (!is.null(cb_res_mixed$nodeToComm)) {
             commMembershipList[[groupName]] <- cb_res_mixed$nodeToComm
           }
-          
+
         }, error = function(e) {
           err_msg <- paste0("Group '", groupName, "': Error during estimation - ", e$message)
           estimation_errors <<- c(estimation_errors, err_msg)
@@ -987,20 +838,183 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           if (!is.null(self$results$instructions_mixed)) self$results$instructions_mixed$setVisible(FALSE)
         })
       }
-      
-      if (length(estimation_errors) > 0) {
-        if (length(weightedAdjMatrices) == 0) {
-          jmvcore::reject(paste("Network estimation failed for all groups. Summary of errors:\n", paste(estimation_errors, collapse="\n")), code="all_groups_failed_with_errors"); return()
+      list(results = networkResultsList, graphs = weightedAdjMatrices, centrality = centralityDataList, clustering = clusteringDataList, bridge = bridgeDataList, communities = communitiesDataList, membership = commMembershipList, errors = estimation_errors)
+    },
+
+    .continuous_summary = function(successful_groups, networkGraphsList, groupVarName, na_note) {
+      summaryTable <- self$results$summary_net
+      summaryTable$setState(NULL)
+      summaryTable$deleteRows()
+      summaryTable$setNote("na_handling", NULL)
+      if (!is.null(na_note)) {
+        summaryTable$setNote("na_handling", na_note)
+      }
+
+      for (groupName in successful_groups) {
+        networkGraph <- networkGraphsList[[groupName]]
+        tryCatch({
+          nNodes <- ncol(networkGraph)
+          adjMatrix <- networkGraph
+          adjMatrix[is.na(adjMatrix)] <- 0
+          nonZeroEdges <- sum(abs(adjMatrix[upper.tri(adjMatrix)]) > 1e-10)
+          possibleEdges <- nNodes * (nNodes - 1) / 2
+          sparsity <- if(possibleEdges > 0) 1 - (nonZeroEdges / possibleEdges) else 1
+          summaryRow <- list(nodes = nNodes, edges = paste(nonZeroEdges, "/", possibleEdges), sparsity = sparsity)
+          if (!is.null(groupVarName)) {
+            summaryRow <- c(list(group = groupName), summaryRow)
+          }
+          summaryTable$addRow(rowKey = groupName, values = summaryRow)
+        }, error = function(e) {
+          jmvcore::reject(paste0("Failed to populate summary row for group ", groupName, ": ", e$message), code="summary_group_error")
+        })
+      }
+    },
+
+    .continuous_centrality = function(successful_groups, centralityDataList, groupVarName) {
+      centralityTable <- self$results$centrality_net
+      centralityTable$setState(NULL)
+      centralityTable$deleteRows()
+      centralityTable$setNote("norm_z", NULL)
+      allCentralityDataList <- list()
+      data_found_for_cent_table = FALSE
+
+      if (isTRUE(self$options$tableCentrality_net) || isTRUE(self$options$plotCentrality_net)) {
+        for (groupName in successful_groups) {
+          centralityData <- centralityDataList[[groupName]]
+          if (!is.null(centralityData)) {
+            data_found_for_cent_table = TRUE
+            if (isTRUE(self$options$tableCentrality_net) && nrow(centralityData) > 0) {
+              for (i in 1:nrow(centralityData)) {
+                row_key <- paste(groupName, i, sep="_")
+                row_values <- list(
+                  variable = centralityData$variable[i],
+                  strength = centralityData$strength[i],
+                  closeness = centralityData$closeness[i],
+                  betweenness = centralityData$betweenness[i],
+                  expectedInfluence = centralityData$expectedInfluence[i]
+                )
+                if (!is.null(groupVarName)) {
+                  row_values <- c(list(group = groupName), row_values)
+                }
+                centralityTable$addRow(rowKey = row_key, values = row_values)
+              }
+            }
+            if (!is.null(groupVarName)) {
+              centralityData$group <- groupName
+            }
+            allCentralityDataList[[groupName]] <- centralityData
+          }
+        }
+        if (data_found_for_cent_table) {
+          centralityTable$setNote("norm_z", "Centrality values are z-score normalized.")
+        }
+      } else {
+        centralityTable$setState(NULL)
+      }
+      allCentralityDataList
+    },
+
+    .continuous_clustering = function(successful_groups, clusteringDataList, groupVarName) {
+      clusteringTable <- self$results$clustering_net
+      clusteringTable$setState(NULL)
+      clusteringTable$deleteRows()
+      clusteringTable$setNote("clust_norm_z", NULL)
+      allClusteringDataList <- list()
+      data_found_for_clust_table = FALSE
+
+      if (isTRUE(self$options$tableClustering_net) || isTRUE(self$options$plotClustering_net)) {
+        for (groupName in successful_groups) {
+          clusteringData <- clusteringDataList[[groupName]]
+          if (!is.null(clusteringData)) {
+            data_found_for_clust_table = TRUE
+            if (isTRUE(self$options$tableClustering_net) && nrow(clusteringData) > 0) {
+              for (i in 1:nrow(clusteringData)) {
+                row_node_name <- clusteringData$node[i]
+                row_key <- paste(groupName, row_node_name, sep="_")
+                row_values <- list(
+                  node = clusteringData$node[i],
+                  Barrat = clusteringData$Barrat[i],
+                  Onnela = clusteringData$Onnela[i],
+                  WS = clusteringData$WS[i],
+                  Zhang = clusteringData$Zhang[i]
+                )
+                if (!is.null(groupVarName)) {
+                  row_values <- c(list(group = groupName), row_values)
+                }
+                clusteringTable$addRow(rowKey = row_key, values = row_values)
+              }
+            }
+            if (!is.null(groupVarName)) {
+              clusteringData$group <- groupName
+            }
+            allClusteringDataList[[groupName]] <- clusteringData
+          }
+        }
+        if (data_found_for_clust_table) {
+          clusteringTable$setNote("clust_norm_z", "Clustering values are z-score normalized.")
+        }
+      } else {
+        clusteringTable$setState(NULL)
+      }
+      allClusteringDataList
+    },
+
+    .continuous_bridge = function(successful_groups, bridgeDataList, groupVarName) {
+      bridgeTable <- self$results$bridge_net
+      bridgeTable$setState(NULL)
+      bridgeTable$deleteRows()
+      bridgeTable$setNote("bridge_unavailable", NULL)
+      if (isTRUE(self$options$tableBridge_net)) {
+        unavailable_groups <- successful_groups[vapply(successful_groups, function(groupName) is.null(bridgeDataList[[groupName]]) || nrow(bridgeDataList[[groupName]]) == 0, logical(1))]
+        if (length(unavailable_groups) > 0) bridgeTable$setNote("bridge_unavailable", paste0("Bridge centrality unavailable for: ", paste(unavailable_groups, collapse = ", "), ". It requires a complete assignment of nodes to at least two communities (node groups or detected communities) and a successful networktools calculation."))
+        for (groupName in successful_groups) {
+          bData <- bridgeDataList[[groupName]]
+          if (!is.null(bData) && nrow(bData) > 0) {
+            for (i in seq_len(nrow(bData))) {
+              row_key <- paste(groupName, bData$node[i], sep="_")
+              row_vals <- list(
+                node = bData$node[i],
+                community = bData$community[i],
+                bridgeStrength = bData$bridgeStrength[i],
+                bridgeBetweenness = bData$bridgeBetweenness[i],
+                bridgeCloseness = bData$bridgeCloseness[i],
+                bridgeEI1 = bData$bridgeEI1[i]
+              )
+              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
+              bridgeTable$addRow(rowKey = row_key, values = row_vals)
+            }
+          }
         }
       }
-      successful_groups <- names(weightedAdjMatrices)
-      if (length(successful_groups) == 0) {
-        jmvcore::reject("No successful network estimations to report.", code="no_successful_groups"); return()
+    },
+
+    .continuous_communities = function(successful_groups, communitiesDataList, groupVarName) {
+      commTable <- self$results$communities_net
+      commTable$setState(NULL)
+      commTable$deleteRows()
+      commTable$setNote("source", "Complete manual assignments take precedence over community detection and are shared by membership, bridge centrality and network colors; without an assignment, the selected detection algorithm is used.")
+      if (isTRUE(self$options$tableCommunities_net)) {
+        for (groupName in successful_groups) {
+          cData <- communitiesDataList[[groupName]]
+          if (!is.null(cData) && nrow(cData) > 0) {
+            for (i in seq_len(nrow(cData))) {
+              row_key <- paste(groupName, cData$node[i], sep="_")
+              row_vals <- list(
+                node = cData$node[i],
+                community = cData$community[i]
+              )
+              if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
+              commTable$addRow(rowKey = row_key, values = row_vals)
+            }
+          }
+        }
       }
-      
+    },
+
+    .mixed_summary = function(successful_groups, weightedAdjMatrices, groupVarName, groupLevels, na_note_global) {
       summaryTable <- self$results$summary_mixed
-      try(summaryTable$setState(NULL), silent=TRUE)
-      try(summaryTable$deleteRows(), silent=TRUE)
+      summaryTable$setState(NULL)
+      summaryTable$deleteRows()
       if (!is.null(na_note_global)) {
         summaryTable$setNote("na_handling_summary", na_note_global)
       } else {
@@ -1014,47 +1028,17 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         possibleEdges <- nNodes * (nNodes - 1) / 2
         sparsity_val <- if(possibleEdges > 0) 1 - (nonZeroEdges / possibleEdges) else 1
         summaryRow <- list(nodes = nNodes, edges = paste(nonZeroEdges, "/", possibleEdges), sparsity = sparsity_val)
-        if ( (length(groupLevels) > 1 || !is.null(groupVarName)) && groupLevels[1] != "Overall" ) {
+        if (!is.null(groupVarName)) {
           summaryRow <- c(list(group = groupName), summaryRow)
         }
         summaryTable$addRow(rowKey = groupName, values = summaryRow)
       }
-      
-      weightsTable <- self$results$weights_mixed
-      try(weightsTable$setState(NULL), silent=TRUE)
-      try(weightsTable$deleteRows(), silent=TRUE)
-      current_cols <- private$.getColumnNames(weightsTable)
-      cols_to_remove <- setdiff(current_cols, c("group", "rowname"))
-      for(col_name in cols_to_remove) {
-        try(weightsTable$deleteColumn(name = col_name), silent=TRUE)
-      }
-      for (varName in allVarNames) {
-        col_id_name <- paste0("var_", make.names(varName))
-        if (!col_id_name %in% private$.getColumnNames(weightsTable)) {
-          weightsTable$addColumn(name = col_id_name, title = varName, type = 'number', format = ".3f")
-        }
-      }
-      
-      if (isTRUE(self$options$tableWeights_mixed)) {
-        for (groupName in successful_groups) {
-          adjMat <- weightedAdjMatrices[[groupName]]
-          for (row_node in allVarNames) {
-            row_values <- list()
-            if ( (length(groupLevels) > 1 || !is.null(groupVarName)) && groupLevels[1] != "Overall" ) {
-              row_values[["group"]] <- groupName
-            }
-            row_values[["rowname"]] <- row_node
-            for (col_node in allVarNames) {
-              row_values[[paste0("var_", make.names(col_node))]] <- adjMat[row_node, col_node]
-            }
-            weightsTable$addRow(rowKey = paste(groupName, row_node, sep="_"), values = row_values)
-          }
-        }
-      }
-      
+    },
+
+    .mixed_centrality = function(successful_groups, centralityDataList, groupVarName, groupLevels) {
       centralityTable <- self$results$centrality_mixed
-      try(centralityTable$setState(NULL), silent=TRUE)
-      try(centralityTable$deleteRows(), silent=TRUE)
+      centralityTable$setState(NULL)
+      centralityTable$deleteRows()
       allCentralityDataForPlot <- list()
       
       if (isTRUE(self$options$tableCentrality_mixed) || isTRUE(self$options$plotCentrality_mixed)) {
@@ -1084,7 +1068,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
               }
             }
             tempDataForPlot <- centralityData_Zscores
-            if ( (length(groupLevels) > 1 || !is.null(groupVarName)) && groupLevels[1] != "Overall" ) {
+            if (!is.null(groupVarName)) {
               tempDataForPlot$group <- groupName
             }
             allCentralityDataForPlot[[groupName]] <- tempDataForPlot
@@ -1092,7 +1076,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
             if (isTRUE(self$options$tableCentrality_mixed)) {
               for (i in 1:nrow(centralityData_Zscores)) {
                 row_values <- as.list(centralityData_Zscores[i, ])
-                if ( (length(groupLevels) > 1 || !is.null(groupVarName)) && groupLevels[1] != "Overall" ) {
+                if (!is.null(groupVarName)) {
                   row_values <- c(list(group = groupName), row_values)
                 }
                 centralityTable$addRow(rowKey = paste(groupName, centralityData_Zscores$variable[i], sep="_"), values = row_values)
@@ -1104,10 +1088,13 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           centralityTable$setNote("centrality_info", "Values in table and plot are Z-score normalized if multiple variables/values exist within a group.")
         }
       }
-      
+      allCentralityDataForPlot
+    },
+
+    .mixed_clustering = function(successful_groups, clusteringDataList, groupVarName, groupLevels) {
       clusteringTable <- self$results$clustering_mixed
-      try(clusteringTable$setState(NULL), silent=TRUE)
-      try(clusteringTable$deleteRows(), silent=TRUE)
+      clusteringTable$setState(NULL)
+      clusteringTable$deleteRows()
       allClusteringDataForPlot <- list()
       
       if (isTRUE(self$options$tableClustering_mixed) || isTRUE(self$options$plotClustering_mixed)) {
@@ -1137,7 +1124,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
               }
             }
             tempDataForPlot_Clust <- clusteringData_Zscores
-            if ( (length(groupLevels) > 1 || !is.null(groupVarName)) && groupLevels[1] != "Overall" ) {
+            if (!is.null(groupVarName)) {
               tempDataForPlot_Clust$group <- groupName
             }
             allClusteringDataForPlot[[groupName]] <- tempDataForPlot_Clust
@@ -1145,7 +1132,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
             if (isTRUE(self$options$tableClustering_mixed)) {
               for (i in 1:nrow(clusteringData_Zscores)) {
                 row_values <- as.list(clusteringData_Zscores[i, ])
-                if ( (length(groupLevels) > 1 || !is.null(groupVarName)) && groupLevels[1] != "Overall" ) {
+                if (!is.null(groupVarName)) {
                   row_values <- c(list(group = groupName), row_values)
                 }
                 clusteringTable$addRow(rowKey = paste(groupName, clusteringData_Zscores$node[i], sep="_"), values = row_values)
@@ -1157,11 +1144,17 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           clusteringTable$setNote("clustering_info", "Values in table and plot are Z-score normalized if multiple variables/values exist within a group.")
         }
       }
-      
+      allClusteringDataForPlot
+    },
+
+    .mixed_bridge = function(successful_groups, bridgeDataList, groupVarName) {
       bridgeTable_m <- self$results$bridge_mixed
-      try(bridgeTable_m$setState(NULL), silent=TRUE)
-      try(bridgeTable_m$deleteRows(), silent=TRUE)
+      bridgeTable_m$setState(NULL)
+      bridgeTable_m$deleteRows()
+      bridgeTable_m$setNote("bridge_unavailable", NULL)
       if (isTRUE(self$options$tableBridge_mixed)) {
+        unavailable_groups <- successful_groups[vapply(successful_groups, function(groupName) is.null(bridgeDataList[[groupName]]) || nrow(bridgeDataList[[groupName]]) == 0, logical(1))]
+        if (length(unavailable_groups) > 0) bridgeTable_m$setNote("bridge_unavailable", paste0("Bridge centrality unavailable for: ", paste(unavailable_groups, collapse = ", "), ". It requires a complete assignment of nodes to at least two communities (node groups or detected communities) and a successful networktools calculation."))
         for (groupName in successful_groups) {
           bData <- bridgeDataList[[groupName]]
           if (!is.null(bData) && nrow(bData) > 0) {
@@ -1176,15 +1169,18 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
                 bridgeEI1 = bData$bridgeEI1[i]
               )
               if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
-              try(bridgeTable_m$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
+              bridgeTable_m$addRow(rowKey = row_key, values = row_vals)
             }
           }
         }
       }
+    },
 
+    .mixed_communities = function(successful_groups, communitiesDataList, groupVarName) {
       commTable_m <- self$results$communities_mixed
-      try(commTable_m$setState(NULL), silent=TRUE)
-      try(commTable_m$deleteRows(), silent=TRUE)
+      commTable_m$setState(NULL)
+      commTable_m$deleteRows()
+      commTable_m$setNote("source", "Complete manual assignments take precedence over community detection and are shared by membership, bridge centrality and network colors; without an assignment, the selected detection algorithm is used.")
       if (isTRUE(self$options$tableCommunities_mixed)) {
         for (groupName in successful_groups) {
           cData <- communitiesDataList[[groupName]]
@@ -1196,90 +1192,13 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
                 community = cData$community[i]
               )
               if (!is.null(groupVarName)) row_vals <- c(list(group = groupName), row_vals)
-              try(commTable_m$addRow(rowKey = row_key, values = row_vals), silent=TRUE)
+              commTable_m$addRow(rowKey = row_key, values = row_vals)
             }
-          }
-        }
-      }
-
-      if (isTRUE(self$options$plotNetwork_mixed) && length(weightedAdjMatrices) > 0) {
-        commonLayout <- NULL
-        graphs_for_layout <- weightedAdjMatrices[successful_groups]
-        if (length(graphs_for_layout) > 1) {
-          tryCatch({
-            commonLayout <- do.call(qgraph::averageLayout, c(graphs_for_layout, list(layout = self$options$layoutAlgorithm_mixed)))
-            if (!is.null(commonLayout) && !is.null(allVarNames) && length(allVarNames) == nrow(commonLayout)) {
-              rownames(commonLayout) <- allVarNames
-            }
-          }, error = function(e) {
-            commonLayout <- NULL
-          })
-        }
-        if (is.null(commonLayout) && length(graphs_for_layout) > 0) {
-          first_graph_name <- names(graphs_for_layout)[1]
-          tryCatch({
-            q_obj <- qgraph::qgraph(graphs_for_layout[[first_graph_name]], layout = self$options$layoutAlgorithm_mixed, DoNotPlot = TRUE)
-            commonLayout <- q_obj$layout
-            if (!is.null(commonLayout) && !is.null(allVarNames) && length(allVarNames) == nrow(commonLayout)) {
-              rownames(commonLayout) <- allVarNames
-            }
-          }, error = function(e) {
-            tryCatch({
-              q_obj_circ <- qgraph::qgraph(graphs_for_layout[[first_graph_name]], layout = "circle", DoNotPlot = TRUE)
-              commonLayout <- q_obj_circ$layout
-              if (!is.null(commonLayout) && !is.null(allVarNames) && length(allVarNames) == nrow(commonLayout)) {
-                rownames(commonLayout) <- allVarNames
-              }
-            }, error = function(e2) {
-              commonLayout <- NULL
-            })
-          })
-        }
-        
-        final_node_groups_mixed <- qgraph_groups
-        if (is.null(final_node_groups_mixed) && length(commMembershipList) > 0) {
-          first_mem_m <- commMembershipList[[1]]
-          if (!is.null(first_mem_m)) {
-            final_node_groups_mixed <- list()
-            for (u_c in unique(first_mem_m)) {
-              final_node_groups_mixed[[paste0("Comm ", u_c)]] <- which(first_mem_m == u_c)
-            }
-          }
-        }
-        plotStateNetwork <- list(
-          graphs = graphs_for_layout,
-          layoutSeed = self$options$layoutSeed_mixed, 
-          edgeColors = lapply(networkResultsList[successful_groups], function(fit) if(!is.null(fit) && !is.null(fit$pairwise) && !is.null(fit$pairwise$edgecolor_cb)) fit$pairwise$edgecolor_cb else if(!is.null(fit) && !is.null(fit$pairwise)) fit$pairwise$edgecolor else NULL),
-          layout = commonLayout, 
-          labels = if(isTRUE(self$options$showLabels_mixed)) allVarNames else FALSE, 
-          groupNames = successful_groups, 
-          layoutAlgorithm = self$options$layoutAlgorithm_mixed,
-          nodeGroups = final_node_groups_mixed
-        )
-        self$results$networkPlot_mixed$setState(plotStateNetwork)
-      }
-      
-      if (isTRUE(self$options$plotCentrality_mixed) && length(allCentralityDataForPlot) > 0) {
-        valid_cent_data_for_plot <- Filter(Negate(is.null), allCentralityDataForPlot)
-        if (length(valid_cent_data_for_plot) > 0) {
-          combinedCentralityData <- do.call(rbind, c(valid_cent_data_for_plot, make.row.names = FALSE))
-          if (!is.null(combinedCentralityData) && nrow(combinedCentralityData) > 0) {
-            self$results$centralityPlot_mixed$setState(combinedCentralityData)
-          }
-        }
-      }
-      
-      if (isTRUE(self$options$plotClustering_mixed) && length(allClusteringDataForPlot) > 0) {
-        valid_clust_data_for_plot <- Filter(Negate(is.null), allClusteringDataForPlot)
-        if (length(valid_clust_data_for_plot) > 0) {
-          combinedClusteringData <- do.call(rbind, c(valid_clust_data_for_plot, make.row.names = FALSE))
-          if (!is.null(combinedClusteringData) && nrow(combinedClusteringData) > 0) {
-            self$results$clusteringPlot_mixed$setState(combinedClusteringData)
           }
         }
       }
     },
-    
+
     .plotNetwork_net = function(image, ggtheme, theme, ...) {
       plotState <- image$state
       if (is.null(plotState) || is.null(plotState$graphs) || length(plotState$graphs) == 0 || is.null(plotState$layout)) return(FALSE)
@@ -1299,12 +1218,13 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       graphics::par(bg = "transparent")
       plotOk <- TRUE
       
-      if (!is.null(plotState$layoutSeed) && is.numeric(plotState$layoutSeed)) {
-        set.seed(plotState$layoutSeed)
-      }
-      if (!is.null(plotState$layoutSeed) && is.numeric(plotState$layoutSeed)) {
-        set.seed(plotState$layoutSeed)
-      }
+      seed_present <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      previous_seed <- if (seed_present) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+      on.exit({
+        if (seed_present) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+        else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(list = ".Random.seed", envir = .GlobalEnv)
+      }, add = TRUE)
+      if (!is.null(plotState$layoutSeed)) set.seed(plotState$layoutSeed)
       for (i in 1:numPlots) { 
         groupName <- groupNames[i]
         currentGraph <- graphsToPlot[[groupName]]
@@ -1328,9 +1248,9 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
         tryCatch({
           do.call(qgraph::qgraph, qArgs)
         }, error = function(e) { 
-          jmvcore::reject(paste("Network plotting failed for group", groupName, ":", e$message), code = "network_plot_error")
+          jmvcore::reject(paste0("Network plotting failed for group ", groupName, ": ", e$message), code = "network_plot_error")
           plot(1, type="n", axes=FALSE, xlab="", ylab="")
-          text(1, 1, paste("Plot Error (", groupName, "):\n", e$message), col="red")
+          text(1, 1, paste0("Plot Error (", groupName, "):\n", e$message), col="red")
           plotOk <<- FALSE 
         }) 
       }
@@ -1344,7 +1264,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       if (!requireNamespace("gtools", quietly = TRUE)) { stop("gtools package required.") }
       
       id_vars <- intersect(c("variable", "group"), names(plotData))
-      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, variable.name = "measure", value.name = "value") }, error = function(e) { NULL })
+      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, variable.name = "measure", value.name = "value") }, error = function(e) jmvcore::reject(conditionMessage(e), code = "network_plot_data"))
       if (is.null(plotDataLong)) return(FALSE)
       plotDataLong <- plotDataLong[!is.na(plotDataLong$value), ]
       if (nrow(plotDataLong) == 0) return(FALSE)
@@ -1385,7 +1305,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       if (!requireNamespace("reshape2", quietly = TRUE)) { stop("reshape2 package required.") }
       
       id_vars <- intersect(c("node", "group"), names(plotData))
-      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, variable.name = "measure", value.name = "value") }, error = function(e) { NULL })
+      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, variable.name = "measure", value.name = "value") }, error = function(e) jmvcore::reject(conditionMessage(e), code = "network_plot_data"))
       if (is.null(plotDataLong)) return(FALSE)
       plotDataLong <- plotDataLong[!is.na(plotDataLong$value), ]
       if (nrow(plotDataLong) == 0) return(FALSE)
@@ -1417,7 +1337,15 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
     },
     
     .plotNetwork_mixed = function(image, ggtheme, theme, ...) {
+      seed_present <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      previous_seed <- if (seed_present) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+      on.exit({
+        if (seed_present) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+        else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(list = ".Random.seed", envir = .GlobalEnv)
+      }, add = TRUE)
+
       plotState <- image$state
+      if (!is.null(plotState$layoutSeed)) set.seed(plotState$layoutSeed)
       if (is.null(plotState) || is.null(plotState$graphs) || length(plotState$graphs) == 0) { return(FALSE) }
       if (!requireNamespace("qgraph", quietly = TRUE)) {
         plot(1, type="n", axes=FALSE, xlab="", ylab=""); text(1, 1, "qgraph package missing.", col="red"); return(FALSE)
@@ -1500,7 +1428,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
           do.call(qgraph::qgraph, qArgs) 
         }, error = function(e) {
           plot(1, type="n", axes=FALSE, xlab="", ylab="")
-          text(1, 1, paste("Plot Error (", groupName, ")"), col="red", cex=0.8)
+          text(1, 1, paste0("Plot Error (", groupName, ")"), col="red", cex=0.8)
           plotOk <<- FALSE
         }) 
       }
@@ -1514,7 +1442,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       measure_vars <- intersect(c("strength", "closeness", "betweenness", "expectedInfluence"), names(plotData))
       if (length(measure_vars) == 0) { return(FALSE) }
       
-      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, measure.vars = measure_vars, variable.name = "measure", value.name = "value") }, error = function(e) { return(NULL) })
+      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, measure.vars = measure_vars, variable.name = "measure", value.name = "value") }, error = function(e) jmvcore::reject(conditionMessage(e), code = "network_plot_data"))
       if (is.null(plotDataLong) || nrow(plotDataLong) == 0) return(FALSE)
       plotDataLong <- plotDataLong[!is.na(plotDataLong$value), ]
       if (nrow(plotDataLong) == 0) return(FALSE)
@@ -1576,7 +1504,7 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
       if (length(id_vars) == 0 || !"variable" %in% id_vars) { return(FALSE) }
       if (length(measure_vars_clust) == 0) { return(FALSE) }
       
-      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, measure.vars = measure_vars_clust, variable.name = "measure", value.name = "value") }, error = function(e) { return(NULL) })
+      plotDataLong <- tryCatch({ reshape2::melt(plotData, id.vars = id_vars, measure.vars = measure_vars_clust, variable.name = "measure", value.name = "value") }, error = function(e) jmvcore::reject(conditionMessage(e), code = "network_plot_data"))
       if (is.null(plotDataLong) || nrow(plotDataLong) == 0) return(FALSE)
       plotDataLong <- plotDataLong[!is.na(plotDataLong$value), ]
       if (nrow(plotDataLong) == 0) return(FALSE)
@@ -1627,434 +1555,134 @@ networkanalysisClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Cla
     },
 
     .estimateGraphMatrix = function(data_df, vars, estimator, corMethod) {
-      if (is.null(data_df) || nrow(data_df) < 5 || length(vars) < 2) return(NULL)
-      bootnet_default <- switch(estimator, "EBICglasso" = "EBICglasso", "correlation" = "cor", "partial_correlation" = "pcor", "EBICglasso")
-      bootnet_corMethod <- ifelse(corMethod == "auto", "cor_auto", corMethod)
-      args <- list(data = data_df[, vars, drop = FALSE], default = bootnet_default, corMethod = bootnet_corMethod, missing = "pairwise", verbose = FALSE)
-      
-      res <- tryCatch({
-        do.call(bootnet::estimateNetwork, args)
-      }, error = function(e) {
-        tryCatch({
-          cm <- stats::cor(data_df[, vars, drop = FALSE], use = "pairwise.complete.obs")
-          cm[is.na(cm)] <- 0
-          if (bootnet_default == "pcor") {
-            inv_cm <- MASS::ginv(cm)
-            diag_inv <- sqrt(diag(inv_cm))
-            pcor_mat <- -inv_cm / (diag_inv %o% diag_inv)
-            diag(pcor_mat) <- 0
-            list(graph = pcor_mat)
-          } else {
-            diag(cm) <- 0
-            list(graph = cm)
-          }
-        }, error = function(e2) NULL)
+      tryCatch({
+        result <- private$.fit_network(data_df, vars, estimator, corMethod)
+        graph <- result$graph
+        attr(graph, "pd_recovery") <- isTRUE(attr(result, "pd_recovery"))
+        graph
+      }, error = function(error) {
+        if (identical(error$code, "restart")) stop(error)
+        NULL
       })
-      if (!is.null(res) && "graph" %in% names(res)) {
-        g <- res$graph
-        colnames(g) <- vars
-        rownames(g) <- vars
-        return(g)
-      }
-      NULL
     },
 
-    .runBootStability = function(currentData, vars, estimator, corMethod, bootN, tableEdgeCI, tableCS) {
-      if (is.null(currentData) || nrow(currentData) < 10 || length(vars) < 2) return()
-      
-      n_rows <- nrow(currentData)
-      p_vars <- length(vars)
-      
-      if (isTRUE(self$options$bootEdgeCI_net)) {
-        if (tableEdgeCI$rowCount > 0) tableEdgeCI$clear()
-        
-        orig_graph <- private$.estimateGraphMatrix(currentData, vars, estimator, corMethod)
-        if (!is.null(orig_graph)) {
-          edge_pairs <- list()
-          for (i in 1:(p_vars - 1)) {
-            for (j in (i + 1):p_vars) {
-              edge_pairs[[length(edge_pairs) + 1]] <- c(vars[i], vars[j], i, j)
-            }
-          }
-          
-          boot_edge_matrix <- matrix(NA, nrow = bootN, ncol = length(edge_pairs))
-          set.seed(self$options$layoutSeed_net)
-          
-          for (b in seq_len(bootN)) {
-            boot_idx <- sample(n_rows, size = n_rows, replace = TRUE)
-            boot_data <- currentData[boot_idx, , drop = FALSE]
-            boot_g <- private$.estimateGraphMatrix(boot_data, vars, estimator, corMethod)
-            if (!is.null(boot_g)) {
-              for (k in seq_along(edge_pairs)) {
-                ep <- edge_pairs[[k]]
-                boot_edge_matrix[b, k] <- boot_g[as.integer(ep[3]), as.integer(ep[4])]
-              }
-            }
-          }
-          
-          for (k in seq_along(edge_pairs)) {
-            ep <- edge_pairs[[k]]
-            e_label <- paste0(ep[1], " -- ", ep[2])
-            orig_w <- orig_graph[as.integer(ep[3]), as.integer(ep[4])]
-            b_vals <- boot_edge_matrix[, k]
-            b_vals <- b_vals[!is.na(b_vals)]
-            
-            if (length(b_vals) > 0) {
-              b_mean <- mean(b_vals)
-              b_se <- stats::sd(b_vals)
-              ci_lo <- stats::quantile(b_vals, probs = 0.025, na.rm = TRUE)
-              ci_hi <- stats::quantile(b_vals, probs = 0.975, na.rm = TRUE)
-              
-              tableEdgeCI$addRow(rowKey = e_label, values = list(
-                edge      = e_label,
-                weight    = as.numeric(orig_w),
-                boot_mean = as.numeric(b_mean),
-                boot_se   = as.numeric(b_se),
-                ci_lower  = as.numeric(ci_lo),
-                ci_upper  = as.numeric(ci_hi)
-              ))
-            }
-          }
-          
-          tableEdgeCI$setNote(
-            "citation",
-            "Note. Non-parametric bootstrap (95% percentile confidence intervals) for edge weights based on Epskamp, Borsboom & Fried (2018). Citation: Epskamp, S., Borsboom, D., & Fried, E. I. (2018). Behavior Research Methods, 50(1), 195-212."
-          )
-        }
+    .bootstrap_result = function(data, vars, estimator, corMethod, bootN, type, group) {
+      completed <- 0L
+      failed <- 0L
+      regularized <- 0L
+      restart <- NULL
+      sampling <- FALSE
+      fit <- function(data, ...) {
+        tryCatch({
+          private$.checkpoint(flush = FALSE)
+          result <- private$.fit_network(data, vars, estimator, corMethod)
+          graph <- result$graph
+          if (sampling && isTRUE(attr(result, "pd_recovery"))) regularized <<- regularized + 1L
+          if (sampling) completed <<- completed + 1L
+          graph
+        }, error = function(error) {
+          if (identical(error$code, "restart")) restart <<- error
+          if (sampling && is.null(restart)) failed <<- failed + 1L
+          stop(error)
+        })
       }
-      
-      if (isTRUE(self$options$bootCS_net)) {
-        if (tableCS$rowCount > 0) tableCS$clear()
-        
-        orig_g <- private$.estimateGraphMatrix(currentData, vars, estimator, corMethod)
-        if (!is.null(orig_g)) {
-          orig_cent <- qgraph::centrality(orig_g)
-          orig_strength <- orig_cent$OutDegree
-          orig_closeness <- orig_cent$Closeness
-          orig_betweenness <- orig_cent$Betweenness
-          orig_ei <- rowSums(orig_g)
-          
-          drop_props <- c(0.10, 0.25, 0.50, 0.75)
-          n_drop_reps <- min(30, max(15, floor(bootN / 3)))
-          
-          cor_records <- list(
-            Strength = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props)),
-            Closeness = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props)),
-            Betweenness = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props)),
-            ExpectedInfluence = matrix(NA, nrow = n_drop_reps, ncol = length(drop_props))
-          )
-          
-          for (dp_idx in seq_along(drop_props)) {
-            dp <- drop_props[dp_idx]
-            sample_size <- max(round(n_rows * (1 - dp)), 5)
-            
-            for (r in seq_len(n_drop_reps)) {
-              drop_idx <- sample(n_rows, size = sample_size, replace = FALSE)
-              sub_g <- private$.estimateGraphMatrix(currentData[drop_idx, , drop = FALSE], vars, estimator, corMethod)
-              if (!is.null(sub_g)) {
-                sub_c <- qgraph::centrality(sub_g)
-                sub_ei <- rowSums(sub_g)
-                
-                c_str <- suppressWarnings(stats::cor(orig_strength, sub_c$OutDegree, use = "complete.obs"))
-                c_clo <- suppressWarnings(stats::cor(orig_closeness, sub_c$Closeness, use = "complete.obs"))
-                c_bet <- suppressWarnings(stats::cor(orig_betweenness, sub_c$Betweenness, use = "complete.obs"))
-                c_ei  <- suppressWarnings(stats::cor(orig_ei, sub_ei, use = "complete.obs"))
-                
-                cor_records$Strength[r, dp_idx] <- if (!is.na(c_str)) c_str else 0
-                cor_records$Closeness[r, dp_idx] <- if (!is.na(c_clo)) c_clo else 0
-                cor_records$Betweenness[r, dp_idx] <- if (!is.na(c_bet)) c_bet else 0
-                cor_records$ExpectedInfluence[r, dp_idx] <- if (!is.na(c_ei)) c_ei else 0
-              }
-            }
-          }
-          
-          calc_cs <- function(mat) {
-            cs_val <- 0.0
-            for (j in seq_along(drop_props)) {
-              vals <- mat[, j]
-              vals <- vals[!is.na(vals)]
-              prop_over_70 <- if (length(vals) > 0) mean(vals >= 0.7) else 0
-              if (prop_over_70 >= 0.95) {
-                cs_val <- drop_props[j]
-              } else {
-                break
-              }
-            }
-            cs_val
-          }
-          
-          metrics <- c("Strength", "Closeness", "Betweenness", "Expected Influence")
-          for (m_name in metrics) {
-            key <- gsub(" ", "", m_name)
-            cs_v <- calc_cs(cor_records[[key]])
-            
-            interp <- if (cs_v >= 0.5) {
-              "Stable (CS >= 0.5, Recommended)"
-            } else if (cs_v >= 0.25) {
-              "Acceptable (0.25 <= CS < 0.5)"
-            } else {
-              "Unstable (CS < 0.25)"
-            }
-            
-            tableCS$addRow(rowKey = m_name, values = list(
-              measure        = m_name,
-              cs_coefficient = as.numeric(cs_v),
-              interpretation = interp
-            ))
-          }
-          
-          tableCS$setNote(
-            "citation",
-            "Note. Centrality stability coefficient CS(cor=0.7) represents the maximum proportion of cases that can be dropped to retain a correlation >= 0.7 with 95% probability. Benchmarks: CS >= 0.5 preferred; CS < 0.25 indicates unstable centrality (Epskamp et al., 2018)."
-          )
-        }
-      }
+      procedure <- if (type == "case") "Case-dropping bootstrap (CS)" else "Edge bootstrap"
+      result <- tryCatch({
+        sample <- bootnet::estimateNetwork(data[, vars, drop = FALSE], default = "none", fun = fit, labels = vars, weighted = TRUE, signed = TRUE, directed = FALSE, verbose = FALSE)
+        sampling <- TRUE
+        bootstrap <- bootnet::bootnet(sample, nBoots = bootN, type = type, nCores = 1, statistics = if (type == "case") c("strength", "closeness", "betweenness", "expectedInfluence") else "edge", caseMin = 0.05, caseMax = 0.75, caseN = 10, maxErrors = 0, verbose = FALSE)
+        private$.checkpoint(flush = FALSE)
+        bootstrap
+      }, error = function(error) {
+        if (!is.null(restart)) stop(restart)
+        if (identical(error$code, "restart")) stop(error)
+        private$.network_warning(paste0(procedure, " unavailable for group \"", group, "\": ", conditionMessage(error), ". No estimator substitution or failed-replicate removal was used."))
+        NULL
+      })
+      private$.resampling_diagnostic(group, procedure, bootN, completed, failed, if (is.null(result)) "Aborted; no interval or CS reported" else "Completed with requested estimator", regularized)
+      result
     },
 
-    .runNCT = function(dataGroup1, dataGroup2, vars, estimator, corMethod, permutations, tableGlobal, tableEdges) {
-      if (is.null(dataGroup1) || is.null(dataGroup2) || nrow(dataGroup1) < 10 || nrow(dataGroup2) < 10 || length(vars) < 2) return()
-      
-      n1 <- nrow(dataGroup1)
-      n2 <- nrow(dataGroup2)
-      p_vars <- length(vars)
-      
-      g1 <- private$.estimateGraphMatrix(dataGroup1, vars, estimator, corMethod)
-      g2 <- private$.estimateGraphMatrix(dataGroup2, vars, estimator, corMethod)
-      if (is.null(g1) || is.null(g2)) return()
-      
-      edge_pairs <- list()
-      for (i in 1:(p_vars - 1)) {
-        for (j in (i + 1):p_vars) {
-          edge_pairs[[length(edge_pairs) + 1]] <- c(vars[i], vars[j], i, j)
-        }
-      }
-      
-      diff_matrix <- abs(g1 - g2)
-      m_obs <- max(diff_matrix[upper.tri(diff_matrix)])
-      s_obs <- abs(sum(abs(g1[upper.tri(g1)])) - sum(abs(g2[upper.tri(g2)])))
-      
-      edge_diff_obs <- numeric(length(edge_pairs))
-      for (k in seq_along(edge_pairs)) {
-        ep <- edge_pairs[[k]]
-        edge_diff_obs[k] <- abs(g1[as.integer(ep[3]), as.integer(ep[4])] - g2[as.integer(ep[3]), as.integer(ep[4])])
-      }
-      
-      combined_data <- rbind(dataGroup1[, vars, drop = FALSE], dataGroup2[, vars, drop = FALSE])
-      n_total <- n1 + n2
-      
-      m_perm <- numeric(permutations)
-      s_perm <- numeric(permutations)
-      edge_diff_perm <- matrix(NA, nrow = permutations, ncol = length(edge_pairs))
-      
-      set.seed(self$options$layoutSeed_net)
-      for (p in seq_len(permutations)) {
-        perm_idx <- sample(n_total)
-        p_d1 <- combined_data[perm_idx[1:n1], , drop = FALSE]
-        p_d2 <- combined_data[perm_idx[(n1 + 1):n_total], , drop = FALSE]
-        
-        pg1 <- private$.estimateGraphMatrix(p_d1, vars, estimator, corMethod)
-        pg2 <- private$.estimateGraphMatrix(p_d2, vars, estimator, corMethod)
-        
-        if (!is.null(pg1) && !is.null(pg2)) {
-          p_diff_m <- abs(pg1 - pg2)
-          m_perm[p] <- max(p_diff_m[upper.tri(p_diff_m)])
-          s_perm[p] <- abs(sum(abs(pg1[upper.tri(pg1)])) - sum(abs(pg2[upper.tri(pg2)])))
-          for (k in seq_along(edge_pairs)) {
-            ep <- edge_pairs[[k]]
-            edge_diff_perm[p, k] <- abs(pg1[as.integer(ep[3]), as.integer(ep[4])] - pg2[as.integer(ep[3]), as.integer(ep[4])])
+    .runBootStability = function(currentData, vars, estimator, corMethod, bootN, tableEdgeCI, tableCS, group = "Overall", group_index = 1L) {
+      private$.with_seed(as.integer((self$options$bootSeed_net + group_index - 1) %% .Machine$integer.max), {
+        if (isTRUE(self$options$bootEdgeCI_net)) {
+          result <- private$.bootstrap_result(currentData, vars, estimator, corMethod, bootN, "nonparametric", group)
+          if (!is.null(result)) {
+            summary <- as.data.frame(summary(result, statistics = "edge"))
+            for (index in seq_len(nrow(summary))) {
+              row <- summary[index, ]
+              tableEdgeCI$addRow(rowKey = paste(group_index, index, sep = ":"), values = list(group = group, edge = paste(row$node1, row$node2, sep = " -- "), weight = as.numeric(row$sample), boot_mean = as.numeric(row$mean), boot_se = as.numeric(row$sd), ci_lower = as.numeric(row$q2.5), ci_upper = as.numeric(row$q97.5)))
+            }
           }
+          tableEdgeCI$setNote("method", "bootnet nonparametric bootstrap, requested estimator and correlation policy retained; 95% percentile intervals use type-6 quantiles. Each group has its own bootstrap; diagnostics report completion and failures. A failed estimation aborts that group's procedure, without reporting a conditional interval from only successful draws.")
         }
-      }
-      
-      valid_perms <- !is.na(m_perm) & m_perm > 0
-      n_valid <- sum(valid_perms)
-      if (n_valid == 0) n_valid <- permutations
-      
-      p_val_m <- (sum(m_perm >= m_obs, na.rm = TRUE) + 1) / (n_valid + 1)
-      p_val_s <- (sum(s_perm >= s_obs, na.rm = TRUE) + 1) / (n_valid + 1)
-      
-      if (tableGlobal$rowCount > 0) tableGlobal$clear()
-      tableGlobal$addRow(rowKey = "M", values = list(
-        test      = "Maximum Edge Difference (M) [Network Invariance]",
-        statistic = as.numeric(m_obs),
-        p_value   = as.numeric(p_val_m)
-      ))
-      tableGlobal$addRow(rowKey = "S", values = list(
-        test      = "Global Strength Difference (S)",
-        statistic = as.numeric(s_obs),
-        p_value   = as.numeric(p_val_s)
-      ))
-      
-      tableGlobal$setNote(
-        "citation",
-        "Note. Network Comparison Test (NCT) based on two-tailed permutation testing of network structure invariance (M) and global strength invariance (S). Citation: van Borkulo, C. D., et al. (2022). Psychol Methods, 28(6), 1273-1285."
-      )
-      
-      if (tableEdges$rowCount > 0) tableEdges$clear()
-      for (k in seq_along(edge_pairs)) {
-        ep <- edge_pairs[[k]]
-        e_label <- paste0(ep[1], " -- ", ep[2])
-        w1 <- g1[as.integer(ep[3]), as.integer(ep[4])]
-        w2 <- g2[as.integer(ep[3]), as.integer(ep[4])]
-        diff_k <- edge_diff_obs[k]
-        
-        p_vals_k <- edge_diff_perm[, k]
-        p_val_k <- (sum(p_vals_k >= diff_k, na.rm = TRUE) + 1) / (sum(!is.na(p_vals_k)) + 1)
-        
-        tableEdges$addRow(rowKey = e_label, values = list(
-          edge      = e_label,
-          weight_g1 = as.numeric(w1),
-          weight_g2 = as.numeric(w2),
-          diff      = as.numeric(diff_k),
-          p_value   = as.numeric(p_val_k)
-        ))
-      }
+        if (isTRUE(self$options$bootCS_net)) {
+          result <- private$.bootstrap_result(currentData, vars, estimator, corMethod, bootN, "case", group)
+          if (!is.null(result)) {
+            stability <- bootnet::corStability(result, cor = 0.7, statistics = "all", verbose = FALSE)
+            labels <- c(strength = "Strength", closeness = "Closeness", betweenness = "Betweenness", expectedInfluence = "Expected Influence")
+            for (metric in names(labels)) {
+              values <- result$sampleTable$value[result$sampleTable$type == metric]
+              estimable <- length(values) > 1 && all(is.finite(values)) && stats::sd(values) > 0
+              coefficient <- if (estimable && metric %in% names(stability)) as.numeric(stability[[metric]]) else NA_real_
+              interpretation <- if (!is.finite(coefficient)) "Not estimable (constant or non-finite sample centrality)" else if (coefficient >= 0.5) "Stable (CS >= 0.5)" else if (coefficient >= 0.25) "Acceptable (0.25 <= CS < 0.5)" else "Unstable (CS < 0.25)"
+              tableCS$addRow(rowKey = paste(group_index, metric, sep = ":"), values = list(group = group, measure = unname(labels[metric]), cs_coefficient = coefficient, interpretation = interpretation))
+            }
+          }
+          tableCS$setNote("method", "bootnet case-dropping bootstrap and corStability(cor=0.7), independently for each group. Case fractions range from 0.05 to 0.75 on 10 candidate levels; CS is limited to sampled levels. Increase replicates for Monte Carlo precision. Undefined sample centralities have no CS coefficient. Group seeds are bootstrap seed plus group index minus one; caller RNG is restored.")
+        }
+      })
     },
-
-    .runDAG = function(data, vars, algorithm, tableDAG, plotDAGImage) {
-      if (is.null(data) || nrow(data) < 10 || length(vars) < 2) return()
-      
-      sub_data <- stats::na.omit(data[, vars, drop = FALSE])
-      if (nrow(sub_data) < 10) return()
-      
-      p_vars <- length(vars)
-      cor_mat <- stats::cor(sub_data)
-      inv_cor <- tryCatch(solve(cor_mat), error = function(e) MASS::ginv(cor_mat))
-      diag_inv <- sqrt(diag(inv_cor))
-      pcor_mat <- -inv_cor / (diag_inv %o% diag_inv)
-      diag(pcor_mat) <- 0
-      
-      dag_adj <- matrix(0, nrow = p_vars, ncol = p_vars, dimnames = list(vars, vars))
-      candidate_pairs <- list()
-      for (i in 1:(p_vars - 1)) {
-        for (j in (i + 1):p_vars) {
-          r_val <- pcor_mat[i, j]
-          df_val <- nrow(sub_data) - p_vars
-          t_stat <- r_val * sqrt(max(df_val, 1) / max(1 - r_val^2, 1e-6))
-          p_val <- 2 * stats::pt(abs(t_stat), df = max(df_val, 1), lower.tail = FALSE)
-          if (p_val < 0.20 || abs(r_val) > 0.08) {
-            candidate_pairs[[length(candidate_pairs) + 1]] <- c(i, j, r_val)
+    .runNCT = function(dataGroup1, dataGroup2, vars, estimator, corMethod, permutations, tableGlobal, tableEdges, groups = c("Group 1", "Group 2")) {
+      tableGlobal$deleteRows()
+      tableEdges$deleteRows()
+      private$.with_seed(self$options$nctSeed_net, {
+        group_label <- paste(groups, collapse = " vs ")
+        graph1 <- private$.estimateGraphMatrix(dataGroup1, vars, estimator, corMethod)
+        graph2 <- private$.estimateGraphMatrix(dataGroup2, vars, estimator, corMethod)
+        if (is.null(graph1) || is.null(graph2)) {
+          private$.resampling_diagnostic(group_label, "NCT permutation", permutations, 0L, 0L, "Aborted: observed network estimation failed")
+          private$.network_warning("NCT unavailable: at least one observed network could not be estimated with the requested estimator. No substitute estimator was used.")
+          return()
+        }
+        positions <- which(upper.tri(graph1), arr.ind = TRUE)
+        edge1 <- graph1[positions]
+        edge2 <- graph2[positions]
+        observed_edges <- abs(edge1 - edge2)
+        observed_maximum <- max(observed_edges)
+        observed_strength <- abs(sum(abs(edge1)) - sum(abs(edge2)))
+        combined <- rbind(dataGroup1[, vars, drop = FALSE], dataGroup2[, vars, drop = FALSE])
+        first_n <- nrow(dataGroup1)
+        maximum <- strength <- rep(NA_real_, permutations)
+        edge_differences <- matrix(NA_real_, permutations, nrow(positions))
+        regularized <- 0L
+        for (replicate in seq_len(permutations)) {
+          private$.checkpoint(flush = FALSE)
+          order <- sample(nrow(combined))
+          first <- private$.estimateGraphMatrix(combined[order[seq_len(first_n)], , drop = FALSE], vars, estimator, corMethod)
+          second <- private$.estimateGraphMatrix(combined[order[-seq_len(first_n)], , drop = FALSE], vars, estimator, corMethod)
+          regularized <- regularized + as.integer(isTRUE(attr(first, "pd_recovery"))) + as.integer(isTRUE(attr(second, "pd_recovery")))
+          if (is.null(first) || is.null(second)) {
+            private$.resampling_diagnostic(group_label, "NCT permutation", permutations, replicate - 1L, 1L, "Aborted on first failed permutation; no p-values reported", regularized)
+            private$.network_warning(paste0("NCT aborted at permutation ", replicate, " of ", permutations, ": the requested estimator failed. No p-values are reported; failures were not replaced by zero or another estimator."))
+            return()
           }
+          edge_differences[replicate, ] <- abs(first[positions] - second[positions])
+          maximum[replicate] <- max(edge_differences[replicate, ])
+          strength[replicate] <- abs(sum(abs(first[positions])) - sum(abs(second[positions])))
         }
-      }
-      
-      for (cp in candidate_pairs) {
-        i <- as.integer(cp[1])
-        j <- as.integer(cp[2])
-        v_i <- vars[i]
-        v_j <- vars[j]
-        
-        fit_ij <- stats::lm(stats::as.formula(paste0("`", v_j, "` ~ `", v_i, "`")), data = sub_data)
-        fit_ji <- stats::lm(stats::as.formula(paste0("`", v_i, "` ~ `", v_j, "`")), data = sub_data)
-        
-        bic_ij <- stats::BIC(fit_ij)
-        bic_ji <- stats::BIC(fit_ji)
-        
-        if (algorithm == "hc") {
-          from_idx <- if (bic_ij <= bic_ji) i else j
-          to_idx   <- if (bic_ij <= bic_ji) j else i
-        } else {
-          var_res_ij <- stats::var(stats::residuals(fit_ij))
-          var_res_ji <- stats::var(stats::residuals(fit_ji))
-          from_idx <- if (var_res_ij / stats::var(sub_data[[v_j]]) <= var_res_ji / stats::var(sub_data[[v_i]])) i else j
-          to_idx   <- if (from_idx == i) j else i
+        private$.resampling_diagnostic(group_label, "NCT permutation", permutations, permutations, 0L, "Completed with requested estimator", regularized)
+        tableGlobal$addRow(rowKey = "M", values = list(test = "Maximum Edge Difference (M) [Network Invariance]", statistic = observed_maximum, p_value = (sum(maximum >= observed_maximum) + 1) / (permutations + 1)))
+        tableGlobal$addRow(rowKey = "S", values = list(test = "Global Strength Difference (S)", statistic = observed_strength, p_value = (sum(strength >= observed_strength) + 1) / (permutations + 1)))
+        for (index in seq_len(nrow(positions))) {
+          tableEdges$addRow(rowKey = index, values = list(edge = paste(vars[positions[index, ]], collapse = " -- "), weight_g1 = edge1[index], weight_g2 = edge2[index], diff = observed_edges[index], p_value = (sum(edge_differences[, index] >= observed_edges[index]) + 1) / (permutations + 1)))
         }
-        
-        dag_adj_temp <- dag_adj
-        dag_adj_temp[from_idx, to_idx] <- 1
-        g_test <- igraph::graph_from_adjacency_matrix(dag_adj_temp, mode = "directed")
-        if (igraph::is_dag(g_test)) {
-          dag_adj[from_idx, to_idx] <- 1
-        } else {
-          dag_adj_temp2 <- dag_adj
-          dag_adj_temp2[to_idx, from_idx] <- 1
-          g_test2 <- igraph::graph_from_adjacency_matrix(dag_adj_temp2, mode = "directed")
-          if (igraph::is_dag(g_test2)) {
-            dag_adj[to_idx, from_idx] <- 1
-          }
-        }
-      }
-      
-      if (tableDAG$rowCount > 0) tableDAG$clear()
-      directed_edges <- which(dag_adj == 1, arr.ind = TRUE)
-      if (nrow(directed_edges) > 0) {
-        for (e_idx in 1:nrow(directed_edges)) {
-          from_idx <- directed_edges[e_idx, 1]
-          to_idx   <- directed_edges[e_idx, 2]
-          from_var <- vars[from_idx]
-          to_var   <- vars[to_idx]
-          
-          parent_indices <- which(dag_adj[, to_idx] == 1)
-          parents <- vars[parent_indices]
-          
-          fmla <- stats::as.formula(paste0("`", to_var, "` ~ ", paste0("`", parents, "`", collapse = " + ")))
-          fit_par <- stats::lm(fmla, data = sub_data)
-          sum_par <- stats::coef(summary(fit_par))
-          
-          beta_val <- if (from_var %in% rownames(sum_par)) sum_par[from_var, 1] else NA_real_
-          se_val   <- if (from_var %in% rownames(sum_par)) sum_par[from_var, 2] else NA_real_
-          p_val    <- if (from_var %in% rownames(sum_par)) sum_par[from_var, 4] else NA_real_
-          
-          row_key <- paste0(from_var, "_to_", to_var)
-          tableDAG$addRow(rowKey = row_key, values = list(
-            from      = from_var,
-            to        = to_var,
-            direction = "-->",
-            estimate  = as.numeric(beta_val),
-            std_error = as.numeric(se_val),
-            p_value   = as.numeric(p_val)
-          ))
-        }
-      }
-      
-      tableDAG$setNote(
-        "citation",
-        "Note. Causal DAG estimated using topological constraint-based search with acyclicity enforcement. Citations: Spirtes, P., Glymour, C. N., & Scheines, R. (2000). Causation, Prediction, and Search. MIT Press."
-      )
-      
-      if (isTRUE(self$options$plotDAG_net)) {
-        plotDAGImage$setState(list(
-          adj = dag_adj,
-          vars = vars,
-          seed = self$options$layoutSeed_net,
-          layout = self$options$layoutAlgorithm_net
-        ))
-      }
-    },
-
-    .plotDAG_net = function(image, ggtheme, theme, ...) {
-      state <- image$state
-      if (is.null(state) || is.null(state$adj)) return(FALSE)
-      
-      adj <- state$adj
-      vars <- state$vars
-      seed <- state$seed
-      layout_type <- state$layout
-      
-      if (sum(adj) == 0) {
-        graphics::plot.new()
-        graphics::title(main = "DAG: No directed edges identified.")
-        return(TRUE)
-      }
-      
-      set.seed(seed)
-      qgraph::qgraph(
-        adj,
-        labels = vars,
-        directed = TRUE,
-        arrows = TRUE,
-        layout = layout_type,
-        color = "#e8f4f8",
-        border.color = "#1a5f7a",
-        border.width = 1.5,
-        edge.color = "#2c3e50",
-        asize = 4.5,
-        vsize = 9,
-        mar = c(3, 3, 3, 3),
-        title = "Directed Acyclic Graph (DAG)"
-      )
-      TRUE
+        note <- paste0("Independent-group permutation test: ", groups[1], " (Group 1) versus ", groups[2], " (Group 2). Requested estimator/correlation policy retained; all ", permutations, " permutations succeeded, including valid zero statistics. Two-tailed absolute differences, plus-one correction; edge p-values are unadjusted. Any failed permutation aborts the procedure without p-values.")
+        tableGlobal$setNote("method", note)
+        tableEdges$setNote("method", note)
+      })
     }
 
-  ) 
+
+  )
 )

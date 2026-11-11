@@ -1,12 +1,12 @@
 ---
 title: BSS
 name: BSS
-version: 0.6.0
+version: 0.6.1
 jms: '1.0'
 authors:
   - Rafael Lambertucci
 maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
-date: '2026-10-13'
+date: '2026-11-03'
 type: R
 description: >-
   The BSS module provides a comprehensive suite of advanced statistical tools
@@ -22,7 +22,7 @@ description: >-
   comparisons (independent, dependent overlapping/non-overlapping, raw data, and
   Jennrich matrix equality); (3) Nonparametric ANOVA, Effect Sizes & Post-Hocs:
   Aligned Rank Transform (ART) factorial/mixed ANOVA with partial eta-sq,
-  partial omega-sq, epsilon-sq, Kendall's W and FDR control, pairwise effect
+  partial omega-sq, epsilon-sq and FDR control, pairwise effect
   sizes (Cohen's d, dz, dav, drm, Hedges' g/gz, Glass' delta/dz, r_rb, robust
   d_R, Akritas-Arnold delta, CLES, Cramér's V, OR, RR, Cohen's h, and GzLM AME)
   with Sawilowsky benchmarks, multi-metric conversions and forest plots, and
@@ -31,28 +31,29 @@ description: >-
   (finite populations, animal designs via Resource Equation with dropout
   adjustment and Power-ANOVA comparison, t-test power curves, TOST equivalence,
   and proportions), and publication-ready customizable comparison plots (bar,
-  boxplot, mean-dispersion, and density with theoretical Normal, Gamma, and
-  Inverse Gaussian curves) with APA, ABNT, Vancouver, Chicago descriptive
-  tables, APA 7th HTML export, and correlation heatmaps.
+  boxplot, mean-dispersion, and empirical density), with Normal, Gamma, and
+  Inverse Gaussian distribution-dependent summaries for bar and mean-dispersion plots,
+  APA, ABNT, Vancouver, Chicago descriptive tables, native table and figure
+  export, and correlation heatmaps.
 analyses:
-  - title: Outliers detection and treatment
+  - title: "Outlier Detection and Treatment"
     name: outliers
     ns: BSS
     category: analyses
     menuGroup: BSS
-    menuTitle: Outliers detection and treatment
+    menuTitle: "Outlier Detection and Treatment"
     menuSubgroup: Data Preparation & Screening
     menuSubtitle: >-
       Multi-method outlier detection and treatment (Dixon’s Q Test, IQR,
       modified Z-score, Mahalanobis & MCD)
-  - title: Missing data analysis and imputation
+  - title: "Missing Data Analysis and Imputation"
     name: dataimputation
     ns: BSS
     category: analyses
     menuGroup: BSS
-    menuTitle: Missing data analysis and imputation
+    menuTitle: "Missing Data Analysis and Imputation"
     menuSubgroup: Data Preparation & Screening
-    menuSubtitle: MissRanger and Multiple Imputation by Chained Equations (MICE)
+    menuSubtitle: missRanger and Multiple Imputation by Chained Equations (MICE)
   - title: Data Transformation
     name: dataTransform
     ns: BSS
@@ -63,12 +64,12 @@ analyses:
     menuSubtitle: >-
       Power & bounded transformations for normality (Box-Cox, Yeo-Johnson,
       Johnson, Arcsine, Logit)
-  - title: Network analysis
+  - title: "Network Analysis"
     name: networkanalysis
     ns: BSS
     category: analyses
     menuGroup: BSS
-    menuTitle: Network analysis
+    menuTitle: "Network Analysis"
     menuSubgroup: Associations & Networks
     menuSubtitle: Network analysis for continuous (GGM) and mixed (MGM) data
   - title: Compare Correlations
@@ -87,12 +88,12 @@ analyses:
     menuTitle: Effect Size Calculation
     menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
     menuSubtitle: Pairwise effect size calculation (independent and dependent samples)
-  - title: Post hoc analysis for MANOVA (DDA)
+  - title: "Post Hoc Analysis for MANOVA (DDA)"
     name: DDA
     ns: BSS
     category: analyses
     menuGroup: BSS
-    menuTitle: Post hoc analysis for MANOVA (DDA)
+    menuTitle: "Post Hoc Analysis for MANOVA (DDA)"
     menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
     menuSubtitle: Descriptive Discriminant Analysis + Effect size
   - title: Aligned Rank Transform (ART)
@@ -103,12 +104,12 @@ analyses:
     menuTitle: Aligned Rank Transform (ART)
     menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
     menuSubtitle: Nonparametric Factorial and Mixed ANOVAs
-  - title: Sample size calculation
+  - title: "Sample Size Calculation"
     name: samplesize
     ns: BSS
     category: analyses
     menuGroup: BSS
-    menuTitle: Sample size calculation
+    menuTitle: "Sample Size Calculation"
     menuSubgroup: Study Design & Presentation
     menuSubtitle: >-
       Sample size calculation for finite population, animal design, t-tests,

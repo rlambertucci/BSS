@@ -71,36 +71,36 @@ children:
         children:
           - type: ComboBox
             name: plotType
-            label: Plot Type
+            label: "Plot type"
           - type: ComboBox
-            name: theo_dist
-            label: Theoretical Distribution Curve
-            enable: (plotType == 'density')
+            name: summary_distribution
+            label: "Distribution"
+            enable: (plotType:bar || plotType:meandp)
 
           - type: ComboBox
             name: intStyle
-            label: Interaction Style
+            label: "Interaction style"
 
           - type: CheckBox
             name: showLines
-            label: Connect Means with Line (Longitudinal)
-            enable: (analysisType == 'longitudinal')
+            label: "Connect means with line (longitudinal)"
+            enable: (analysisType:longitudinal)
 
           - type: ComboBox
             name: errorType
-            label: Dispersion Measure
-            enable: (plotType != 'boxplot')
+            label: "Dispersion measure"
+            enable: (!plotType:boxplot)
 
           - type: TextBox
             name: ciWidth
-            label: Confidence Interval Width (%)
+            label: "Confidence interval width (%)"
             suffix: '%'
             format: number
-            enable: (plotType != 'boxplot' && errorType == 'ci')
+            enable: (!plotType:boxplot && errorType:ci)
 
           - type: CheckBox
             name: showPoints
-            label: Show Individual Data Points
+            label: "Individual data points"
 
   - type: CollapseBox
     label: Table Options
@@ -113,59 +113,30 @@ children:
         children:
           - type: CheckBox
             name: showTable
-            label: Show Descriptive Table
+            label: "Descriptive table"
 
           - type: ComboBox
             name: tableFormat
-            label: Table Format
+            label: "Table format"
             enable: (showTable)
-
-          - type: TextBox
-            name: tableTitle
-            format: string
-            stretchFactor: 1
-            enable: (showTable)
-
-          - type: TextBox
-            name: tableNote
-            format: string
-            stretchFactor: 1
-            enable: (showTable)
-
-          - type: CheckBox
-            name: showFormattedTable
-            label: Export-Ready APA 7th HTML Table
 
           - type: CheckBox
             name: showCorrMatrix
-            label: Correlation Matrix with Significance Stars
+            label: "Correlation matrix with significance stars"
 
           - type: ComboBox
             name: corrMethod
-            label: Correlation Method
+            label: "Correlation method"
             enable: (showCorrMatrix || showCorrHeatmap)
 
           - type: CheckBox
             name: showCorrHeatmap
-            label: Correlation Heatmap Plot
+            label: "Correlation heatmap plot"
 
           - type: CheckBox
             name: corrCluster
-            label: Hierarchical Clustering in Heatmap
+            label: "Hierarchical clustering in heatmap"
             enable: (showCorrHeatmap)
-
-  - type: CollapseBox
-    label: Plot Theme
-    collapsed: true
-    stretchFactor: 1
-    children:
-      - type: LayoutBox
-        margin: large
-        stretchFactor: 1
-        children:
-          - type: ComboBox
-            name: themePlot
-            label: Plot Theme
 
   - type: CollapseBox
     label: Colors
@@ -178,49 +149,49 @@ children:
         children:
           - type: ComboBox
             name: colorPalette
-            label: Color Palette
+            label: "Color palette"
 
 
 
           - type: ComboBox
             name: color1
             label: Color 1
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color2
             label: Color 2
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color3
             label: Color 3
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color4
             label: Color 4
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color5
             label: Color 5
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color6
             label: Color 6
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color7
             label: Color 7
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
           - type: ComboBox
             name: color8
             label: Color 8
-            enable: (colorPalette == 'manual')
+            enable: (colorPalette:manual)
 
   - type: CollapseBox
     label: Labels & Titles
@@ -233,22 +204,22 @@ children:
         children:
           - type: TextBox
             name: titleText
-            label: Plot Title
+            label: "Plot title"
             format: string
 
           - type: TextBox
             name: subtitleText
-            label: Plot Subtitle
+            label: "Plot subtitle"
             format: string
 
           - type: TextBox
             name: xLabel
-            label: X Axis Label
+            label: "X axis label"
             format: string
 
           - type: TextBox
             name: yLabel
-            label: Y Axis Label
+            label: "Y axis label"
             format: string
 
   - type: CollapseBox
@@ -262,24 +233,21 @@ children:
         children:
           - type: TextBox
             name: xAngle
-            label: X Axis Label Angle (0–90)
+            label: "X axis label angle (0–90)"
             suffix: '°'
             format: number
 
           - type: ComboBox
             name: legendPosition
-            label: Legend Position
-
-          - type: Label
-            label: "──────────────"
+            label: "Legend position"
 
           - type: CheckBox
             name: removeGap
-            label: Remove Y-Axis Bottom Gap
+            label: "Remove y-axis bottom gap"
 
           - type: CheckBox
             name: customYAxis
-            label: Custom Y-Axis Scale
+            label: "Custom y-axis scale"
 
           - type: LayoutBox
             margin: large
@@ -298,7 +266,7 @@ children:
 
               - type: TextBox
                 name: yStep
-                label: Step (Breaks)
+                label: "Step (breaks)"
                 format: number
                 enable: (customYAxis)
 
@@ -325,13 +293,13 @@ children:
 
           - type: TextBox
             name: fontSizeAxisTitle
-            label: Axis Titles
+            label: "Axis titles"
             suffix: pt
             format: number
 
           - type: TextBox
             name: fontSizeAxis
-            label: Axis Text
+            label: "Axis text"
             suffix: pt
             format: number
 
@@ -352,19 +320,19 @@ children:
         children:
           - type: TextBox
             name: lineWidth
-            label: Border Width
+            label: "Border width"
             suffix: px
             format: number
 
           - type: TextBox
             name: errorLineWidth
-            label: Error Bar
+            label: "Error bar"
             suffix: px
             format: number
 
           - type: TextBox
             name: axisLineWidth
-            label: Axis Lines
+            label: "Axis lines"
             suffix: px
             format: number
 
@@ -379,59 +347,22 @@ children:
         children:
           - type: TextBox
             name: barWidth
-            label: Bar Width
+            label: "Bar width"
             format: number
 
           - type: TextBox
             name: barAlpha
-            label: Bar Transparency (alpha)
+            label: "Bar transparency (alpha)"
             format: number
 
           - type: TextBox
             name: pointSize
-            label: Point Size
+            label: "Point size"
             format: number
             enable: (showPoints)
 
           - type: TextBox
             name: pointAlpha
-            label: Point Transparency (alpha)
+            label: "Point transparency (alpha)"
             format: number
             enable: (showPoints)
-
-  - type: CollapseBox
-    label: Vector Figure Export (300+ DPI)
-    collapsed: true
-    stretchFactor: 1
-    children:
-      - type: LayoutBox
-        margin: large
-        stretchFactor: 1
-        children:
-          - type: CheckBox
-            name: exportPlots
-            label: Export High-Resolution Vector Figures
-          - type: ComboBox
-            name: exportFormat
-            label: Vector Format (.pdf / .svg)
-            enable: (exportPlots)
-          - type: TextBox
-            name: exportDpi
-            label: Resolution (DPI >= 300)
-            format: number
-            enable: (exportPlots)
-          - type: TextBox
-            name: exportDir
-            label: Export Directory Path (optional)
-            format: string
-            enable: (exportPlots)
-          - type: TextBox
-            name: exportWidth
-            label: Figure Width (inches)
-            format: number
-            enable: (exportPlots)
-          - type: TextBox
-            name: exportHeight
-            label: Figure Height (inches)
-            format: number
-            enable: (exportPlots)

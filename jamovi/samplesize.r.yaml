@@ -1,5 +1,5 @@
 name: samplesize
-title: Sample size calculation
+title: "Sample Size Calculation"
 jrs: '1.1'
 
 items:
@@ -55,13 +55,31 @@ items:
     title: Sample Size Calculation Results (Resource Equation)
     type: Table
     visible: (mode == 'animals')
+    clearWith:
+      - design_animals
+      - nGroups_animals
+      - nMeasures_animals
+      - sacrifice_animals
+      - dropout_animals
+      - calc_power_anova_animals
+      - power_f_animals
+      - power_alpha_animals
+      - power_target_animals
     columns:
       - name: parameter
         title: Parameter
         type: text
 
       - name: value
-        title: Value
+        title: Count
+        type: integer
+
+      - name: estimate
+        title: Rate / Effect / Power
+        type: number
+
+      - name: detail
+        title: Design
         type: text
 
   # Power & Sample Size for t-tests (BSS-FEAT-016)
@@ -91,15 +109,12 @@ items:
       - name: effect_size
         title: Effect Size (d)
         type: number
-        format: dp:3
       - name: alpha
         title: "α"
         type: number
-        format: dp:3
       - name: power
         title: Target Power (1 - β)
         type: number
-        format: dp:3
       - name: n_per_group
         title: Required n per Group
         type: integer
@@ -114,8 +129,6 @@ items:
     height: 420
     renderFun: .renderPowerCurve
     visible: (mode == 'power_t' && show_power_curve)
-    refs:
-      - ggplot2
     clearWith:
       - mode
       - t_test_type
@@ -154,19 +167,15 @@ items:
       - name: eq_bound
         title: "Equivalence Bound (±Δ)"
         type: number
-        format: dp:3
       - name: true_diff
         title: "True Difference (δ)"
         type: number
-        format: dp:3
       - name: alpha
         title: "α (per one-sided test)"
         type: number
-        format: dp:3
       - name: power
         title: Target Power (1 - β)
         type: number
-        format: dp:3
       - name: n_per_group
         title: Required n per Group
         type: integer
@@ -184,6 +193,7 @@ items:
     refs:
       - Fleiss2003
       - McNemar1947
+      - Connor1987
     title: Sample Size & Power for Proportions
     type: Table
     rows: 1
@@ -206,19 +216,15 @@ items:
       - name: p1
         title: "p₁ / Proportion"
         type: number
-        format: dp:3
       - name: p2
         title: "p₂ / Reference"
         type: number
-        format: dp:3
       - name: alpha
         title: "α"
         type: number
-        format: dp:3
       - name: power
         title: Target Power (1 - β)
         type: number
-        format: dp:3
       - name: n_per_group
         title: Required n / Pairs
         type: integer

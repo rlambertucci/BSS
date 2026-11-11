@@ -10,7 +10,7 @@ options:
 
     - name: data
       type: Data
-      title: Input Data
+      title: "Input data"
 
     - name: vars
       title: Variables to Transform
@@ -22,7 +22,7 @@ options:
         - numeric
 
     - name: method
-      title: Transformation Method
+      title: "Transformation method"
       type: List
       options:
         - title: Box-Cox
@@ -31,55 +31,65 @@ options:
           name: yeojohnson
         - title: Johnson
           name: johnson
-        - title: Arcsine Square Root (Proportions / Rates)
+        - title: "Arcsine square root (proportions / rates)"
           name: arcsine
-        - title: Empirical Logit (Proportions / Rates)
+        - title: "Logit (Smithson-Verkuilen compression)"
           name: logit
-        - title: Rank-Based Inverse Normal (INT / Van der Waerden, Blom, Tukey)
+        - title: "Rank-based inverse normal (INT / van der Waerden, Blom, Tukey)"
           name: int
       default: yeojohnson
 
+    - name: bounded_scale
+      title: "Input scale for arcsine and logit"
+      type: List
+      options:
+        - name: proportion
+          title: "Proportions (0 to 1)"
+        - name: percentage
+          title: "Percentages (0 to 100)"
+      default: proportion
+
     - name: auto_shift
-      title: Automatic Shift for Non-Positive Values
+      title: "Automatic shift for non-positive values"
       type: Bool
       default: true
 
     - name: suffix
-      title: Suffix for Transformed Variable Name
+      title: "Suffix for transformed variable name"
       type: String
-      default: '_transfrmd'
+      default: '_transformed'
 
     - name: show_lambda_table
-      title: Lambda (λ) Summary Table
+      title: "Lambda (λ) summary table"
       type: Bool
       default: true
 
     - name: show_normality_table
-      title: Normality Test (before & after)
+      title: "Normality test (before & after)"
       type: Bool
       default: true
 
     - name: normality_test
-      title: Normality Test Method
+      title: "Normality test method"
       type: List
       options:
         - name: shapiro
-          title: Shapiro-Wilk Test
+          title: "Shapiro-Wilk test"
         - name: anderson_darling
-          title: Anderson-Darling Test
+          title: "Anderson-Darling test"
         - name: shapiro_francia
-          title: Shapiro-Francia Test
+          title: "Shapiro-Francia test"
       default: shapiro
 
     - name: alpha_sw
-      title: Significance Level (α) for Normality Test
+      title: "Significance level (α) for normality test"
       type: Number
       default: 0.05
       min: 0.01
       max: 0.10
 
     - name: show_qq_plot
-      title: Q-Q Plot (before & after)
+      title: "Q-q plot (before & after)"
       type: Bool
       default: true
 
@@ -89,22 +99,22 @@ options:
       default: true
 
     - name: show_density_plot
-      title: Density Plot (before & after)
+      title: "Density plot (before & after)"
       type: Bool
       default: true
 
     - name: transformedVarsOutput
-      title: Save Transformed Variables to Spreadsheet
+      title: "Save transformed variables to spreadsheet"
       type: Output
 
     - name: int_formula
-      title: Rank-Based Formula
+      title: "Rank-based formula"
       type: List
       options:
         - name: blom
           title: Blom (c = 3/8)
         - name: vdw
-          title: Van der Waerden (c = 0)
+          title: "van der Waerden (c = 0)"
         - name: tukey
           title: Tukey (c = 1/3)
         - name: rankit
@@ -112,6 +122,6 @@ options:
       default: blom
 
     - name: show_recommendation_table
-      title: Transformation Recommender & Ranking
+      title: "Transformation recommender & ranking"
       type: Bool
       default: false

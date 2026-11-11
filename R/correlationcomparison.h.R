@@ -360,6 +360,13 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 title="Correlation Comparison Results",
                 rows=1,
                 visible="(mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison')",
+                refs=list(
+                    "Fisher1921",
+                    "Fisher1925",
+                    "Williams1959",
+                    "DunnClark1969",
+                    "Raghunathan1996",
+                    "Zou2007"),
                 clearWith=list(
                     "mode",
                     "independent_input_type",
@@ -383,69 +390,69 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "dep_non_r24"),
                 columns=list(
                     list(
-                        `name`="comparisonType", 
-                        `title`="Type", 
+                        `name`="comparisonType",
+                        `title`="Type",
                         `type`="text"),
                     list(
-                        `name`="n_group1", 
-                        `title`="N (Group 1)", 
-                        `type`="integer", 
+                        `name`="n_group1",
+                        `title`="N (Group 1)",
+                        `type`="integer",
                         `visible`="(mode:independent)"),
                     list(
-                        `name`="n_group2", 
-                        `title`="N (Group 2)", 
-                        `type`="integer", 
+                        `name`="n_group2",
+                        `title`="N (Group 2)",
+                        `type`="integer",
                         `visible`="(mode:independent)"),
                     list(
-                        `name`="r_group1", 
-                        `title`="r (Group 1)", 
-                        `type`="number", 
-                        `format`="zto", 
+                        `name`="r_group1",
+                        `title`="r (Group 1)",
+                        `type`="number",
+                        `format`="zto",
                         `visible`="(mode:independent)"),
                     list(
-                        `name`="r_group2", 
-                        `title`="r (Group 2)", 
-                        `type`="number", 
-                        `format`="zto", 
+                        `name`="r_group2",
+                        `title`="r (Group 2)",
+                        `type`="number",
+                        `format`="zto",
                         `visible`="(mode:independent)"),
                     list(
-                        `name`="n_dep", 
-                        `title`="N", 
-                        `type`="integer", 
+                        `name`="n_dep",
+                        `title`="N",
+                        `type`="integer",
                         `visible`="(mode:dependent || mode:dep_nonoverlapping)"),
                     list(
-                        `name`="r12_dep", 
-                        `title`="r\u2081\u2082", 
-                        `type`="number", 
-                        `format`="zto", 
+                        `name`="r12_dep",
+                        `title`="r\u2081\u2082",
+                        `type`="number",
+                        `format`="zto",
                         `visible`="(mode:dependent || mode:dep_nonoverlapping)"),
                     list(
-                        `name`="r13_dep", 
-                        `title`="r\u2081\u2083", 
-                        `type`="number", 
-                        `format`="zto", 
+                        `name`="r13_dep",
+                        `title`="r\u2081\u2083",
+                        `type`="number",
+                        `format`="zto",
                         `visible`="(mode:dependent)"),
                     list(
-                        `name`="r23_dep", 
-                        `title`="r\u2082\u2083", 
-                        `type`="number", 
-                        `format`="zto", 
+                        `name`="r23_dep",
+                        `title`="r\u2082\u2083",
+                        `type`="number",
+                        `format`="zto",
                         `visible`="(mode:dependent)"),
                     list(
-                        `name`="r34_dep", 
-                        `title`="r\u2083\u2084", 
-                        `type`="number", 
-                        `format`="zto", 
+                        `name`="r34_dep",
+                        `title`="r\u2083\u2084",
+                        `type`="number",
+                        `format`="zto",
                         `visible`="(mode:dep_nonoverlapping)"),
                     list(
-                        `name`="statistic", 
-                        `title`="Statistic", 
-                        `type`="number", 
+                        `name`="statistic",
+                        `title`="Statistic",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -461,37 +468,36 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "multi_group"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
+                        `name`="group",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="n", 
-                        `title`="N", 
+                        `name`="n",
+                        `title`="N",
                         `type`="integer"),
                     list(
-                        `name`="r", 
-                        `title`="r", 
-                        `type`="number", 
+                        `name`="r",
+                        `title`="r",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="z", 
-                        `title`="Fisher's z", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="z",
+                        `title`="Fisher's z",
+                        `type`="number"),
                     list(
-                        `name`="ci_lower", 
-                        `title`="95% CI Lower", 
-                        `type`="number", 
+                        `name`="ci_lower",
+                        `title`="95% CI Lower",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="ci_upper", 
-                        `title`="95% CI Upper", 
-                        `type`="number", 
+                        `name`="ci_upper",
+                        `title`="95% CI Upper",
+                        `type`="number",
                         `format`="zto"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="multiGroupOverallTable",
-                title="Multi-Group Homogeneity Test (Fisher's Q / \u03C7\u00B2)",
+                title="Multi-Group Homogeneity Test (Cochran's Q)",
                 rows=1,
                 visible="(mode == 'multigroup')",
                 refs=list(
@@ -503,32 +509,31 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "multi_group"),
                 columns=list(
                     list(
-                        `name`="k_groups", 
-                        `title`="Groups (k)", 
+                        `name`="k_groups",
+                        `title`="Groups (k)",
                         `type`="integer"),
                     list(
-                        `name`="pooled_r", 
-                        `title`="Weighted Mean r", 
-                        `type`="number", 
+                        `name`="pooled_r",
+                        `title`="Weighted Mean r",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="q_stat", 
-                        `title`="Cochran's Q (\u03C7\u00B2)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="q_stat",
+                        `title`="Cochran's Q (\u03C7\u00B2)",
+                        `type`="number"),
                     list(
-                        `name`="df", 
-                        `title`="df", 
+                        `name`="df",
+                        `title`="df",
                         `type`="integer"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="partialTable",
-                title="Partial Correlation Comparison (r_XY.Z between Groups)",
+                title="Partial Correlation Comparison Between Groups",
                 rows=1,
                 visible="(mode == 'partial_comparison')",
                 refs=list(
@@ -541,40 +546,39 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "partial_group"),
                 columns=list(
                     list(
-                        `name`="group1", 
-                        `title`="Group 1", 
+                        `name`="group1",
+                        `title`="Group 1",
                         `type`="text"),
                     list(
-                        `name`="group2", 
-                        `title`="Group 2", 
+                        `name`="group2",
+                        `title`="Group 2",
                         `type`="text"),
                     list(
-                        `name`="n1", 
-                        `title`="N\u2081", 
+                        `name`="n1",
+                        `title`="N\u2081",
                         `type`="integer"),
                     list(
-                        `name`="n2", 
-                        `title`="N\u2082", 
+                        `name`="n2",
+                        `title`="N\u2082",
                         `type`="integer"),
                     list(
-                        `name`="r_partial_g1", 
-                        `title`="r_XY.Z (G1)", 
-                        `type`="number", 
+                        `name`="r_partial_g1",
+                        `title`="Partial correlation (G1)",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="r_partial_g2", 
-                        `title`="r_XY.Z (G2)", 
-                        `type`="number", 
+                        `name`="r_partial_g2",
+                        `title`="Partial correlation (G2)",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="z_stat", 
-                        `title`="z", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="z_stat",
+                        `title`="z",
+                        `type`="number"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Image$new(
                 options=options,
@@ -584,9 +588,11 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 height=350,
                 renderFun=".renderCIPlot",
                 visible="(mode != 'jennrich' && mode != 'multigroup' && mode != 'partial_comparison' && show_ci_plot)",
-                refs=list(
-                    "ggplot2"),
                 clearWith=list(
+                    "independent_input_type",
+                    "indep_var_x",
+                    "indep_var_y",
+                    "indep_group",
                     "mode",
                     "independent_n1",
                     "independent_n2",
@@ -610,10 +616,9 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                 title="Bivariate Scatterplot with Overlapping Confidence Ellipses",
                 width=600,
                 height=450,
+                requiresData=TRUE,
                 renderFun=".renderEllipsePlot",
                 visible="((mode == 'multigroup' || mode == 'partial_comparison') && show_ellipse_plot)",
-                refs=list(
-                    "ggplot2"),
                 clearWith=list(
                     "mode",
                     "multi_var_x",
@@ -638,38 +643,37 @@ correlationComparisonResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R
                     "group_jennrich"),
                 columns=list(
                     list(
-                        `name`="group1", 
-                        `title`="Group 1", 
+                        `name`="group1",
+                        `title`="Group 1",
                         `type`="text"),
                     list(
-                        `name`="group2", 
-                        `title`="Group 2", 
+                        `name`="group2",
+                        `title`="Group 2",
                         `type`="text"),
                     list(
-                        `name`="n1", 
-                        `title`="N\u2081", 
+                        `name`="n1",
+                        `title`="N\u2081",
                         `type`="integer"),
                     list(
-                        `name`="n2", 
-                        `title`="N\u2082", 
+                        `name`="n2",
+                        `title`="N\u2082",
                         `type`="integer"),
                     list(
-                        `name`="numVars", 
-                        `title`="Variables (p)", 
+                        `name`="numVars",
+                        `title`="Variables (p)",
                         `type`="integer"),
                     list(
-                        `name`="chisq", 
-                        `title`="\u03C7\u00B2 Statistic", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="chisq",
+                        `title`="\u03C7\u00B2 Statistic",
+                        `type`="number"),
                     list(
-                        `name`="df", 
-                        `title`="df", 
+                        `name`="df",
+                        `title`="df",
                         `type`="integer"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p",
+                        `type`="number",
                         `format`="zto,pvalue"))))}))
 
 correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -695,7 +699,7 @@ correlationComparisonBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::
 
 #' Compare Correlations
 #'
-#' 
+#'
 #' @param data .
 #' @param mode .
 #' @param independent_input_type .

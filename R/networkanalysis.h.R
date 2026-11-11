@@ -9,7 +9,7 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             mode = "continuous",
             vars_net = NULL,
             groupVar_net = NULL,
-            nodeGroupVar_net = NULL,
+            nodeCommunities_net = list(),
             estimator_net = "EBICglasso",
             corMethod_net = "auto",
             tableCentrality_net = TRUE,
@@ -27,19 +27,18 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             plotWidth_net = 500,
             plotHeight_net = 500,
             bootStability_net = FALSE,
+            bootSeed_net = 100,
             bootN_net = 100,
             bootEdgeCI_net = TRUE,
             bootCS_net = TRUE,
             nctTest_net = FALSE,
+            nctSeed_net = 100,
             nctPermutations_net = 100,
-            dagAnalysis_net = FALSE,
-            dagAlgorithm_net = "pc",
-            plotDAG_net = FALSE,
             varsCont_mixed = NULL,
             varsCat_mixed = NULL,
             varsCount_mixed = NULL,
             groupVar_mixed = NULL,
-            nodeGroupVar_mixed = NULL,
+            nodeCommunities_mixed = list(),
             lambdaSelMethod_mixed = "EBIC",
             kFolds_mixed = 3,
             lambdaGam_mixed = 0.5,
@@ -89,15 +88,25 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 permitted=list(
                     "factor"),
                 default=NULL)
-            private$..nodeGroupVar_net <- jmvcore::OptionVariable$new(
-                "nodeGroupVar_net",
-                nodeGroupVar_net,
-                suggested=list(
-                    "nominal"),
-                permitted=list(
-                    "factor",
-                    "id"),
-                default=NULL)
+            private$..nodeCommunities_net <- jmvcore::OptionArray$new(
+                "nodeCommunities_net",
+                nodeCommunities_net,
+                default=list(),
+                template=jmvcore::OptionGroup$new(
+                    "nodeCommunities_net",
+                    NULL,
+                    elements=list(
+                        jmvcore::OptionString$new(
+                            "label",
+                            NULL,
+                            default=""),
+                        jmvcore::OptionVariables$new(
+                            "variables",
+                            NULL,
+                            permitted=list(
+                                "numeric",
+                                "factor"),
+                            default=list()))))
             private$..estimator_net <- jmvcore::OptionList$new(
                 "estimator_net",
                 estimator_net,
@@ -181,6 +190,12 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 "bootStability_net",
                 bootStability_net,
                 default=FALSE)
+            private$..bootSeed_net <- jmvcore::OptionInteger$new(
+                "bootSeed_net",
+                bootSeed_net,
+                default=100,
+                min=0,
+                max=2147483647)
             private$..bootN_net <- jmvcore::OptionInteger$new(
                 "bootN_net",
                 bootN_net,
@@ -199,28 +214,18 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 "nctTest_net",
                 nctTest_net,
                 default=FALSE)
+            private$..nctSeed_net <- jmvcore::OptionInteger$new(
+                "nctSeed_net",
+                nctSeed_net,
+                default=100,
+                min=0,
+                max=2147483647)
             private$..nctPermutations_net <- jmvcore::OptionInteger$new(
                 "nctPermutations_net",
                 nctPermutations_net,
                 default=100,
                 min=20,
                 max=2000)
-            private$..dagAnalysis_net <- jmvcore::OptionBool$new(
-                "dagAnalysis_net",
-                dagAnalysis_net,
-                default=FALSE)
-            private$..dagAlgorithm_net <- jmvcore::OptionList$new(
-                "dagAlgorithm_net",
-                dagAlgorithm_net,
-                options=list(
-                    "pc",
-                    "hc",
-                    "temporal"),
-                default="pc")
-            private$..plotDAG_net <- jmvcore::OptionBool$new(
-                "plotDAG_net",
-                plotDAG_net,
-                default=FALSE)
             private$..varsCont_mixed <- jmvcore::OptionVariables$new(
                 "varsCont_mixed",
                 varsCont_mixed,
@@ -255,15 +260,25 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 permitted=list(
                     "factor"),
                 default=NULL)
-            private$..nodeGroupVar_mixed <- jmvcore::OptionVariable$new(
-                "nodeGroupVar_mixed",
-                nodeGroupVar_mixed,
-                suggested=list(
-                    "nominal"),
-                permitted=list(
-                    "factor",
-                    "id"),
-                default=NULL)
+            private$..nodeCommunities_mixed <- jmvcore::OptionArray$new(
+                "nodeCommunities_mixed",
+                nodeCommunities_mixed,
+                default=list(),
+                template=jmvcore::OptionGroup$new(
+                    "nodeCommunities_mixed",
+                    NULL,
+                    elements=list(
+                        jmvcore::OptionString$new(
+                            "label",
+                            NULL,
+                            default=""),
+                        jmvcore::OptionVariables$new(
+                            "variables",
+                            NULL,
+                            permitted=list(
+                                "numeric",
+                                "factor"),
+                            default=list()))))
             private$..lambdaSelMethod_mixed <- jmvcore::OptionList$new(
                 "lambdaSelMethod_mixed",
                 lambdaSelMethod_mixed,
@@ -356,7 +371,7 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             self$.addOption(private$..mode)
             self$.addOption(private$..vars_net)
             self$.addOption(private$..groupVar_net)
-            self$.addOption(private$..nodeGroupVar_net)
+            self$.addOption(private$..nodeCommunities_net)
             self$.addOption(private$..estimator_net)
             self$.addOption(private$..corMethod_net)
             self$.addOption(private$..tableCentrality_net)
@@ -374,19 +389,18 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
             self$.addOption(private$..plotWidth_net)
             self$.addOption(private$..plotHeight_net)
             self$.addOption(private$..bootStability_net)
+            self$.addOption(private$..bootSeed_net)
             self$.addOption(private$..bootN_net)
             self$.addOption(private$..bootEdgeCI_net)
             self$.addOption(private$..bootCS_net)
             self$.addOption(private$..nctTest_net)
+            self$.addOption(private$..nctSeed_net)
             self$.addOption(private$..nctPermutations_net)
-            self$.addOption(private$..dagAnalysis_net)
-            self$.addOption(private$..dagAlgorithm_net)
-            self$.addOption(private$..plotDAG_net)
             self$.addOption(private$..varsCont_mixed)
             self$.addOption(private$..varsCat_mixed)
             self$.addOption(private$..varsCount_mixed)
             self$.addOption(private$..groupVar_mixed)
-            self$.addOption(private$..nodeGroupVar_mixed)
+            self$.addOption(private$..nodeCommunities_mixed)
             self$.addOption(private$..lambdaSelMethod_mixed)
             self$.addOption(private$..kFolds_mixed)
             self$.addOption(private$..lambdaGam_mixed)
@@ -410,7 +424,7 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         mode = function() private$..mode$value,
         vars_net = function() private$..vars_net$value,
         groupVar_net = function() private$..groupVar_net$value,
-        nodeGroupVar_net = function() private$..nodeGroupVar_net$value,
+        nodeCommunities_net = function() private$..nodeCommunities_net$value,
         estimator_net = function() private$..estimator_net$value,
         corMethod_net = function() private$..corMethod_net$value,
         tableCentrality_net = function() private$..tableCentrality_net$value,
@@ -428,19 +442,18 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         plotWidth_net = function() private$..plotWidth_net$value,
         plotHeight_net = function() private$..plotHeight_net$value,
         bootStability_net = function() private$..bootStability_net$value,
+        bootSeed_net = function() private$..bootSeed_net$value,
         bootN_net = function() private$..bootN_net$value,
         bootEdgeCI_net = function() private$..bootEdgeCI_net$value,
         bootCS_net = function() private$..bootCS_net$value,
         nctTest_net = function() private$..nctTest_net$value,
+        nctSeed_net = function() private$..nctSeed_net$value,
         nctPermutations_net = function() private$..nctPermutations_net$value,
-        dagAnalysis_net = function() private$..dagAnalysis_net$value,
-        dagAlgorithm_net = function() private$..dagAlgorithm_net$value,
-        plotDAG_net = function() private$..plotDAG_net$value,
         varsCont_mixed = function() private$..varsCont_mixed$value,
         varsCat_mixed = function() private$..varsCat_mixed$value,
         varsCount_mixed = function() private$..varsCount_mixed$value,
         groupVar_mixed = function() private$..groupVar_mixed$value,
-        nodeGroupVar_mixed = function() private$..nodeGroupVar_mixed$value,
+        nodeCommunities_mixed = function() private$..nodeCommunities_mixed$value,
         lambdaSelMethod_mixed = function() private$..lambdaSelMethod_mixed$value,
         kFolds_mixed = function() private$..kFolds_mixed$value,
         lambdaGam_mixed = function() private$..lambdaGam_mixed$value,
@@ -463,7 +476,7 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         ..mode = NA,
         ..vars_net = NA,
         ..groupVar_net = NA,
-        ..nodeGroupVar_net = NA,
+        ..nodeCommunities_net = NA,
         ..estimator_net = NA,
         ..corMethod_net = NA,
         ..tableCentrality_net = NA,
@@ -481,19 +494,18 @@ networkanalysisOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         ..plotWidth_net = NA,
         ..plotHeight_net = NA,
         ..bootStability_net = NA,
+        ..bootSeed_net = NA,
         ..bootN_net = NA,
         ..bootEdgeCI_net = NA,
         ..bootCS_net = NA,
         ..nctTest_net = NA,
+        ..nctSeed_net = NA,
         ..nctPermutations_net = NA,
-        ..dagAnalysis_net = NA,
-        ..dagAlgorithm_net = NA,
-        ..plotDAG_net = NA,
         ..varsCont_mixed = NA,
         ..varsCat_mixed = NA,
         ..varsCount_mixed = NA,
         ..groupVar_mixed = NA,
-        ..nodeGroupVar_mixed = NA,
+        ..nodeCommunities_mixed = NA,
         ..lambdaSelMethod_mixed = NA,
         ..kFolds_mixed = NA,
         ..lambdaGam_mixed = NA,
@@ -518,6 +530,7 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
     "networkanalysisResults",
     inherit = jmvcore::Group,
     active = list(
+        mixedLimitations = function() private$.items[["mixedLimitations"]],
         instructions_net = function() private$.items[["instructions_net"]],
         summary_net = function() private$.items[["summary_net"]],
         centrality_net = function() private$.items[["centrality_net"]],
@@ -532,8 +545,7 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
         csStability_net = function() private$.items[["csStability_net"]],
         nctGlobal_net = function() private$.items[["nctGlobal_net"]],
         nctEdges_net = function() private$.items[["nctEdges_net"]],
-        dagTable_net = function() private$.items[["dagTable_net"]],
-        dagPlot_net = function() private$.items[["dagPlot_net"]],
+        resamplingDiagnostics_net = function() private$.items[["resamplingDiagnostics_net"]],
         instructions_mixed = function() private$.items[["instructions_mixed"]],
         summary_mixed = function() private$.items[["summary_mixed"]],
         centrality_mixed = function() private$.items[["centrality_mixed"]],
@@ -553,6 +565,11 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 title="Network Analysis")
             self$add(jmvcore::Preformatted$new(
                 options=options,
+                name="mixedLimitations",
+                title="Mixed Network Limitations",
+                visible="(mode == 'mixed')"))
+            self$add(jmvcore::Preformatted$new(
+                options=options,
                 name="instructions_net",
                 title=" ",
                 visible="(mode == 'continuous')"))
@@ -570,22 +587,22 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "groupVar_net"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_net)"),
                     list(
-                        `name`="nodes", 
-                        `title`="Nodes", 
+                        `name`="nodes",
+                        `title`="Nodes",
                         `type`="integer"),
                     list(
-                        `name`="edges", 
-                        `title`="Edges (Non-zero)", 
+                        `name`="edges",
+                        `title`="Edges (Non-zero)",
                         `type`="text"),
                     list(
-                        `name`="sparsity", 
-                        `title`="Sparsity", 
-                        `type`="number", 
+                        `name`="sparsity",
+                        `title`="Sparsity",
+                        `type`="number",
                         `format`="zto"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -602,30 +619,30 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "groupVar_net"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_net)"),
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="strength", 
-                        `title`="Strength", 
+                        `name`="strength",
+                        `title`="Strength",
                         `type`="number"),
                     list(
-                        `name`="closeness", 
-                        `title`="Closeness", 
+                        `name`="closeness",
+                        `title`="Closeness",
                         `type`="number"),
                     list(
-                        `name`="betweenness", 
-                        `title`="Betweenness", 
+                        `name`="betweenness",
+                        `title`="Betweenness",
                         `type`="number"),
                     list(
-                        `name`="expectedInfluence", 
-                        `title`="Expected Influence", 
+                        `name`="expectedInfluence",
+                        `title`="Expected Influence",
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -643,30 +660,30 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "groupVar_net"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_net)"),
                     list(
-                        `name`="node", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="node",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="Barrat", 
-                        `title`="Barrat", 
+                        `name`="Barrat",
+                        `title`="Barrat",
                         `type`="number"),
                     list(
-                        `name`="Onnela", 
-                        `title`="Onnela", 
+                        `name`="Onnela",
+                        `title`="Onnela",
                         `type`="number"),
                     list(
-                        `name`="WS", 
-                        `title`="WS", 
+                        `name`="WS",
+                        `title`="WS",
                         `type`="number"),
                     list(
-                        `name`="Zhang", 
-                        `title`="Zhang", 
+                        `name`="Zhang",
+                        `title`="Zhang",
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -681,43 +698,43 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "estimator_net",
                     "corMethod_net",
                     "groupVar_net",
-                    "nodeGroupVar_net",
+                    "nodeCommunities_net",
                     "communityAlgorithm_net"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_net)"),
                     list(
-                        `name`="node", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="node",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="community", 
-                        `title`="Community", 
+                        `name`="community",
+                        `title`="Community",
                         `type`="text"),
                     list(
-                        `name`="bridgeStrength", 
-                        `title`="Bridge Strength", 
+                        `name`="bridgeStrength",
+                        `title`="Bridge Strength",
                         `type`="number"),
                     list(
-                        `name`="bridgeBetweenness", 
-                        `title`="Bridge Betweenness", 
+                        `name`="bridgeBetweenness",
+                        `title`="Bridge Betweenness",
                         `type`="number"),
                     list(
-                        `name`="bridgeCloseness", 
-                        `title`="Bridge Closeness", 
+                        `name`="bridgeCloseness",
+                        `title`="Bridge Closeness",
                         `type`="number"),
                     list(
-                        `name`="bridgeEI1", 
-                        `title`="Bridge Expected Influence (1-step)", 
+                        `name`="bridgeEI1",
+                        `title`="Bridge Expected Influence (1-step)",
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="communities_net",
-                title="Community Detection Membership",
+                title="Community Membership",
                 visible="(mode == 'continuous' && tableCommunities_net)",
                 refs=list(
                     "Blondel2008",
@@ -727,21 +744,22 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "estimator_net",
                     "corMethod_net",
                     "groupVar_net",
-                    "communityAlgorithm_net"),
+                    "communityAlgorithm_net",
+                    "nodeCommunities_net"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_net)"),
                     list(
-                        `name`="node", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="node",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="community", 
-                        `title`="Detected Community", 
+                        `name`="community",
+                        `title`="Community",
                         `type`="text"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -755,50 +773,53 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "groupVar_net"),
                 columns=list(
                     list(
-                        `name`="node", 
-                        `title`="", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
+                        `visible`="(groupVar_net)"),
+                    list(
+                        `name`="node",
+                        `title`="",
+                        `type`="text",
                         `format`="string"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="centralityPlot_net",
                 title="Centrality Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(mode == 'continuous' && plotCentrality_net)",
                 renderFun=".plotCentrality_net",
                 refs=list(
                     "bootnet",
-                    "qgraph",
-                    "ggplot2"),
+                    "qgraph"),
                 clearWith=list(
                     "vars_net",
                     "estimator_net",
                     "corMethod_net",
                     "groupVar_net",
-                    "nodeGroupVar_net")))
+                    "nodeCommunities_net")))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="clusteringPlot_net",
                 title="Clustering Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(mode == 'continuous' && plotClustering_net)",
                 renderFun=".plotClustering_net",
                 refs=list(
                     "bootnet",
                     "qgraph",
-                    "ggplot2",
                     "igraph"),
                 clearWith=list(
                     "vars_net",
                     "estimator_net",
                     "corMethod_net",
                     "groupVar_net",
-                    "nodeGroupVar_net")))
+                    "nodeCommunities_net")))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="networkPlot_net",
                 title="Network Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(mode == 'continuous' && plotNetwork_net)",
                 renderFun=".plotNetwork_net",
                 refs=list(
@@ -815,16 +836,19 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "layoutSeed_net",
                     "communityAlgorithm_net",
                     "groupVar_net",
-                    "nodeGroupVar_net")))
+                    "nodeCommunities_net")))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="edgeStability_net",
                 title="Edge Weight Bootstrap Stability (95% CI)",
                 visible="(mode == 'continuous' && bootStability_net && bootEdgeCI_net)",
                 refs=list(
-                    "bootnet",
-                    "Epskamp2018"),
+                    "bootnet"),
                 clearWith=list(
+                    "mode",
+                    "bootStability_net",
+                    "bootSeed_net",
+                    "bootEdgeCI_net",
                     "vars_net",
                     "estimator_net",
                     "corMethod_net",
@@ -832,43 +856,45 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "bootN_net"),
                 columns=list(
                     list(
-                        `name`="edge", 
-                        `title`="Edge", 
+                        `name`="group",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="weight", 
-                        `title`="Sample Weight", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="edge",
+                        `title`="Edge",
+                        `type`="text"),
                     list(
-                        `name`="boot_mean", 
-                        `title`="Boot Mean", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="weight",
+                        `title`="Sample Weight",
+                        `type`="number"),
                     list(
-                        `name`="boot_se", 
-                        `title`="Boot SE", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="boot_mean",
+                        `title`="Boot Mean",
+                        `type`="number"),
                     list(
-                        `name`="ci_lower", 
-                        `title`="95% CI Lower", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="boot_se",
+                        `title`="Boot SE",
+                        `type`="number"),
                     list(
-                        `name`="ci_upper", 
-                        `title`="95% CI Upper", 
-                        `type`="number", 
-                        `format`="dp:3"))))
+                        `name`="ci_lower",
+                        `title`="95% CI Lower",
+                        `type`="number"),
+                    list(
+                        `name`="ci_upper",
+                        `title`="95% CI Upper",
+                        `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="csStability_net",
                 title="Centrality Stability Coefficients (CS-coefficient)",
                 visible="(mode == 'continuous' && bootStability_net && bootCS_net)",
                 refs=list(
-                    "bootnet",
-                    "Epskamp2018"),
+                    "bootnet"),
                 clearWith=list(
+                    "mode",
+                    "bootStability_net",
+                    "bootSeed_net",
+                    "bootCS_net",
                     "vars_net",
                     "estimator_net",
                     "corMethod_net",
@@ -876,17 +902,20 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "bootN_net"),
                 columns=list(
                     list(
-                        `name`="measure", 
-                        `title`="Centrality Measure", 
+                        `name`="group",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="cs_coefficient", 
-                        `title`="CS (cor=0.7)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="measure",
+                        `title`="Centrality Measure",
+                        `type`="text"),
                     list(
-                        `name`="interpretation", 
-                        `title`="Stability (Epskamp et al., 2018)", 
+                        `name`="cs_coefficient",
+                        `title`="CS (cor=0.7)",
+                        `type`="number"),
+                    list(
+                        `name`="interpretation",
+                        `title`="Stability (Epskamp et al., 2018)",
                         `type`="text"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -896,6 +925,9 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 refs=list(
                     "vanBorkulo2022"),
                 clearWith=list(
+                    "mode",
+                    "nctSeed_net",
+                    "nctTest_net",
                     "vars_net",
                     "estimator_net",
                     "corMethod_net",
@@ -903,18 +935,17 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "nctPermutations_net"),
                 columns=list(
                     list(
-                        `name`="test", 
-                        `title`="Invariance Metric", 
+                        `name`="test",
+                        `title`="Invariance Metric",
                         `type`="text"),
                     list(
-                        `name`="statistic", 
-                        `title`="Observed Difference", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="statistic",
+                        `title`="Observed Difference",
+                        `type`="number"),
                     list(
-                        `name`="p_value", 
-                        `title`="Permutation p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="Permutation p",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -924,6 +955,9 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 refs=list(
                     "vanBorkulo2022"),
                 clearWith=list(
+                    "mode",
+                    "nctSeed_net",
+                    "nctTest_net",
                     "vars_net",
                     "estimator_net",
                     "corMethod_net",
@@ -931,84 +965,80 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "nctPermutations_net"),
                 columns=list(
                     list(
-                        `name`="edge", 
-                        `title`="Edge", 
+                        `name`="edge",
+                        `title`="Edge",
                         `type`="text"),
                     list(
-                        `name`="weight_g1", 
-                        `title`="Group 1 Weight", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="weight_g1",
+                        `title`="Group 1 Weight",
+                        `type`="number"),
                     list(
-                        `name`="weight_g2", 
-                        `title`="Group 2 Weight", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="weight_g2",
+                        `title`="Group 2 Weight",
+                        `type`="number"),
                     list(
-                        `name`="diff", 
-                        `title`="Abs Difference", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="diff",
+                        `title`="Abs Difference",
+                        `type`="number"),
                     list(
-                        `name`="p_value", 
-                        `title`="Permutation p", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="Permutation p",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Table$new(
                 options=options,
-                name="dagTable_net",
-                title="Directed Acyclic Graph (DAG): Causal Paths",
-                visible="(mode == 'continuous' && dagAnalysis_net)",
+                name="resamplingDiagnostics_net",
+                title="Network Resampling Diagnostics",
+                visible="(mode == 'continuous' && (bootStability_net || nctTest_net))",
                 refs=list(
-                    "Spirtes2000",
-                    "igraph"),
+                    "bootnet"),
                 clearWith=list(
+                    "mode",
                     "vars_net",
-                    "dagAlgorithm_net"),
+                    "groupVar_net",
+                    "estimator_net",
+                    "corMethod_net",
+                    "bootStability_net",
+                    "bootEdgeCI_net",
+                    "bootCS_net",
+                    "bootN_net",
+                    "bootSeed_net",
+                    "nctTest_net",
+                    "nctPermutations_net",
+                    "nctSeed_net"),
                 columns=list(
                     list(
-                        `name`="from", 
-                        `title`="From", 
+                        `name`="group",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="to", 
-                        `title`="To", 
+                        `name`="procedure",
+                        `title`="Procedure",
                         `type`="text"),
                     list(
-                        `name`="direction", 
-                        `title`="Direction", 
-                        `type`="text"),
+                        `name`="requested",
+                        `title`="Requested",
+                        `type`="integer"),
                     list(
-                        `name`="estimate", 
-                        `title`="Path Coeff (\u03B2)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="completed",
+                        `title`="Completed",
+                        `type`="integer"),
                     list(
-                        `name`="std_error", 
-                        `title`="SE", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="failed",
+                        `title`="Failed",
+                        `type`="integer"),
                     list(
-                        `name`="p_value", 
-                        `title`="p", 
-                        `type`="number", 
-                        `format`="zto,pvalue"))))
-            self$add(jmvcore::Image$new(
-                options=options,
-                name="dagPlot_net",
-                title="DAG Plot",
-                requiresData=TRUE,
-                visible="(mode == 'continuous' && plotDAG_net)",
-                renderFun=".plotDAG_net",
-                refs=list(
-                    "Spirtes2000",
-                    "qgraph",
-                    "igraph"),
-                clearWith=list(
-                    "vars_net",
-                    "dagAlgorithm_net",
-                    "layoutAlgorithm_net",
-                    "layoutSeed_net")))
+                        `name`="unattempted",
+                        `title`="Not Attempted",
+                        `type`="integer"),
+                    list(
+                        `name`="regularized",
+                        `title`="PD Adjustments",
+                        `type`="integer"),
+                    list(
+                        `name`="status",
+                        `title`="Status",
+                        `type`="text"))))
             self$add(jmvcore::Preformatted$new(
                 options=options,
                 name="instructions_mixed",
@@ -1026,29 +1056,29 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
                     "ruleReg_mixed"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_mixed)"),
                     list(
-                        `name`="nodes", 
-                        `title`="Nodes", 
+                        `name`="nodes",
+                        `title`="Nodes",
                         `type`="integer"),
                     list(
-                        `name`="edges", 
-                        `title`="Edges (Non-zero)", 
+                        `name`="edges",
+                        `title`="Edges (Non-zero)",
                         `type`="text"),
                     list(
-                        `name`="sparsity", 
-                        `title`="Sparsity", 
-                        `type`="number", 
+                        `name`="sparsity",
+                        `title`="Sparsity",
+                        `type`="number",
                         `format`="zto"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -1063,37 +1093,37 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
                     "ruleReg_mixed"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_mixed)"),
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="strength", 
-                        `title`="Strength", 
+                        `name`="strength",
+                        `title`="Strength",
                         `type`="number"),
                     list(
-                        `name`="closeness", 
-                        `title`="Closeness", 
+                        `name`="closeness",
+                        `title`="Closeness",
                         `type`="number"),
                     list(
-                        `name`="betweenness", 
-                        `title`="Betweenness", 
+                        `name`="betweenness",
+                        `title`="Betweenness",
                         `type`="number"),
                     list(
-                        `name`="expectedInfluence", 
-                        `title`="Expected Influence", 
+                        `name`="expectedInfluence",
+                        `title`="Expected Influence",
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -1109,37 +1139,37 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
                     "ruleReg_mixed"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_mixed)"),
                     list(
-                        `name`="node", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="node",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="Barrat", 
-                        `title`="Barrat", 
+                        `name`="Barrat",
+                        `title`="Barrat",
                         `type`="number"),
                     list(
-                        `name`="Onnela", 
-                        `title`="Onnela", 
+                        `name`="Onnela",
+                        `title`="Onnela",
                         `type`="number"),
                     list(
-                        `name`="WS", 
-                        `title`="WS", 
+                        `name`="WS",
+                        `title`="WS",
                         `type`="number"),
                     list(
-                        `name`="Zhang", 
-                        `title`="Zhang", 
+                        `name`="Zhang",
+                        `title`="Zhang",
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -1154,7 +1184,7 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
@@ -1162,39 +1192,39 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "communityAlgorithm_mixed"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_mixed)"),
                     list(
-                        `name`="node", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="node",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="community", 
-                        `title`="Community", 
+                        `name`="community",
+                        `title`="Community",
                         `type`="text"),
                     list(
-                        `name`="bridgeStrength", 
-                        `title`="Bridge Strength", 
+                        `name`="bridgeStrength",
+                        `title`="Bridge Strength",
                         `type`="number"),
                     list(
-                        `name`="bridgeBetweenness", 
-                        `title`="Bridge Betweenness", 
+                        `name`="bridgeBetweenness",
+                        `title`="Bridge Betweenness",
                         `type`="number"),
                     list(
-                        `name`="bridgeCloseness", 
-                        `title`="Bridge Closeness", 
+                        `name`="bridgeCloseness",
+                        `title`="Bridge Closeness",
                         `type`="number"),
                     list(
-                        `name`="bridgeEI1", 
-                        `title`="Bridge Expected Influence (1-step)", 
+                        `name`="bridgeEI1",
+                        `title`="Bridge Expected Influence (1-step)",
                         `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="communities_mixed",
-                title="Community Detection Membership",
+                title="Community Membership",
                 visible="(mode == 'mixed' && tableCommunities_mixed)",
                 refs=list(
                     "Blondel2008",
@@ -1204,7 +1234,7 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
@@ -1212,18 +1242,18 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "communityAlgorithm_mixed"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_mixed)"),
                     list(
-                        `name`="node", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="node",
+                        `title`="Variable",
+                        `type`="text",
                         `format`="string"),
                     list(
-                        `name`="community", 
-                        `title`="Detected Community", 
+                        `name`="community",
+                        `title`="Community",
                         `type`="text"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -1237,42 +1267,38 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
                     "ruleReg_mixed"),
                 columns=list(
                     list(
-                        `name`="group", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group",
+                        `title`="Group",
+                        `type`="text",
                         `visible`="(groupVar_mixed)"),
                     list(
-                        `name`="rowname", 
-                        `title`="", 
-                        `type`="text", 
+                        `name`="rowname",
+                        `title`="",
+                        `type`="text",
                         `format`="string"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="centralityPlot_mixed",
                 title="Centrality Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(mode == 'mixed' && plotCentrality_mixed)",
                 renderFun=".plotCentrality_mixed",
                 refs=list(
                     "mgm",
-                    "qgraph",
-                    "ggplot2",
-                    "reshape2",
-                    "gtools",
-                    "dplyr"),
+                    "qgraph"),
                 clearWith=list(
                     "varsCont_mixed",
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
@@ -1281,23 +1307,19 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 options=options,
                 name="clusteringPlot_mixed",
                 title="Clustering Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(mode == 'mixed' && plotClustering_mixed)",
                 renderFun=".plotClustering_mixed",
                 refs=list(
                     "mgm",
                     "qgraph",
-                    "igraph",
-                    "ggplot2",
-                    "reshape2",
-                    "gtools",
-                    "dplyr"),
+                    "igraph"),
                 clearWith=list(
                     "varsCont_mixed",
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
@@ -1306,7 +1328,7 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                 options=options,
                 name="networkPlot_mixed",
                 title="Network Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(mode == 'mixed' && plotNetwork_mixed)",
                 renderFun=".plotNetwork_mixed",
                 refs=list(
@@ -1317,7 +1339,7 @@ networkanalysisResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6C
                     "varsCat_mixed",
                     "varsCount_mixed",
                     "groupVar_mixed",
-                    "nodeGroupVar_mixed",
+                    "nodeCommunities_mixed",
                     "lambdaSelMethod_mixed",
                     "kFolds_mixed",
                     "lambdaGam_mixed",
@@ -1350,14 +1372,14 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
                 weightsSupport = 'auto')
         }))
 
-#' Network analysis
+#' Network Analysis
 #'
-#' 
+#'
 #' @param data .
 #' @param mode .
 #' @param vars_net .
 #' @param groupVar_net .
-#' @param nodeGroupVar_net .
+#' @param nodeCommunities_net .
 #' @param estimator_net .
 #' @param corMethod_net .
 #' @param tableCentrality_net .
@@ -1375,19 +1397,18 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #' @param plotWidth_net .
 #' @param plotHeight_net .
 #' @param bootStability_net .
+#' @param bootSeed_net .
 #' @param bootN_net .
 #' @param bootEdgeCI_net .
 #' @param bootCS_net .
 #' @param nctTest_net .
+#' @param nctSeed_net .
 #' @param nctPermutations_net .
-#' @param dagAnalysis_net .
-#' @param dagAlgorithm_net .
-#' @param plotDAG_net .
 #' @param varsCont_mixed .
 #' @param varsCat_mixed .
 #' @param varsCount_mixed .
 #' @param groupVar_mixed .
-#' @param nodeGroupVar_mixed .
+#' @param nodeCommunities_mixed .
 #' @param lambdaSelMethod_mixed .
 #' @param kFolds_mixed .
 #' @param lambdaGam_mixed .
@@ -1408,6 +1429,7 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #' @param plotHeight_mixed .
 #' @return A results object containing:
 #' \tabular{llllll}{
+#'   \code{results$mixedLimitations} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$instructions_net} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$summary_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centrality_net} \tab \tab \tab \tab \tab a table \cr
@@ -1422,8 +1444,7 @@ networkanalysisBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Clas
 #'   \code{results$csStability_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$nctGlobal_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$nctEdges_net} \tab \tab \tab \tab \tab a table \cr
-#'   \code{results$dagTable_net} \tab \tab \tab \tab \tab a table \cr
-#'   \code{results$dagPlot_net} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$resamplingDiagnostics_net} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$instructions_mixed} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$summary_mixed} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$centrality_mixed} \tab \tab \tab \tab \tab a table \cr
@@ -1448,7 +1469,7 @@ networkanalysis <- function(
     mode = "continuous",
     vars_net,
     groupVar_net = NULL,
-    nodeGroupVar_net = NULL,
+    nodeCommunities_net = list(),
     estimator_net = "EBICglasso",
     corMethod_net = "auto",
     tableCentrality_net = TRUE,
@@ -1466,19 +1487,18 @@ networkanalysis <- function(
     plotWidth_net = 500,
     plotHeight_net = 500,
     bootStability_net = FALSE,
+    bootSeed_net = 100,
     bootN_net = 100,
     bootEdgeCI_net = TRUE,
     bootCS_net = TRUE,
     nctTest_net = FALSE,
+    nctSeed_net = 100,
     nctPermutations_net = 100,
-    dagAnalysis_net = FALSE,
-    dagAlgorithm_net = "pc",
-    plotDAG_net = FALSE,
     varsCont_mixed = NULL,
     varsCat_mixed = NULL,
     varsCount_mixed = NULL,
     groupVar_mixed = NULL,
-    nodeGroupVar_mixed = NULL,
+    nodeCommunities_mixed = list(),
     lambdaSelMethod_mixed = "EBIC",
     kFolds_mixed = 3,
     lambdaGam_mixed = 0.5,
@@ -1503,23 +1523,19 @@ networkanalysis <- function(
 
     if ( ! missing(vars_net)) vars_net <- jmvcore::resolveQuo(jmvcore::enquo(vars_net))
     if ( ! missing(groupVar_net)) groupVar_net <- jmvcore::resolveQuo(jmvcore::enquo(groupVar_net))
-    if ( ! missing(nodeGroupVar_net)) nodeGroupVar_net <- jmvcore::resolveQuo(jmvcore::enquo(nodeGroupVar_net))
     if ( ! missing(varsCont_mixed)) varsCont_mixed <- jmvcore::resolveQuo(jmvcore::enquo(varsCont_mixed))
     if ( ! missing(varsCat_mixed)) varsCat_mixed <- jmvcore::resolveQuo(jmvcore::enquo(varsCat_mixed))
     if ( ! missing(varsCount_mixed)) varsCount_mixed <- jmvcore::resolveQuo(jmvcore::enquo(varsCount_mixed))
     if ( ! missing(groupVar_mixed)) groupVar_mixed <- jmvcore::resolveQuo(jmvcore::enquo(groupVar_mixed))
-    if ( ! missing(nodeGroupVar_mixed)) nodeGroupVar_mixed <- jmvcore::resolveQuo(jmvcore::enquo(nodeGroupVar_mixed))
     if (missing(data))
         data <- jmvcore::marshalData(
             parent.frame(),
             `if`( ! missing(vars_net), vars_net, NULL),
             `if`( ! missing(groupVar_net), groupVar_net, NULL),
-            `if`( ! missing(nodeGroupVar_net), nodeGroupVar_net, NULL),
             `if`( ! missing(varsCont_mixed), varsCont_mixed, NULL),
             `if`( ! missing(varsCat_mixed), varsCat_mixed, NULL),
             `if`( ! missing(varsCount_mixed), varsCount_mixed, NULL),
-            `if`( ! missing(groupVar_mixed), groupVar_mixed, NULL),
-            `if`( ! missing(nodeGroupVar_mixed), nodeGroupVar_mixed, NULL))
+            `if`( ! missing(groupVar_mixed), groupVar_mixed, NULL))
 
     for (v in groupVar_net) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
     for (v in varsCat_mixed) if (v %in% names(data)) data[[v]] <- as.factor(data[[v]])
@@ -1529,7 +1545,7 @@ networkanalysis <- function(
         mode = mode,
         vars_net = vars_net,
         groupVar_net = groupVar_net,
-        nodeGroupVar_net = nodeGroupVar_net,
+        nodeCommunities_net = nodeCommunities_net,
         estimator_net = estimator_net,
         corMethod_net = corMethod_net,
         tableCentrality_net = tableCentrality_net,
@@ -1547,19 +1563,18 @@ networkanalysis <- function(
         plotWidth_net = plotWidth_net,
         plotHeight_net = plotHeight_net,
         bootStability_net = bootStability_net,
+        bootSeed_net = bootSeed_net,
         bootN_net = bootN_net,
         bootEdgeCI_net = bootEdgeCI_net,
         bootCS_net = bootCS_net,
         nctTest_net = nctTest_net,
+        nctSeed_net = nctSeed_net,
         nctPermutations_net = nctPermutations_net,
-        dagAnalysis_net = dagAnalysis_net,
-        dagAlgorithm_net = dagAlgorithm_net,
-        plotDAG_net = plotDAG_net,
         varsCont_mixed = varsCont_mixed,
         varsCat_mixed = varsCat_mixed,
         varsCount_mixed = varsCount_mixed,
         groupVar_mixed = groupVar_mixed,
-        nodeGroupVar_mixed = nodeGroupVar_mixed,
+        nodeCommunities_mixed = nodeCommunities_mixed,
         lambdaSelMethod_mixed = lambdaSelMethod_mixed,
         kFolds_mixed = kFolds_mixed,
         lambdaGam_mixed = lambdaGam_mixed,

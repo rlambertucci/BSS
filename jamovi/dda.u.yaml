@@ -10,14 +10,14 @@ children:
     stretchFactor: 1
     children:
       - type: TargetLayoutBox
-        label: Dependent
+        label: "Grouping Variable"
         children:
           - type: VariablesListBox
             name: dep
             maxItemCount: 1
             isTarget: true
       - type: TargetLayoutBox
-        label: Covariates
+        label: "Dependent Variables"
         children:
           - type: VariablesListBox
             name: covs
@@ -61,17 +61,17 @@ children:
             enable: (plot)
           - type: TextBox
             name: ellipseLevel
-            label: Ellipse Confidence Level
+            label: "Ellipse confidence level"
             format: number
             enable: (plot && showEllipse)
           - type: TextBox
             name: width
-            label: Plot Width
+            label: "Plot width"
             format: number
             enable: (plot)
           - type: TextBox
             name: height
-            label: Plot Height
+            label: "Plot height"
             format: number
             enable: (plot)
 
@@ -86,6 +86,8 @@ children:
         children:
           - type: CheckBox
             name: discScores
+          - type: Output
+            name: discScoresOutput
           - type: CheckBox
             name: pairwiseES
 ...

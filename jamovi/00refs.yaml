@@ -1,815 +1,1071 @@
-qgraph:
-  type: article
-  author: "Epskamp, S., Cramer, A. O. J., Waldorp, L. J., Schmittmann, V. D., & Borsboom, D."
-  year: 2012
-  title: "qgraph: Network Visualizations of Relationships in Psychometric Data"
-  journal: "Journal of Statistical Software"
-  volume: 48
-  issue: 4
-  pages: "1-18"
-  doi: "10.18637/jss.v048.i04"
-
-bootnet:
-  type: article
-  author: "Epskamp, S., Borsboom, D., & Fried, E. I."
-  year: 2018
-  title: "Estimating psychological networks and their accuracy: A tutorial paper"
-  journal: "Behavior Research Methods"
-  volume: 50
-  issue: 1
-  pages: "195-212"
-  doi: "10.3758/s13428-017-0862-1"
-
-mgm:
-  type: article
-  author: "Haslbeck, J. M. B., & Waldorp, L. J."
-  year: 2020
-  title: "mgm: Estimating Time-Varying Mixed Graphical Models in High-Dimensional Data"
-  journal: "Journal of Statistical Software"
-  volume: 93
-  issue: 8
-  pages: "1-46"
-  doi: "10.18637/jss.v093.i08"
-
-EBICglasso:
-  type: inproceedings
-  author: "Foygel, R., & Drton, M."
-  year: 2010
-  title: "Extended Bayesian Information Criteria for Gaussian Graphical Models"
-  booktitle: "Advances in Neural Information Processing Systems (NeurIPS 2010)"
-  volume: 23
-  pages: "604-612"
-
-ExpectedInfluence:
-  type: article
-  author: "Robinaugh, D. J., Millner, A. J., & McNally, R. J."
-  year: 2016
-  title: "Identifying highly influential nodes in the complicated grief network"
-  journal: "Journal of Abnormal Psychology"
-  volume: 125
-  issue: 6
-  pages: "747-757"
-  doi: "10.1037/abn0000181"
-
-ggplot2:
-  type: book
-  author: "Wickham, H."
-  year: 2016
-  title: "ggplot2: Elegant Graphics for Data Analysis"
-  publisher: "Springer-Verlag New York"
-  url: "https://ggplot2.tidyverse.org"
-
-igraph:
-  type: article
-  author: "Csardi, G., & Nepusz, T."
-  year: 2006
-  title: "The igraph software package for complex network research"
-  journal: "InterJournal, Complex Systems"
-  volume: 1695
-  pages: "1-9"
-
-reshape2:
-  type: article
-  author: "Wickham, H."
-  year: 2007
-  title: "Reshaping Data with the reshape Package"
-  journal: "Journal of Statistical Software"
-  volume: 21
-  issue: 12
-  pages: "1-20"
-
-dplyr:
-  type: software
-  author: "Wickham, H., François, R., Henry, L., Müller, K., & Vaughan, D."
-  year: 2023
-  title: "dplyr: A Grammar of Data Manipulation"
-  url: "https://dplyr.tidyverse.org"
-
-gtools:
-  type: software
-  author: "Warnes, G. R., Bolker, B., & Lumley, T."
-  year: 2022
-  title: "gtools: Various R Programming Tools"
-  url: "https://CRAN.R-project.org/package=gtools"
-
-mice:
-  type: article
-  author: "van Buuren, S., & Groothuis-Oudshoorn, K."
-  year: 2011
-  title: "mice: Multivariate Imputation by Chained Equations in R"
-  journal: "Journal of Statistical Software"
-  volume: 45
-  issue: 3
-  pages: "1-67"
-  doi: "10.18637/jss.v045.i03"
-
-miceadds:
-  type: manual
-  author: "Robitzsch, A., & Grund, S."
-  year: 2024
-  title: "miceadds: Some Additional Multiple Imputation Functions, Especially for 'mice'"
-  url: "https://CRAN.R-project.org/package=miceadds"
-
-missRanger:
-  type: manual
-  author: "Mayer, M."
-  year: 2019
-  title: "missRanger: Fast Imputation of Missing Values"
-  url: "https://CRAN.R-project.org/package=missRanger"
-
-VIM:
-  type: article
-  author: "Kowarik, A., & Templ, M."
-  year: 2016
-  title: "Imputation with the R Package VIM"
-  journal: "Journal of Statistical Software"
-  volume: 74
-  issue: 7
-  pages: "1-16"
-  doi: "10.18637/jss.v074.i07"
-
-GGally:
-  type: manual
-  author: "Schloerke, B., Cook, D., Larmarange, J., Briatte, F., Marbach, M., Thoen, E., Elberg, A., & Crowley, J."
-  year: 2021
-  title: "GGally: Extension to 'ggplot2'"
-  url: "https://CRAN.R-project.org/package=GGally"
-
-MASS:
-  type: book
-  author: "Venables, W. N., & Ripley, B. D."
-  year: 2002
-  title: "Modern Applied Statistics with S"
-  edition: "4th"
-  publisher: "Springer"
-  address: "New York"
-  doi: "10.1002/978-0-387-21706-2"
-
-effsize:
-  type: manual
-  author: "Torchiano, M."
-  year: 2020
-  title: "effsize: Efficient Effect Size Computation"
-  url: "https://CRAN.R-project.org/package=effsize"
-
-Huberty2006:
-  type: book
-  author: "Huberty, C. J., & Olejnik, S."
-  year: 2006
-  title: "Applied MANOVA and Discriminant Analysis"
-  edition: "2nd"
-  publisher: "John Wiley & Sons"
-  doi: "10.1002/047178947X"
-
-Courville2001:
-  type: article
-  author: "Courville, T., & Thompson, B."
-  year: 2001
-  title: "Use of structure coefficients in normal-theory and bootstrap multiple regression: The revisit"
-  journal: "Educational and Psychological Measurement"
-  volume: 61
-  issue: 2
-  pages: "229-248"
-  doi: "10.1177/00131640121971211"
-
-Cohen1988:
-  type: book
-  author: "Cohen, J."
-  year: 1988
-  title: "Statistical Power Analysis for the Behavioral Sciences"
-  edition: "2nd"
-  publisher: "Lawrence Erlbaum Associates"
-
-ARTool:
-  type: manual
-  author: "Kay, M., Elkin, L. A., Higgins, J. J., & Wobbrock, J. O."
-  year: 2021
-  title: "ARTool: Aligned Rank Transform for Nonparametric Factorial ANOVAs"
-  url: "https://CRAN.R-project.org/package=ARTool"
-
-emmeans:
-  type: manual
-  author: "Lenth, R. V."
-  year: 2024
-  title: "emmeans: Estimated Marginal Means, aka Least-Squares Means"
-  url: "https://CRAN.R-project.org/package=emmeans"
-
-Wobbrock2011:
-  type: inproceedings
-  author: "Wobbrock, J. O., Findlater, L., Gergle, D., & Higgins, J. J."
-  year: 2011
-  title: "The Aligned Rank Transform for Nonparametric Factorial Analyses Using Only ANOVA Procedures"
-  booktitle: "Proceedings of the ACM Conference on Human Factors in Computing Systems (CHI '11)"
-  pages: "143-146"
-  doi: "10.1145/1978942.1978963"
-
-Elkin2021:
-  type: inproceedings
-  author: "Elkin, L. A., Kay, M., Higgins, J. J., & Wobbrock, J. O."
-  year: 2021
-  title: "An Aligned Rank Transform Procedure for Multifactor Contrast Tests"
-  booktitle: "Proceedings of the 34th Annual ACM Symposium on User Interface Software and Technology (UIST '21)"
-  pages: "754-768"
-  doi: "10.1145/3472749.3474784"
-
-effectsize:
-  type: article
-  author: "Ben-Shachar, M. S., Lüdecke, D., & Makowski, D."
-  year: 2020
-  title: "effectsize: Estimation of Effect Size Indices and What They Mean"
-  journal: "Journal of Open Source Software"
-  volume: 5
-  issue: 56
-  pages: "2815"
-  doi: "10.21105/joss.02815"
-
-Cochran1977:
-  type: book
-  author: "Cochran, W. G."
-  year: 1977
-  title: "Sampling Techniques"
-  edition: "3rd"
-  publisher: "John Wiley & Sons"
-  address: "New York"
-
-Slovin1960:
-  type: manual
-  author: "Slovin, E."
-  year: 1960
-  title: "Slovin's Formula for Sampling Technique"
-
-Festing2002:
-  type: article
-  author: "Festing, M. F. W., & Altman, D. G."
-  year: 2002
-  title: "Guidelines for the design and statistical analysis of experiments using laboratory animals"
-  journal: "BMJ"
-  volume: 324
-  issue: 7335
-  pages: "473-476"
-  doi: "10.1136/bmj.324.7335.473"
-
-Charan2013:
-  type: article
-  author: "Charan, J., & Kantharia, N. D."
-  year: 2013
-  title: "How to calculate sample size in animal studies?"
-  journal: "Journal of Pharmacology and Pharmacotherapeutics"
-  volume: 4
-  issue: 4
-  pages: "303-306"
-  doi: "10.4103/0976-500X.119726"
-
-Arifin2017:
-  type: article
-  author: "Arifin, W. N., & Wan Mohammad, W. M. Z."
-  year: 2017
-  title: "Sample size calculation in animal studies using resource equation approach"
-  journal: "Malaysian Journal of Medical Sciences"
-  volume: 24
-  issue: 5
-  pages: "101-105"
-  doi: "10.21315/mjms2017.24.5.11"
-
-Dixon1950:
-  type: article
-  author: "Dixon, W. J."
-  year: 1950
-  title: "Analysis of extreme values"
-  journal: "Annals of Mathematical Statistics"
-  volume: 21
-  issue: 4
-  pages: "488-506"
-  doi: "10.1214/aoms/1177729747"
-
-Rorabacher1991:
-  type: article
-  author: "Rorabacher, D. B."
-  year: 1991
-  title: "Statistical treatment for rejection of deviant values: critical values of Dixon's Q parameter"
-  journal: "Analytical Chemistry"
-  volume: 63
-  issue: 2
-  pages: "139-146"
-  doi: "10.1021/ac00002a010"
-
-Iglewicz1993:
-  type: book
-  author: "Iglewicz, B., & Hoaglin, D. C."
-  year: 1993
-  title: "How to Detect and Handle Outliers"
-  publisher: "ASQC Quality Press"
-  address: "Milwaukee, WI"
-
-Leys2013:
-  type: article
-  author: "Leys, C., Ley, C., Klein, O., Bernard, P., & Licata, L."
-  year: 2013
-  title: "Detecting outliers: Do not use standard deviation and mean, use absolute deviation around the median"
-  journal: "Journal of Experimental Social Psychology"
-  volume: 49
-  issue: 4
-  pages: "764-766"
-  doi: "10.1016/j.jesp.2013.03.013"
-
-Wilcox2017:
-  type: book
-  author: "Wilcox, R. R."
-  year: 2017
-  title: "Introduction to Robust Estimation and Hypothesis Testing"
-  edition: "4th"
-  publisher: "Academic Press"
-  address: "Amsterdam"
-
-Tukey1977:
-  type: book
-  author: "Tukey, J. W."
-  year: 1977
-  title: "Exploratory Data Analysis"
-  publisher: "Addison-Wesley"
-  address: "Reading, Mass."
-
-Hoaglin1987:
-  type: article
-  author: "Hoaglin, D. C., & Iglewicz, B."
-  year: 1987
-  title: "Fine-tuning some outlier diagnostics"
-  journal: "Journal of the American Statistical Association"
-  volume: 82
-  issue: 400
-  pages: "1147-1149"
-  doi: "10.1080/01621459.1987.10478551"
-
-Fisher1921:
-  type: article
-  author: "Fisher, R. A."
-  year: 1921
-  title: "On the probable error of a coefficient of correlation deduced from a small sample"
-  journal: "Metron"
-  volume: 1
-  pages: "3-32"
-
-Steiger1980:
-  type: article
-  author: "Steiger, J. H."
-  year: 1980
-  title: "Tests for comparing elements of a correlation matrix"
-  journal: "Psychological Bulletin"
-  volume: 87
-  issue: 2
-  pages: "244-251"
-  doi: "10.1037/0033-2909.87.2.244"
-
-Williams1959:
-  type: article
-  author: "Williams, E. J."
-  year: 1959
-  title: "The comparison of regression variables"
-  journal: "Journal of the Royal Statistical Society: Series B"
-  volume: 21
-  issue: 2
-  pages: "396-399"
-  doi: "10.1111/j.2517-6161.1959.tb00346.x"
-
-Zou2007:
-  type: article
-  author: "Zou, G. Y."
-  year: 2007
-  title: "Toward using confidence intervals to compare correlations"
-  journal: "Psychological Methods"
-  volume: 12
-  issue: 4
-  pages: "399-413"
-  doi: "10.1037/1082-989X.12.4.399"
-
-APA2020:
-  type: book
-  author: "American Psychological Association"
-  year: 2020
-  title: "Publication Manual of the American Psychological Association"
-  edition: "7th"
-  publisher: "American Psychological Association"
-  address: "Washington, DC"
-  doi: "10.1037/0000165-000"
-
-ABNT2011:
-  type: manual
-  author: "Associação Brasileira de Normas Técnicas"
-  year: 2011
-  title: "NBR 14724: Informação e documentação — Trabalhos acadêmicos — Apresentação"
-  publisher: "ABNT"
-  address: "Rio de Janeiro"
-
-ICMJE2023:
-  type: manual
-  author: "International Committee of Medical Journal Editors"
-  year: 2023
-  title: "Recommendations for the Conduct, Reporting, Editing, and Publication of Scholarly Work in Medical Journals (Vancouver Style)"
-  url: "http://www.icmje.org/recommendations/"
-
-Chicago2017:
-  type: book
-  author: "University of Chicago Press"
-  year: 2017
-  title: "The Chicago Manual of Style"
-  edition: "17th"
-  publisher: "University of Chicago Press"
-  address: "Chicago, IL"
-  doi: "10.7208/cmos17"
-
-bestNormalize:
-  type: article
-  author: "Peterson, R. A."
-  year: 2021
-  title: "Finding optimal normalizing transformations via bestNormalize"
-  journal: "The R Journal"
-  volume: 13
-  issue: 1
-  pages: "310-329"
-  doi: "10.32614/RJ-2021-041"
-
-SuppDists:
-  type: manual
-  author: "Wheeler, B."
-  year: 2020
-  title: "SuppDists: Supplementary Distributions"
-  url: "https://CRAN.R-project.org/package=SuppDists"
-
-BoxCox1964:
-  type: article
-  author: "Box, G. E., & Cox, D. R."
-  year: 1964
-  title: "An analysis of transformations"
-  journal: "Journal of the Royal Statistical Society: Series B"
-  volume: 26
-  issue: 2
-  pages: "211-243"
-  doi: "10.1111/j.2517-6161.1964.tb00553.x"
-
-YeoJohnson2000:
-  type: article
-  author: "Yeo, I. K., & Johnson, R. A."
-  year: 2000
-  title: "A new family of power transformations to improve normality or symmetry"
-  journal: "Biometrika"
-  volume: 87
-  issue: 4
-  pages: "955-969"
-  doi: "10.1093/biomet/87.4.955"
-
-Johnson1949:
-  type: article
-  author: "Johnson, N. L."
-  year: 1949
-  title: "Systems of frequency curves generated by methods of translation"
-  journal: "Biometrika"
-  volume: 36
-  issue: 1-2
-  pages: "149-176"
-  doi: "10.1093/biomet/36.1-2.149"
-
-ShapiroWilk1965:
-  type: article
-  author: "Shapiro, S. S., & Wilk, M. B."
-  year: 1965
-  title: "An analysis of variance test for normality (complete samples)"
-  journal: "Biometrika"
-  volume: 52
-  issue: 3-4
-  pages: "591-611"
-  doi: "10.1093/biomet/52.3-4.591"
-
-Jones2021:
-  type: article
-  author: "Jones, P. J., Ma, R., & McNally, R. J."
-  year: 2021
-  title: "Bridge Centrality: A Network Approach to Understanding Comorbidity"
-  journal: "Multivariate Behavioral Research"
-  volume: 56
-  issue: 2
-  pages: "353-367"
-  doi: "10.1080/00273171.2019.1614898"
-
-Blondel2008:
-  type: article
-  author: "Blondel, V. D., Guillaume, J.-L., Lambiotte, R., & Lefebvre, E."
-  year: 2008
-  title: "Fast unfolding of communities in large networks"
-  journal: "Journal of Statistical Mechanics: Theory and Experiment"
-  volume: 2008
-  issue: 10
-  pages: "P10008"
-  doi: "10.1088/1742-5468/2008/10/P10008"
-
-Rubin1987:
-  type: book
-  author: "Rubin, D. B."
-  year: 1987
-  title: "Multiple Imputation for Nonresponse in Surveys"
-  publisher: "John Wiley & Sons"
-  address: "New York"
-  doi: "10.1002/9780470316696"
-
-Box1949:
-  type: article
-  author: "Box, G. E. P."
-  year: 1949
-  title: "A general distribution theory for a class of likelihood criteria"
-  journal: "Biometrika"
-  volume: 36
-  issue: 3-4
-  pages: "317-346"
-  doi: "10.1093/biomet/36.3-4.317"
-
-Fisher1936:
-  type: article
-  author: "Fisher, R. A."
-  year: 1936
-  title: "The use of multiple measurements in taxonomic problems"
-  journal: "Annals of Eugenics"
-  volume: 7
-  issue: 2
-  pages: "179-188"
-  doi: "10.1111/j.1469-1809.1936.tb02137.x"
-
-Benjamini1995:
-  type: article
-  author: "Benjamini, Y., & Hochberg, Y."
-  year: 1995
-  title: "Controlling the false discovery rate: a practical and powerful approach to multiple testing"
-  journal: "Journal of the Royal Statistical Society: Series B"
-  volume: 57
-  issue: 1
-  pages: "289-300"
-  doi: "10.1111/j.2517-6161.1995.tb02031.x"
-
-Sawilowsky2009:
-  type: article
-  author: "Sawilowsky, S. S."
-  year: 2009
-  title: "New Effect Size Rules of Thumb"
-  journal: "Journal of Modern Applied Statistical Methods"
-  volume: 8
-  issue: 2
-  pages: "597-599"
-  doi: "10.22237/jmasm/1257035100"
-
-Borenstein2009:
-  type: book
-  author: "Borenstein, M., Hedges, L. V., Higgins, J. P. T., & Rothstein, H. R."
-  year: 2009
-  title: "Introduction to Meta-Analysis"
-  publisher: "John Wiley & Sons"
-  address: "Chichester, UK"
-  doi: "10.1002/9780470743386"
-Lakens2013:
-  type: article
-  author: "Lakens, D."
-  year: 2013
-  title: "Equivalence testing for psychological research: A tutorial on the two one-sided tests procedure"
-  journal: "Social Psychological and Personality Science"
-  volume: 8
-  issue: 4
-  pages: "355-362"
-  doi: "10.1177/1948550617697177"
-
-Schuirmann1987:
-  type: article
-  author: "Schuirmann, D. J."
-  year: 1987
-  title: "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability"
-  journal: "Journal of Pharmacokinetics and Biopharmaceutics"
-  volume: 15
-  issue: 6
-  pages: "657-680"
-  doi: "10.1007/BF01068419"
-
-Fleiss2003:
-  type: book
-  author: "Fleiss, J. L., Levin, B., & Paik, M. C."
-  year: 2003
-  title: "Statistical Methods for Rates and Proportions"
-  edition: "3rd"
-  publisher: "John Wiley & Sons"
-  address: "Hoboken, NJ"
-  doi: "10.1002/0471445428"
-
-McNemar1947:
-  type: article
-  author: "McNemar, Q."
-  year: 1947
-  title: "Note on the sampling error of the difference between correlated proportions or percentages"
-  journal: "Psychometrika"
-  volume: 12
-  issue: 2
-  pages: "153-157"
-  doi: "10.1007/BF02295996"
-
-Mahalanobis1936:
-  type: article
-  author: "Mahalanobis, P. C."
-  year: 1936
-  title: "On the generalised distance in statistics"
-  journal: "Proceedings of the National Institute of Sciences of India"
-  volume: 2
-  issue: 1
-  pages: "49-55"
-
-Rousseeuw1999:
-  type: article
-  author: "Rousseeuw, P. J., & Van Driessen, K."
-  year: 1999
-  title: "A fast algorithm for the minimum covariance determinant estimator"
-  journal: "Technometrics"
-  volume: 41
-  issue: 3
-  pages: "212-223"
-  doi: "10.1080/00401706.1999.10485670"
-
-Hubert2008:
-  type: article
-  author: "Hubert, M., & Vandervieren, E."
-  year: 2008
-  title: "An adjusted boxplot for skewed distributions"
-  journal: "Computational Statistics & Data Analysis"
-  volume: 52
-  issue: 12
-  pages: "5186-5201"
-  doi: "10.1016/j.csda.2007.11.008"
-
-Jennrich1970:
-  type: article
-  author: "Jennrich, R. I."
-  year: 1970
-  title: "An Asymptotic Chi-Square Test for the Equality of Two Correlation Matrices"
-  journal: "Journal of the American Statistical Association"
-  volume: 65
-  issue: 330
-  pages: "904-912"
-  doi: "10.1080/01621459.1970.10481133"
-
-Bartlett1937:
-  type: article
-  author: "Bartlett, M. S."
-  year: 1937
-  title: "Some examples of statistical methods of research in agriculture and applied biology"
-  journal: "Journal of the Royal Statistical Society: Supplement"
-  volume: 4
-  issue: 2
-  pages: "137-183"
-  doi: "10.2307/2983639"
-
-Stephens1974:
-  type: article
-  author: "Stephens, M. A."
-  year: 1974
-  title: "EDF statistics for goodness of fit and some comparisons"
-  journal: "Journal of the American Statistical Association"
-  volume: 69
-  issue: 347
-  pages: "730-737"
-  doi: "10.1080/01621459.1974.10480196"
-
-Royston1993:
-  type: article
-  author: "Royston, P."
-  year: 1993
-  title: "A pocket-calculator algorithm for the Shapiro-Francia test for non-normality"
-  journal: "Statistics in Medicine"
-  volume: 12
-  issue: 2
-  pages: "181-184"
-  doi: "10.1002/sim.4780120209"
-
-MurtaghLegendre2014:
-  type: article
-  author: "Murtagh, F., & Legendre, P."
-  year: 2014
-  title: "Ward's hierarchical agglomerative clustering method: which algorithms implement Ward's criterion?"
-  journal: "Journal of Classification"
-  volume: 31
-  issue: 3
-  pages: "274-295"
-  doi: "10.1007/s00357-014-9161-z"
-
-Blom1958:
-  type: book
-  author: "Blom, G."
-  year: 1958
-  title: "Statistical Estimates and Transformed Beta-Variables"
-  publisher: "John Wiley & Sons"
-  address: "New York"
-
-VanDerWaerden1952:
-  type: article
-  author: "van der Waerden, B. L."
-  year: 1952
-  title: "Order tests for the two-sample problem and their power"
-  journal: "Indagationes Mathematicae"
-  volume: 14
-  pages: "453-458"
-
-VarghaDelaney2000:
-  type: article
-  author: 'Vargha, A., & Delaney, H. D.'
-  year: 2000
-  title: 'A critique and improvement of the CL common language effect size statistics of McGraw and Wong'
-  journal: 'Journal of Educational and Behavioral Statistics'
-  volume: 25
-  issue: 2
-  pages: '101-132'
-  doi: '10.3102/10769986025002101'
-
-Kerby2014:
-  type: article
-  author: 'Kerby, D. S.'
-  year: 2014
-  title: 'The simple difference formula: An approach to teaching nonparametric correlation'
-  journal: 'Comprehensive Psychology'
-  volume: 3
-  pages: '11.IT.3.1'
-  doi: '10.2466/11.IT.3.1'
-
-
-AlginaKeselmanPenfield2005:
-  type: article
-  author: 'Algina, J., Keselman, H. J., & Penfield, R. D.'
-  year: 2005
-  title: "An alternative to Cohen's standardized mean difference effect size: A robust parameter and confidence interval in the two independent groups case"
-  journal: 'Psychological Methods'
-  volume: 10
-  issue: 3
-  pages: '317-328'
-  doi: '10.1037/1082-989X.10.3.317'
-
-AkritasArnold1994:
-  type: article
-  author: 'Akritas, M. G., & Arnold, S. F.'
-  year: 1994
-  title: 'Fully nonparametric hypotheses for factorial designs I: Multivariate relative effects'
-  journal: 'Journal of the American Statistical Association'
-  volume: 89
-  issue: 425
-  pages: '336-343'
-  doi: '10.1080/01621459.1994.10476475'
-
-Cramer1946:
-  type: book
-  author: 'Cramér, H.'
-  year: 1946
-  title: 'Mathematical Methods of Statistics'
-  publisher: 'Princeton University Press'
-  address: 'Princeton, NJ'
-
-Cochran1954:
-  type: article
-  author: 'Cochran, W. G.'
-  year: 1954
-  title: 'The combination of estimates from different experiments'
-  journal: 'Biometrics'
-  volume: 10
-  issue: 1
-  pages: '101-129'
-  doi: '10.2307/3001666'
-
-BarnardRubin1999:
-  type: article
-  author: "Barnard, J., & Rubin, D. B."
-  year: 1999
-  title: "Small-sample degrees of freedom with multiple imputation"
-  journal: "Biometrika"
-  volume: 86
-  issue: 4
-  pages: "948-955"
-  doi: "10.1093/biomet/86.4.948"
-
-Lex2014:
-  type: article
-  author: "Lex, A., Gehlenborg, N., Strobelt, H., Vuillemot, R., & Pfister, H."
-  year: 2014
-  title: "UpSet: Visualization of Intersecting Sets"
-  journal: "IEEE Transactions on Visualization and Computer Graphics"
-  volume: 20
-  issue: 12
-  pages: "1983-1992"
-  doi: "10.1109/TVCG.2014.2346248"
-
-vanBorkulo2022:
-  type: article
-  author: "van Borkulo, C. D., Boschloo, L., Borsboom, D., Penninx, B. W. J. H., Waldorp, L. J., & Schoevers, R. A."
-  year: 2022
-  title: "Comparing network structures on three aspects: A permutation test"
-  journal: "Psychological Methods"
-  volume: 28
-  issue: 6
-  pages: "1273-1285"
-  doi: "10.1037/met0000476"
-
-Spirtes2000:
-  type: book
-  author: "Spirtes, P., Glymour, C. N., & Scheines, R."
-  year: 2000
-  title: "Causation, Prediction, and Search"
-  edition: "2nd"
-  publisher: "MIT Press"
-  address: "Cambridge, MA"
+---
+refs:
+  qgraph:
+    type: article
+    author: "Epskamp, S., Cramer, A. O. J., Waldorp, L. J., Schmittmann, V. D., & Borsboom, D."
+    year: 2012
+    title: "qgraph: Network Visualizations of Relationships in Psychometric Data"
+    journal: "Journal of Statistical Software"
+    publisher: "Journal of Statistical Software"
+    volume: 48
+    issue: 4
+    pages: "1-18"
+    doi: "10.18637/jss.v048.i04"
+    url: "https://doi.org/10.18637/jss.v048.i04"
+
+  bootnet:
+    type: article
+    author: "Epskamp, S., Borsboom, D., & Fried, E. I."
+    year: 2018
+    title: "Estimating psychological networks and their accuracy: A tutorial paper"
+    journal: "Behavior Research Methods"
+    publisher: "Behavior Research Methods"
+    volume: 50
+    issue: 1
+    pages: "195-212"
+    doi: "10.3758/s13428-017-0862-1"
+    url: "https://doi.org/10.3758/s13428-017-0862-1"
+
+  mgm:
+    type: article
+    author: "Haslbeck, J. M. B., & Waldorp, L. J."
+    year: 2020
+    title: "mgm: Estimating Time-Varying Mixed Graphical Models in High-Dimensional Data"
+    journal: "Journal of Statistical Software"
+    publisher: "Journal of Statistical Software"
+    volume: 93
+    issue: 8
+    pages: "1-46"
+    doi: "10.18637/jss.v093.i08"
+    url: "https://doi.org/10.18637/jss.v093.i08"
+
+  EBICglasso:
+    type: inproceedings
+    author: "Foygel, R., & Drton, M."
+    year: 2010
+    title: "Extended Bayesian Information Criteria for Gaussian Graphical Models"
+    booktitle: "Advances in Neural Information Processing Systems (NeurIPS 2010)"
+    volume: 23
+    pages: "604-612"
+
+
+    publisher: "Advances in Neural Information Processing Systems, 23"
+    url: "https://proceedings.neurips.cc/paper/2010/hash/072b030ba126b2f4b2374f342be9ed44-Abstract.html"
+
+  ExpectedInfluence:
+    type: article
+    author: "Robinaugh, D. J., Millner, A. J., & McNally, R. J."
+    year: 2016
+    title: "Identifying highly influential nodes in the complicated grief network"
+    journal: "Journal of Abnormal Psychology"
+    publisher: "Journal of Abnormal Psychology"
+    volume: 125
+    issue: 6
+    pages: "747-757"
+    doi: "10.1037/abn0000181"
+    url: "https://doi.org/10.1037/abn0000181"
+
+  ggplot2:
+    type: book
+    author: "Wickham, H."
+    year: 2016
+    title: "ggplot2: Elegant Graphics for Data Analysis"
+    publisher: "Springer-Verlag New York"
+    url: "https://ggplot2.tidyverse.org"
+
+  igraph:
+    type: article
+    author: "Csardi, G., & Nepusz, T."
+    year: 2006
+    title: "The igraph software package for complex network research"
+    journal: "InterJournal, Complex Systems"
+    publisher: "InterJournal, Complex Systems"
+    volume: 1695
+    pages: "1-9"
+
+
+    url: "https://igraph.org"
+
+  reshape2:
+    type: article
+    author: "Wickham, H."
+    year: 2007
+    title: "Reshaping Data with the reshape Package"
+    journal: "Journal of Statistical Software"
+    publisher: "Journal of Statistical Software"
+    volume: 21
+    issue: 12
+    pages: "1-20"
+
+
+    url: "https://doi.org/10.18637/jss.v021.i12"
+
+  dplyr:
+    type: software
+    author: "Wickham, H., François, R., Henry, L., Müller, K., & Vaughan, D."
+    year: 2023
+    title: "dplyr: A Grammar of Data Manipulation"
+    url: "https://dplyr.tidyverse.org"
+
+
+    publisher: "[R package]"
+
+  gtools:
+    type: software
+    author: "Warnes, G. R., Bolker, B., & Lumley, T."
+    year: 2022
+    title: "gtools: Various R Programming Tools"
+    url: "https://CRAN.R-project.org/package=gtools"
+
+
+    publisher: "[R package]"
+
+  mice:
+    type: article
+    author: "van Buuren, S., & Groothuis-Oudshoorn, K."
+    year: 2011
+    title: "mice: Multivariate Imputation by Chained Equations in R"
+    journal: "Journal of Statistical Software"
+    publisher: "Journal of Statistical Software"
+    volume: 45
+    issue: 3
+    pages: "1-67"
+    doi: "10.18637/jss.v045.i03"
+    url: "https://doi.org/10.18637/jss.v045.i03"
+
+  miceadds:
+    type: manual
+    author: "Robitzsch, A., & Grund, S."
+    year: 2024
+    title: "miceadds: Some Additional Multiple Imputation Functions, Especially for 'mice'"
+    url: "https://CRAN.R-project.org/package=miceadds"
+
+
+    publisher: "[R package]"
+
+  missRanger:
+    type: manual
+    author: "Mayer, M."
+    year: 2019
+    title: "missRanger: Fast Imputation of Missing Values"
+    url: "https://CRAN.R-project.org/package=missRanger"
+
+
+    publisher: "[R package]"
+
+  VIM:
+    type: article
+    author: "Kowarik, A., & Templ, M."
+    year: 2016
+    title: "Imputation with the R Package VIM"
+    journal: "Journal of Statistical Software"
+    publisher: "Journal of Statistical Software"
+    volume: 74
+    issue: 7
+    pages: "1-16"
+    doi: "10.18637/jss.v074.i07"
+    url: "https://doi.org/10.18637/jss.v074.i07"
+
+  GGally:
+    type: manual
+    author: "Schloerke, B., Cook, D., Larmarange, J., Briatte, F., Marbach, M., Thoen, E., Elberg, A., & Crowley, J."
+    year: 2021
+    title: "GGally: Extension to 'ggplot2'"
+    url: "https://CRAN.R-project.org/package=GGally"
+
+
+    publisher: "[R package]"
+
+  MASS:
+    type: book
+    author: "Venables, W. N., & Ripley, B. D."
+    year: 2002
+    title: "Modern Applied Statistics with S"
+    edition: "4th"
+    publisher: "Springer"
+    address: "New York"
+    doi: "10.1002/978-0-387-21706-2"
+    url: "https://doi.org/10.1002/978-0-387-21706-2"
+
+  effsize:
+    type: manual
+    author: "Torchiano, M."
+    year: 2020
+    title: "effsize: Efficient Effect Size Computation"
+    url: "https://CRAN.R-project.org/package=effsize"
+
+
+    publisher: "[R package]"
+
+  Huberty2006:
+    type: book
+    author: "Huberty, C. J., & Olejnik, S."
+    year: 2006
+    title: "Applied MANOVA and Discriminant Analysis"
+    edition: "2nd"
+    publisher: "John Wiley & Sons"
+    doi: "10.1002/047178947X"
+    url: "https://doi.org/10.1002/047178947X"
+
+  Courville2001:
+    type: article
+    author: "Courville, T., & Thompson, B."
+    year: 2001
+    title: "Use of structure coefficients in normal-theory and bootstrap multiple regression: The revisit"
+    journal: "Educational and Psychological Measurement"
+    publisher: "Educational and Psychological Measurement"
+    volume: 61
+    issue: 2
+    pages: "229-248"
+    doi: "10.1177/00131640121971211"
+    url: "https://doi.org/10.1177/00131640121971211"
+
+  Cohen1988:
+    type: book
+    author: "Cohen, J."
+    year: 1988
+    title: "Statistical Power Analysis for the Behavioral Sciences"
+    edition: "2nd"
+    publisher: "Lawrence Erlbaum Associates"
+
+
+    url: "https://doi.org/10.4324/9780203771587"
+
+  ARTool:
+    type: manual
+    author: "Kay, M., Elkin, L. A., Higgins, J. J., & Wobbrock, J. O."
+    year: 2021
+    title: "ARTool: Aligned Rank Transform for Nonparametric Factorial ANOVAs"
+    url: "https://CRAN.R-project.org/package=ARTool"
+
+
+    publisher: "[R package]"
+
+  emmeans:
+    type: manual
+    author: "Lenth, R. V."
+    year: 2024
+    title: "emmeans: Estimated Marginal Means, aka Least-Squares Means"
+    url: "https://CRAN.R-project.org/package=emmeans"
+
+
+    publisher: "[R package]"
+
+  Wobbrock2011:
+    type: inproceedings
+    author: "Wobbrock, J. O., Findlater, L., Gergle, D., & Higgins, J. J."
+    year: 2011
+    title: "The Aligned Rank Transform for Nonparametric Factorial Analyses Using Only ANOVA Procedures"
+    booktitle: "Proceedings of the ACM Conference on Human Factors in Computing Systems (CHI '11)"
+    publisher: "Proceedings of the ACM Conference on Human Factors in Computing Systems (CHI '11)"
+    pages: "143-146"
+    doi: "10.1145/1978942.1978963"
+    url: "https://doi.org/10.1145/1978942.1978963"
+
+  Elkin2021:
+    type: inproceedings
+    author: "Elkin, L. A., Kay, M., Higgins, J. J., & Wobbrock, J. O."
+    year: 2021
+    title: "An Aligned Rank Transform Procedure for Multifactor Contrast Tests"
+    booktitle: "Proceedings of the 34th Annual ACM Symposium on User Interface Software and Technology (UIST '21)"
+    publisher: "Proceedings of the 34th Annual ACM Symposium on User Interface Software and Technology (UIST '21)"
+    pages: "754-768"
+    doi: "10.1145/3472749.3474784"
+    url: "https://doi.org/10.1145/3472749.3474784"
+
+  effectsize:
+    type: article
+    author: "Ben-Shachar, M. S., Lüdecke, D., & Makowski, D."
+    year: 2020
+    title: "effectsize: Estimation of Effect Size Indices and What They Mean"
+    journal: "Journal of Open Source Software"
+    publisher: "Journal of Open Source Software"
+    volume: 5
+    issue: 56
+    pages: "2815"
+    doi: "10.21105/joss.02815"
+    url: "https://doi.org/10.21105/joss.02815"
+
+  Cochran1977:
+    type: book
+    author: "Cochran, W. G."
+    year: 1977
+    title: "Sampling Techniques"
+    edition: "3rd"
+    publisher: "John Wiley & Sons"
+    address: "New York"
+
+
+    url: "https://www.wiley.com/en-us/Sampling+Techniques%2C+3rd+Edition-p-9780471162407"
+
+  Slovin1960:
+    type: manual
+    author: "Slovin, E."
+    year: 1960
+    title: "Slovin's Formula for Sampling Technique"
+
+  Festing2002:
+    type: article
+    author: "Festing, M. F. W., & Altman, D. G."
+    year: 2002
+    title: "Guidelines for the design and statistical analysis of experiments using laboratory animals"
+    journal: "BMJ"
+    publisher: "BMJ"
+    volume: 324
+    issue: 7335
+    pages: "473-476"
+    doi: "10.1136/bmj.324.7335.473"
+    url: "https://doi.org/10.1136/bmj.324.7335.473"
+
+  Charan2013:
+    type: article
+    author: "Charan, J., & Kantharia, N. D."
+    year: 2013
+    title: "How to calculate sample size in animal studies?"
+    journal: "Journal of Pharmacology and Pharmacotherapeutics"
+    publisher: "Journal of Pharmacology and Pharmacotherapeutics"
+    volume: 4
+    issue: 4
+    pages: "303-306"
+    doi: "10.4103/0976-500X.119726"
+    url: "https://doi.org/10.4103/0976-500X.119726"
+
+  Arifin2017:
+    type: article
+    author: "Arifin, W. N., & Wan Mohammad, W. M. Z."
+    year: 2017
+    title: "Sample size calculation in animal studies using resource equation approach"
+    journal: "Malaysian Journal of Medical Sciences"
+    publisher: "Malaysian Journal of Medical Sciences"
+    volume: 24
+    issue: 5
+    pages: "101-105"
+    doi: "10.21315/mjms2017.24.5.11"
+    url: "https://doi.org/10.21315/mjms2017.24.5.11"
+
+  Dixon1950:
+    type: article
+    author: "Dixon, W. J."
+    year: 1950
+    title: "Analysis of extreme values"
+    journal: "Annals of Mathematical Statistics"
+    publisher: "Annals of Mathematical Statistics"
+    volume: 21
+    issue: 4
+    pages: "488-506"
+    doi: "10.1214/aoms/1177729747"
+    url: "https://doi.org/10.1214/aoms/1177729747"
+
+  Rorabacher1991:
+    type: article
+    author: "Rorabacher, D. B."
+    year: 1991
+    title: "Statistical treatment for rejection of deviant values: critical values of Dixon's Q parameter"
+    journal: "Analytical Chemistry"
+    publisher: "Analytical Chemistry"
+    volume: 63
+    issue: 2
+    pages: "139-146"
+    doi: "10.1021/ac00002a010"
+    url: "https://doi.org/10.1021/ac00002a010"
+
+  Iglewicz1993:
+    type: book
+    author: "Iglewicz, B., & Hoaglin, D. C."
+    year: 1993
+    title: "How to Detect and Handle Outliers"
+    publisher: "ASQC Quality Press"
+    address: "Milwaukee, WI"
+
+  Leys2013:
+    type: article
+    author: "Leys, C., Ley, C., Klein, O., Bernard, P., & Licata, L."
+    year: 2013
+    title: "Detecting outliers: Do not use standard deviation and mean, use absolute deviation around the median"
+    journal: "Journal of Experimental Social Psychology"
+    publisher: "Journal of Experimental Social Psychology"
+    volume: 49
+    issue: 4
+    pages: "764-766"
+    doi: "10.1016/j.jesp.2013.03.013"
+    url: "https://doi.org/10.1016/j.jesp.2013.03.013"
+
+  Wilcox2017:
+    type: book
+    author: "Wilcox, R. R."
+    year: 2017
+    title: "Introduction to Robust Estimation and Hypothesis Testing"
+    edition: "4th"
+    publisher: "Academic Press"
+    address: "Amsterdam"
+
+
+    url: "https://shop.elsevier.com/books/introduction-to-robust-estimation-and-hypothesis-testing/wilcox/978-0-12-804733-0"
+
+  Tukey1977:
+    type: book
+    author: "Tukey, J. W."
+    year: 1977
+    title: "Exploratory Data Analysis"
+    publisher: "Addison-Wesley"
+    address: "Reading, Mass."
+
+  Hoaglin1987:
+    type: article
+    author: "Hoaglin, D. C., & Iglewicz, B."
+    year: 1987
+    title: "Fine-tuning some outlier diagnostics"
+    journal: "Journal of the American Statistical Association"
+    publisher: "Journal of the American Statistical Association"
+    volume: 82
+    issue: 400
+    pages: "1147-1149"
+    doi: "10.1080/01621459.1987.10478551"
+    url: "https://doi.org/10.1080/01621459.1987.10478551"
+
+  Fisher1921:
+    type: article
+    author: "Fisher, R. A."
+    year: 1921
+    title: "On the probable error of a coefficient of correlation deduced from a small sample"
+    journal: "Metron"
+    publisher: "Metron"
+    volume: 1
+    pages: "3-32"
+
+
+    url: "https://digital.library.adelaide.edu.au/dspace/handle/2440/15169"
+
+  Steiger1980:
+    type: article
+    author: "Steiger, J. H."
+    year: 1980
+    title: "Tests for comparing elements of a correlation matrix"
+    journal: "Psychological Bulletin"
+    publisher: "Psychological Bulletin"
+    volume: 87
+    issue: 2
+    pages: "245-251"
+    doi: "10.1037/0033-2909.87.2.245"
+    url: "https://doi.org/10.1037/0033-2909.87.2.245"
+
+  Williams1959:
+    type: article
+    author: "Williams, E. J."
+    year: 1959
+    title: "The comparison of regression variables"
+    journal: "Journal of the Royal Statistical Society: Series B"
+    publisher: "Journal of the Royal Statistical Society: Series B"
+    volume: 21
+    issue: 2
+    pages: "396-399"
+    doi: "10.1111/j.2517-6161.1959.tb00346.x"
+    url: "https://doi.org/10.1111/j.2517-6161.1959.tb00346.x"
+
+  Zou2007:
+    type: article
+    author: "Zou, G. Y."
+    year: 2007
+    title: "Toward using confidence intervals to compare correlations"
+    journal: "Psychological Methods"
+    publisher: "Psychological Methods"
+    volume: 12
+    issue: 4
+    pages: "399-413"
+    doi: "10.1037/1082-989X.12.4.399"
+    url: "https://doi.org/10.1037/1082-989X.12.4.399"
+
+  APA2020:
+    type: book
+    author: "American Psychological Association"
+    year: 2020
+    title: "Publication Manual of the American Psychological Association"
+    edition: "7th"
+    publisher: "American Psychological Association"
+    address: "Washington, DC"
+    doi: "10.1037/0000165-000"
+    url: "https://doi.org/10.1037/0000165-000"
+
+  ABNT2011:
+    type: manual
+    author: "Associação Brasileira de Normas Técnicas"
+    year: 2011
+    title: "NBR 14724: Informação e documentação — Trabalhos acadêmicos — Apresentação"
+    publisher: "ABNT"
+    address: "Rio de Janeiro"
+
+  ICMJE2023:
+    type: manual
+    author: "International Committee of Medical Journal Editors"
+    year: 2023
+    title: "Recommendations for the Conduct, Reporting, Editing, and Publication of Scholarly Work in Medical Journals (Vancouver Style)"
+    url: "http://www.icmje.org/recommendations/"
+
+
+    publisher: "International Committee of Medical Journal Editors"
+
+  Chicago2017:
+    type: book
+    author: "University of Chicago Press"
+    year: 2017
+    title: "The Chicago Manual of Style"
+    edition: "17th"
+    publisher: "University of Chicago Press"
+    address: "Chicago, IL"
+    doi: "10.7208/cmos17"
+    url: "https://doi.org/10.7208/cmos17"
+
+  bestNormalize:
+    type: article
+    author: "Peterson, R. A."
+    year: 2021
+    title: "Finding optimal normalizing transformations via bestNormalize"
+    journal: "The R Journal"
+    publisher: "The R Journal"
+    volume: 13
+    issue: 1
+    pages: "310-329"
+    doi: "10.32614/RJ-2021-041"
+    url: "https://doi.org/10.32614/RJ-2021-041"
+
+  SuppDists:
+    type: manual
+    author: "Wheeler, B."
+    year: 2020
+    title: "SuppDists: Supplementary Distributions"
+    url: "https://CRAN.R-project.org/package=SuppDists"
+
+
+    publisher: "[R package]"
+
+  BoxCox1964:
+    type: article
+    author: "Box, G. E., & Cox, D. R."
+    year: 1964
+    title: "An analysis of transformations"
+    journal: "Journal of the Royal Statistical Society: Series B"
+    publisher: "Journal of the Royal Statistical Society: Series B"
+    volume: 26
+    issue: 2
+    pages: "211-243"
+    doi: "10.1111/j.2517-6161.1964.tb00553.x"
+    url: "https://doi.org/10.1111/j.2517-6161.1964.tb00553.x"
+
+  YeoJohnson2000:
+    type: article
+    author: "Yeo, I. K., & Johnson, R. A."
+    year: 2000
+    title: "A new family of power transformations to improve normality or symmetry"
+    journal: "Biometrika"
+    publisher: "Biometrika"
+    volume: 87
+    issue: 4
+    pages: "955-969"
+    doi: "10.1093/biomet/87.4.955"
+    url: "https://doi.org/10.1093/biomet/87.4.955"
+
+  Johnson1949:
+    type: article
+    author: "Johnson, N. L."
+    year: 1949
+    title: "Systems of frequency curves generated by methods of translation"
+    journal: "Biometrika"
+    publisher: "Biometrika"
+    volume: 36
+    issue: 1-2
+    pages: "149-176"
+    doi: "10.1093/biomet/36.1-2.149"
+    url: "https://doi.org/10.1093/biomet/36.1-2.149"
+
+  ShapiroWilk1965:
+    type: article
+    author: "Shapiro, S. S., & Wilk, M. B."
+    year: 1965
+    title: "An analysis of variance test for normality (complete samples)"
+    journal: "Biometrika"
+    publisher: "Biometrika"
+    volume: 52
+    issue: 3-4
+    pages: "591-611"
+    doi: "10.1093/biomet/52.3-4.591"
+    url: "https://doi.org/10.1093/biomet/52.3-4.591"
+
+  Jones2021:
+    type: article
+    author: "Jones, P. J., Ma, R., & McNally, R. J."
+    year: 2021
+    title: "Bridge Centrality: A Network Approach to Understanding Comorbidity"
+    journal: "Multivariate Behavioral Research"
+    publisher: "Multivariate Behavioral Research"
+    volume: 56
+    issue: 2
+    pages: "353-367"
+    doi: "10.1080/00273171.2019.1614898"
+    url: "https://doi.org/10.1080/00273171.2019.1614898"
+
+  Blondel2008:
+    type: article
+    author: "Blondel, V. D., Guillaume, J.-L., Lambiotte, R., & Lefebvre, E."
+    year: 2008
+    title: "Fast unfolding of communities in large networks"
+    journal: "Journal of Statistical Mechanics: Theory and Experiment"
+    publisher: "Journal of Statistical Mechanics: Theory and Experiment"
+    volume: 2008
+    issue: 10
+    pages: "P10008"
+    doi: "10.1088/1742-5468/2008/10/P10008"
+    url: "https://doi.org/10.1088/1742-5468/2008/10/P10008"
+
+  Rubin1987:
+    type: book
+    author: "Rubin, D. B."
+    year: 1987
+    title: "Multiple Imputation for Nonresponse in Surveys"
+    publisher: "John Wiley & Sons"
+    address: "New York"
+    doi: "10.1002/9780470316696"
+    url: "https://doi.org/10.1002/9780470316696"
+
+  Box1949:
+    type: article
+    author: "Box, G. E. P."
+    year: 1949
+    title: "A general distribution theory for a class of likelihood criteria"
+    journal: "Biometrika"
+    publisher: "Biometrika"
+    volume: 36
+    issue: 3-4
+    pages: "317-346"
+    doi: "10.1093/biomet/36.3-4.317"
+    url: "https://doi.org/10.1093/biomet/36.3-4.317"
+
+  Fisher1936:
+    type: article
+    author: "Fisher, R. A."
+    year: 1936
+    title: "The use of multiple measurements in taxonomic problems"
+    journal: "Annals of Eugenics"
+    publisher: "Annals of Eugenics"
+    volume: 7
+    issue: 2
+    pages: "179-188"
+    doi: "10.1111/j.1469-1809.1936.tb02137.x"
+    url: "https://doi.org/10.1111/j.1469-1809.1936.tb02137.x"
+
+  Benjamini1995:
+    type: article
+    author: "Benjamini, Y., & Hochberg, Y."
+    year: 1995
+    title: "Controlling the false discovery rate: a practical and powerful approach to multiple testing"
+    journal: "Journal of the Royal Statistical Society: Series B"
+    publisher: "Journal of the Royal Statistical Society: Series B"
+    volume: 57
+    issue: 1
+    pages: "289-300"
+    doi: "10.1111/j.2517-6161.1995.tb02031.x"
+    url: "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x"
+
+  Sawilowsky2009:
+    type: article
+    author: "Sawilowsky, S. S."
+    year: 2009
+    title: "New Effect Size Rules of Thumb"
+    journal: "Journal of Modern Applied Statistical Methods"
+    publisher: "Journal of Modern Applied Statistical Methods"
+    volume: 8
+    issue: 2
+    pages: "597-599"
+    doi: "10.22237/jmasm/1257035100"
+    url: "https://doi.org/10.22237/jmasm/1257035100"
+
+  Borenstein2009:
+    type: book
+    author: "Borenstein, M., Hedges, L. V., Higgins, J. P. T., & Rothstein, H. R."
+    year: 2009
+    title: "Introduction to Meta-Analysis"
+    publisher: "John Wiley & Sons"
+    address: "Chichester, UK"
+    doi: "10.1002/9780470743386"
+    url: "https://doi.org/10.1002/9780470743386"
+  Lakens2013:
+    type: article
+    author: "Lakens, D."
+    year: 2013
+    title: "Equivalence testing for psychological research: A tutorial on the two one-sided tests procedure"
+    journal: "Social Psychological and Personality Science"
+    publisher: "Social Psychological and Personality Science"
+    volume: 8
+    issue: 4
+    pages: "355-362"
+    doi: "10.1177/1948550617697177"
+    url: "https://doi.org/10.1177/1948550617697177"
+
+  Schuirmann1987:
+    type: article
+    author: "Schuirmann, D. J."
+    year: 1987
+    title: "A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability"
+    journal: "Journal of Pharmacokinetics and Biopharmaceutics"
+    publisher: "Journal of Pharmacokinetics and Biopharmaceutics"
+    volume: 15
+    issue: 6
+    pages: "657-680"
+    doi: "10.1007/BF01068419"
+    url: "https://doi.org/10.1007/BF01068419"
+
+  Fleiss2003:
+    type: book
+    author: "Fleiss, J. L., Levin, B., & Paik, M. C."
+    year: 2003
+    title: "Statistical Methods for Rates and Proportions"
+    edition: "3rd"
+    publisher: "John Wiley & Sons"
+    address: "Hoboken, NJ"
+    doi: "10.1002/0471445428"
+    url: "https://doi.org/10.1002/0471445428"
+
+  McNemar1947:
+    type: article
+    author: "McNemar, Q."
+    year: 1947
+    title: "Note on the sampling error of the difference between correlated proportions or percentages"
+    journal: "Psychometrika"
+    publisher: "Psychometrika"
+    volume: 12
+    issue: 2
+    pages: "153-157"
+    doi: "10.1007/BF02295996"
+    url: "https://doi.org/10.1007/BF02295996"
+
+  Mahalanobis1936:
+    type: article
+    author: "Mahalanobis, P. C."
+    year: 1936
+    title: "On the generalised distance in statistics"
+    journal: "Proceedings of the National Institute of Sciences of India"
+    publisher: "Proceedings of the National Institute of Sciences of India"
+    volume: 2
+    issue: 1
+    pages: "49-55"
+
+  Rousseeuw1999:
+    type: article
+    author: "Rousseeuw, P. J., & Van Driessen, K."
+    year: 1999
+    title: "A fast algorithm for the minimum covariance determinant estimator"
+    journal: "Technometrics"
+    publisher: "Technometrics"
+    volume: 41
+    issue: 3
+    pages: "212-223"
+    doi: "10.1080/00401706.1999.10485670"
+    url: "https://doi.org/10.1080/00401706.1999.10485670"
+
+  Hubert2008:
+    type: article
+    author: "Hubert, M., & Vandervieren, E."
+    year: 2008
+    title: "An adjusted boxplot for skewed distributions"
+    journal: "Computational Statistics & Data Analysis"
+    publisher: "Computational Statistics & Data Analysis"
+    volume: 52
+    issue: 12
+    pages: "5186-5201"
+    doi: "10.1016/j.csda.2007.11.008"
+    url: "https://doi.org/10.1016/j.csda.2007.11.008"
+
+  Jennrich1970:
+    type: article
+    author: "Jennrich, R. I."
+    year: 1970
+    title: "An Asymptotic Chi-Square Test for the Equality of Two Correlation Matrices"
+    journal: "Journal of the American Statistical Association"
+    publisher: "Journal of the American Statistical Association"
+    volume: 65
+    issue: 330
+    pages: "904-912"
+    doi: "10.1080/01621459.1970.10481133"
+    url: "https://doi.org/10.1080/01621459.1970.10481133"
+
+  Bartlett1937:
+    type: article
+    author: "Bartlett, M. S."
+    year: 1937
+    title: "Some examples of statistical methods of research in agriculture and applied biology"
+    journal: "Journal of the Royal Statistical Society: Supplement"
+    publisher: "Journal of the Royal Statistical Society: Supplement"
+    volume: 4
+    issue: 2
+    pages: "137-183"
+    doi: "10.2307/2983639"
+    url: "https://doi.org/10.2307/2983639"
+
+  Stephens1974:
+    type: article
+    author: "Stephens, M. A."
+    year: 1974
+    title: "EDF statistics for goodness of fit and some comparisons"
+    journal: "Journal of the American Statistical Association"
+    publisher: "Journal of the American Statistical Association"
+    volume: 69
+    issue: 347
+    pages: "730-737"
+    doi: "10.1080/01621459.1974.10480196"
+    url: "https://doi.org/10.1080/01621459.1974.10480196"
+
+  Royston1993:
+    type: article
+    author: "Royston, P."
+    year: 1993
+    title: "A pocket-calculator algorithm for the Shapiro-Francia test for non-normality"
+    journal: "Statistics in Medicine"
+    publisher: "Statistics in Medicine"
+    volume: 12
+    issue: 2
+    pages: "181-184"
+    doi: "10.1002/sim.4780120209"
+    url: "https://doi.org/10.1002/sim.4780120209"
+
+  MurtaghLegendre2014:
+    type: article
+    author: "Murtagh, F., & Legendre, P."
+    year: 2014
+    title: "Ward's hierarchical agglomerative clustering method: which algorithms implement Ward's criterion?"
+    journal: "Journal of Classification"
+    publisher: "Journal of Classification"
+    volume: 31
+    issue: 3
+    pages: "274-295"
+    doi: "10.1007/s00357-014-9161-z"
+    url: "https://doi.org/10.1007/s00357-014-9161-z"
+
+  Blom1958:
+    type: book
+    author: "Blom, G."
+    year: 1958
+    title: "Statistical Estimates and Transformed Beta-Variables"
+    publisher: "John Wiley & Sons"
+    address: "New York"
+
+  VanDerWaerden1952:
+    type: article
+    author: "van der Waerden, B. L."
+    year: 1952
+    title: "Order tests for the two-sample problem and their power"
+    journal: "Indagationes Mathematicae"
+    publisher: "Indagationes Mathematicae"
+    volume: 14
+    pages: "453-458"
+
+  VarghaDelaney2000:
+    type: article
+    author: 'Vargha, A., & Delaney, H. D.'
+    year: 2000
+    title: 'A critique and improvement of the CL common language effect size statistics of McGraw and Wong'
+    journal: 'Journal of Educational and Behavioral Statistics'
+    publisher: 'Journal of Educational and Behavioral Statistics'
+    volume: 25
+    issue: 2
+    pages: '101-132'
+    doi: '10.3102/10769986025002101'
+    url: "https://doi.org/10.3102/10769986025002101"
+
+  Kerby2014:
+    type: article
+    author: 'Kerby, D. S.'
+    year: 2014
+    title: 'The simple difference formula: An approach to teaching nonparametric correlation'
+    journal: 'Comprehensive Psychology'
+    publisher: 'Comprehensive Psychology'
+    volume: 3
+    pages: '11.IT.3.1'
+    doi: '10.2466/11.IT.3.1'
+    url: "https://doi.org/10.2466/11.IT.3.1"
+
+
+  AlginaKeselmanPenfield2005:
+    type: article
+    author: 'Algina, J., Keselman, H. J., & Penfield, R. D.'
+    year: 2005
+    title: "An alternative to Cohen's standardized mean difference effect size: A robust parameter and confidence interval in the two independent groups case"
+    journal: 'Psychological Methods'
+    publisher: 'Psychological Methods'
+    volume: 10
+    issue: 3
+    pages: '317-328'
+    doi: '10.1037/1082-989X.10.3.317'
+    url: "https://doi.org/10.1037/1082-989X.10.3.317"
+
+  AkritasArnold1994:
+    type: article
+    author: 'Akritas, M. G., & Arnold, S. F.'
+    year: 1994
+    title: 'Fully nonparametric hypotheses for factorial designs I: Multivariate relative effects'
+    journal: 'Journal of the American Statistical Association'
+    publisher: 'Journal of the American Statistical Association'
+    volume: 89
+    issue: 425
+    pages: '336-343'
+    doi: '10.1080/01621459.1994.10476475'
+    url: "https://doi.org/10.1080/01621459.1994.10476475"
+
+  Cramer1946:
+    type: book
+    author: 'Cramér, H.'
+    year: 1946
+    title: 'Mathematical Methods of Statistics'
+    publisher: 'Princeton University Press'
+    address: 'Princeton, NJ'
+
+
+    url: "https://doi.org/10.1515/9781400883868"
+
+  Cochran1954:
+    type: article
+    author: 'Cochran, W. G.'
+    year: 1954
+    title: 'The combination of estimates from different experiments'
+    journal: 'Biometrics'
+    publisher: 'Biometrics'
+    volume: 10
+    issue: 1
+    pages: '101-129'
+    doi: '10.2307/3001666'
+    url: "https://doi.org/10.2307/3001666"
+
+  BarnardRubin1999:
+    type: article
+    author: "Barnard, J., & Rubin, D. B."
+    year: 1999
+    title: "Small-sample degrees of freedom with multiple imputation"
+    journal: "Biometrika"
+    publisher: "Biometrika"
+    volume: 86
+    issue: 4
+    pages: "948-955"
+    doi: "10.1093/biomet/86.4.948"
+    url: "https://doi.org/10.1093/biomet/86.4.948"
+
+  Lex2014:
+    type: article
+    author: "Lex, A., Gehlenborg, N., Strobelt, H., Vuillemot, R., & Pfister, H."
+    year: 2014
+    title: "UpSet: Visualization of Intersecting Sets"
+    journal: "IEEE Transactions on Visualization and Computer Graphics"
+    publisher: "IEEE Transactions on Visualization and Computer Graphics"
+    volume: 20
+    issue: 12
+    pages: "1983-1992"
+    doi: "10.1109/TVCG.2014.2346248"
+    url: "https://doi.org/10.1109/TVCG.2014.2346248"
+
+  vanBorkulo2022:
+    type: article
+    author: "van Borkulo, C. D., Boschloo, L., Borsboom, D., Penninx, B. W. J. H., Waldorp, L. J., & Schoevers, R. A."
+    year: 2022
+    title: "Comparing network structures on three aspects: A permutation test"
+    journal: "Psychological Methods"
+    publisher: "Psychological Methods"
+    volume: 28
+    issue: 6
+    pages: "1273-1285"
+    doi: "10.1037/met0000476"
+    url: "https://doi.org/10.1037/met0000476"
+
+  Spirtes2000:
+    type: book
+    author: "Spirtes, P., Glymour, C. N., & Scheines, R."
+    year: 2000
+    title: "Causation, Prediction, and Search"
+    edition: "2nd"
+    publisher: "MIT Press"
+    address: "Cambridge, MA"
+
+
+    url: "https://mitpress.mit.edu/9780262194402/causation-prediction-and-search/"
+
+  networktools:
+    type: software
+    author: "Jones, P."
+    year: 2025
+    title: "networktools: Tools for Identifying Important Nodes in Networks"
+    publisher: "[R package]"
+    url: "https://CRAN.R-project.org/package=networktools"
+
+  gridExtra:
+    type: software
+    author: "Auguie, B."
+    year: 2017
+    title: 'gridExtra: Miscellaneous Functions for "Grid" Graphics'
+    publisher: "[R package]"
+    url: "https://CRAN.R-project.org/package=gridExtra"
+
+  tidyr:
+    type: software
+    author: "Wickham, H., Vaughan, D., & Girlich, M."
+    year: 2025
+    title: "tidyr: Tidy Messy Data"
+    publisher: "[R package]"
+    url: "https://CRAN.R-project.org/package=tidyr"
+
+  Fisher1925:
+    type: book
+    author: "Fisher, R. A."
+    year: 1925
+    title: "Statistical Methods for Research Workers"
+    publisher: "Oliver and Boyd"
+
+  DunnClark1969:
+    type: article
+    author: "Dunn, O. J., & Clark, V. A."
+    year: 1969
+    title: "Correlation Coefficients Measured on the Same Individuals"
+    journal: "Journal of the American Statistical Association"
+    publisher: "Journal of the American Statistical Association"
+    volume: 64
+    issue: 325
+    pages: "366-377"
+    doi: "10.1080/01621459.1969.10500981"
+    url: "https://doi.org/10.1080/01621459.1969.10500981"
+
+  Raghunathan1996:
+    type: article
+    author: "Raghunathan, T. E., Rosenthal, R., & Rubin, D. B."
+    year: 1996
+    title: "Comparing correlated but nonoverlapping correlations"
+    journal: "Psychological Methods"
+    publisher: "Psychological Methods"
+    volume: 1
+    issue: 2
+    pages: "178-183"
+    doi: "10.1037/1082-989X.1.2.178"
+    url: "https://doi.org/10.1037/1082-989X.1.2.178"
+
+  IBMModelerAlgorithms:
+    type: book
+    author: "IBM Corporation"
+    year: "n.d."
+    title: "IBM SPSS Modeler 18.1.1 Algorithms Guide"
+    publisher: "IBM Corporation"
+    url: "https://public.dhe.ibm.com/software/analytics/spss/documentation/modeler/18.1.1/en/AlgorithmsGuide.pdf"
+
+  Connor1987:
+    type: article
+    author: "Connor, R. J."
+    year: 1987
+    title: "Sample Size for Testing Differences in Proportions for the Paired-Sample Design"
+    journal: "Biometrics"
+    publisher: "Biometrics"
+    volume: 43
+    issue: 1
+    pages: "207-211"
+    doi: "10.2307/2531961"
+    url: "https://doi.org/10.2307/2531961"
+
+  SmithsonVerkuilen2006:
+    type: article
+    author: "Smithson, M., & Verkuilen, J."
+    year: 2006
+    title: "A better lemon squeezer? Maximum-likelihood regression with beta-distributed dependent variables"
+    publisher: "Psychological Methods, 11(1), 54-71"
+    url: "https://doi.org/10.1037/1082-989X.11.1.54"

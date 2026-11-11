@@ -7,11 +7,6 @@ items:
       type: Html
       visible: true
 
-    - name: ameBenchmark
-      title: AME Interpretation Benchmark
-      type: Html
-      visible: (use_glm)
-
     - name: effectSizeTable
       title: Within-Subjects Effect Sizes (Time Effects)
       type: Table
@@ -27,10 +22,10 @@ items:
         - dep_vars_cs
         - indep_vars_cs
         - dep_vars_long
-        - indep_vars_long
         - include_interactions
         - es_method
         - reference_group
+        - glass_references
         - use_glm
         - es_glm
         - ci_method
@@ -44,7 +39,6 @@ items:
         - es_method_long
         - reference_group_long
         - cov
-        - cov_long
       columns:
         - name: dv
           title: DV
@@ -63,74 +57,12 @@ items:
         - name: es_value
           title: Effect Size
           type: number
-          format: dp:3
         - name: ci_lower
           title: CI Lower
           type: number
-          format: dp:3
         - name: ci_upper
           title: CI Upper
           type: number
-          format: dp:3
-        - name: interpretation
-          title: Interpretation
-          type: text
-        - name: n_obs
-          title: N
-          type: integer
-
-    - name: effectSizeTableLongBetween
-      title: Between-Subjects Effect Sizes (Group Differences)
-      type: Table
-      visible: (run_analysis && mode == 'longitudinal')
-      refs:
-        - effectsize
-        - emmeans
-        - Cohen1988
-        - AlginaKeselmanPenfield2005
-        - AkritasArnold1994
-      clearWith:
-        - mode
-        - dep_vars_long
-        - indep_vars_long
-        - include_interactions
-        - es_method
-        - ci_method
-        - n_bootstrap
-        - ci_level
-        - run_analysis
-        - long_format
-        - wave_vars
-        - time_var
-        - cov
-        - cov_long
-      columns:
-        - name: dv
-          title: Time Point
-          type: text
-          combineBelow: true
-        - name: iv
-          title: Grouping Variable
-          type: text
-          combineBelow: true
-        - name: comparison
-          title: Comparison
-          type: text
-        - name: method
-          title: Method
-          type: text
-        - name: es_value
-          title: Effect Size
-          type: number
-          format: dp:3
-        - name: ci_lower
-          title: CI Lower
-          type: number
-          format: dp:3
-        - name: ci_upper
-          title: CI Upper
-          type: number
-          format: dp:3
         - name: interpretation
           title: Interpretation
           type: text
@@ -153,6 +85,7 @@ items:
         - include_interactions
         - es_method
         - reference_group
+        - glass_references
         - use_glm
         - es_glm
         - ci_method
@@ -161,7 +94,6 @@ items:
         - run_analysis
         - show_cles
         - cov
-        - cov_long
       columns:
         - name: dv
           title: DV
@@ -177,7 +109,6 @@ items:
         - name: cles
           title: CLES
           type: number
-          format: dp:3
 
     - name: clesLongTable
       title: Common Language Effect Size (CLES) - Paired Samples
@@ -191,7 +122,6 @@ items:
         - mode
         - run_analysis
         - dep_vars_long
-        - indep_vars_long
         - long_format
         - time_var
         - wave_vars
@@ -200,7 +130,6 @@ items:
         - reference_group_long
         - show_cles_long
         - cov
-        - cov_long
       columns:
         - name: dv
           title: DV
@@ -212,10 +141,9 @@ items:
         - name: cles
           title: CLES (paired)
           type: number
-          format: dp:3
 
     - name: conversionTable
-      title: Multi-Metric Effect Size Conversions
+      title: Independent Cohen's d Conversions
       type: Table
       visible: (run_analysis && show_conversions)
       refs:
@@ -226,8 +154,9 @@ items:
         - dep_vars_cs
         - indep_vars_cs
         - dep_vars_long
-        - indep_vars_long
         - include_interactions
+        - cov
+        - use_glm
         - es_method
         - es_method_long
         - long_format
@@ -247,23 +176,18 @@ items:
         - name: cohen_d
           title: "Cohen's d"
           type: number
-          format: dp:3
         - name: correlation_r
-          title: "Point-Biserial r"
+          title: "Point-Biserial r (pooled t)"
           type: number
-          format: dp:3
         - name: eta_squared
           title: "Eta-squared (η²)"
           type: number
-          format: dp:3
         - name: odds_ratio
-          title: "Odds Ratio (OR)"
+          title: "Approx. Odds Ratio (OR)"
           type: number
-          format: dp:3
         - name: auc
-          title: "AUC / Prob. Superiority"
+          title: "Normal-model AUC"
           type: number
-          format: dp:3
         - name: interpretation
           title: Interpretation
           type: text
@@ -271,17 +195,17 @@ items:
     - name: categoricalTable
       title: Categorical Effect Sizes (Association & Risk)
       type: Table
-      visible: (show_categorical_es)
+      visible: (!is.null(cat_var1) && !is.null(cat_var2))
       refs:
         - Cramer1946
         - Cohen1988
+        - effectsize
       clearWith:
         - cat_var1
         - cat_var2
         - ci_method
         - ci_level
         - n_bootstrap
-        - show_categorical_es
       columns:
         - name: pair
           title: Variable Pair
@@ -292,15 +216,12 @@ items:
         - name: value
           title: Estimate
           type: number
-          format: dp:3
         - name: ci_lower
           title: CI Lower
           type: number
-          format: dp:3
         - name: ci_upper
           title: CI Upper
           type: number
-          format: dp:3
         - name: interpretation
           title: Interpretation
           type: text
@@ -320,6 +241,8 @@ items:
         - stat_val
         - stat_df1
         - stat_df2
+        - stat_rows
+        - stat_cols
         - stat_n
         - calc_from_test_stat
       columns:
@@ -332,7 +255,6 @@ items:
         - name: value
           title: Value
           type: number
-          format: dp:3
         - name: interpretation
           title: Benchmark Interpretation
           type: text
@@ -347,15 +269,24 @@ items:
       height: 450
       renderFun: .renderESPlot
       visible: (run_analysis && show_es_plot)
-      requiresData: true
-      refs:
-        - ggplot2
+      requiresData: false
       clearWith:
+        - cov
+        - reference_group
+        - glass_references
+        - reference_group_long
+        - use_glm
+        - es_glm
+        - ci_method
+        - n_bootstrap
+        - ci_level
+        - benchmark_standard
+        - show_cles
+        - show_cles_long
         - mode
         - dep_vars_cs
         - indep_vars_cs
         - dep_vars_long
-        - indep_vars_long
         - include_interactions
         - es_method
         - es_method_long
@@ -377,10 +308,10 @@ items:
         - dep_vars_cs
         - indep_vars_cs
         - dep_vars_long
-        - indep_vars_long
         - include_interactions
         - es_method
         - reference_group
+        - glass_references
         - use_glm
         - es_glm
         - ci_method
@@ -393,7 +324,6 @@ items:
         - subject_id_var
         - es_method_long
         - reference_group_long
-        - show_categorical_es
         - cat_var1
         - cat_var2
         - calc_from_test_stat

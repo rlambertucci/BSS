@@ -4,17 +4,33 @@ correlationComparisonClass <- R6::R6Class(
   inherit = correlationComparisonBase,
   private = list(
     
+    .update_help = function() {
+      mode <- self$options$mode
+      if (length(mode) != 1) mode <- ""
+      configured <- switch(mode,
+        independent = if (identical(self$options$independent_input_type, "raw")) length(c(self$options$indep_var_x, self$options$indep_var_y, self$options$indep_group)) > 0 else TRUE,
+        dependent = TRUE,
+        dep_nonoverlapping = TRUE,
+        multigroup = length(c(self$options$multi_var_x, self$options$multi_var_y, self$options$multi_group)) > 0,
+        partial_comparison = length(c(self$options$partial_var_x, self$options$partial_var_y, self$options$partial_group)) > 0,
+        jennrich = length(self$options$vars_jennrich) > 0,
+        FALSE
+      )
+      if (!is.null(self$results$comparisonInfo)) self$results$comparisonInfo$setVisible(!configured)
+    },
+
     .init = function() {
+      private$.update_help()
       info_html <- paste0(
-        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
+        '<div>',
         '<ul>',
-        '<li><b>Independent Comparison</b> &rarr; Tests whether two correlation coefficients ',
-        'obtained from <b>two independent groups</b> differ. <i>Fisher (1921); Zou (2007).</i></li>',
-        '<li><b>Dependent Overlapping</b> &rarr; Tests correlations sharing a variable (r<sub>12</sub> vs. r<sub>13</sub>). <i>Steiger (1980).</i></li>',
-        '<li><b>Dependent Non-Overlapping</b> &rarr; Tests correlations without shared variables (r<sub>12</sub> vs. r<sub>34</sub>). <i>Steiger (1980).</i></li>',
-        '<li><b>Multi-Group Homogeneity Test</b> &rarr; Tests whether correlations across <b>k &ge; 2 independent groups</b> are homogeneous via Cochran\'s Q / &chi;&sup2; test. <i>Cochran (1954); Fisher (1925).</i></li>',
-        '<li><b>Partial Correlation Comparison</b> &rarr; Compares partial correlation r<sub>XY.Z</sub> between two independent groups controlling for covariates Z. <i>Steiger (1980).</i></li>',
-        '<li><b>Jennrich Matrix Test</b> &rarr; Asymptotic &chi;&sup2; test for correlation matrix equality. <i>Jennrich (1970).</i></li>',
+        '<li><b>Independent Comparison</b> \u2192 Tests whether two correlation coefficients ',
+        'obtained from <b>two independent groups</b> differ. <i>Fisher (1921, 1925); Zou (2007).</i></li>',
+        '<li><b>Dependent Overlapping</b> \u2192 Tests correlations sharing a variable (r<sub>12</sub> vs. r<sub>13</sub>). <i>Williams (1959); Zou (2007).</i></li>',
+        '<li><b>Dependent Non-Overlapping</b> \u2192 Tests correlations without shared variables (r<sub>12</sub> vs. r<sub>34</sub>). <i>Dunn and Clark (1969); Raghunathan et al. (1996); Zou (2007).</i></li>',
+        '<li><b>Multi-Group Homogeneity Test</b> \u2192 Tests whether correlations across <b>k \u2265 2 independent groups</b> are homogeneous via Cochran\'s Q / \u03c7\u00b2 test. <i>Cochran (1954); Fisher (1925).</i></li>',
+        '<li><b>Partial Correlation Comparison</b> \u2192 Compares partial correlation r<sub>XY.Z</sub> between two independent groups controlling for covariates Z. <i>Steiger (1980).</i></li>',
+        '<li><b>Jennrich Matrix Test</b> \u2192 Asymptotic \u03c7\u00b2 test for correlation matrix equality. <i>Jennrich (1970).</i></li>',
         '</ul>',
         '</div>'
       )
@@ -32,12 +48,14 @@ correlationComparisonClass <- R6::R6Class(
     },
     
     .run = function() {
+      private$.update_help()
       mode <- self$options$mode
       if (private$.is_empty(mode)) return()
       
       table <- self$results$comparisonTable
-      try(table$setNote("warning", NULL), silent = TRUE)
-      try(table$setNote("diff_ci", NULL), silent = TRUE)
+      self$results$ciPlot$setState(NULL)
+      table$setNote("warning", NULL)
+      table$setNote("diff_ci", NULL)
       
       if ('statistic' %in% names(table$columns)) {
         table$getColumn('statistic')$setTitle("Statistic")
@@ -63,7 +81,7 @@ correlationComparisonClass <- R6::R6Class(
       input_type <- self$options$independent_input_type
       table$setNote(
         "citation",
-        "Note. Fisher's Z-transformation is used to compare two independent correlation coefficients. Confidence interval for difference based on Zou (2007). Citations: Fisher, R. A. (1921). Metron, 1, 3-32; Zou, G. Y. (2007). Psychol Methods, 12(4), 399-413."
+        "Fisher's r-to-Z transformation and Z-test compare two independent correlation coefficients. Confidence interval for the difference based on Zou's method."
       )
       if (input_type == "raw") {
         data <- self$data
@@ -79,7 +97,7 @@ correlationComparisonClass <- R6::R6Class(
         x_vec <- x_vec[valid]; y_vec <- y_vec[valid]; g_fac <- droplevels(g_fac[valid])
         lvls <- levels(g_fac)
         if (length(lvls) != 2) {
-          table$setNote("warning", "Warning: Grouping variable must contain exactly 2 levels for independent comparison.")
+          jmvcore::reject("Warning: Grouping variable must contain exactly 2 levels for independent comparison.", code = "invalid_correlation_comparison")
           return()
         }
         idx1 <- g_fac == lvls[1]
@@ -87,12 +105,12 @@ correlationComparisonClass <- R6::R6Class(
         n1 <- sum(idx1)
         n2 <- sum(idx2)
         if (n1 < 4 || n2 < 4) {
-          table$setNote("warning", "Warning: Sample size in each group must be at least 4.")
+          jmvcore::reject("Warning: Sample size in each group must be at least 4.", code = "invalid_correlation_comparison")
           return()
         }
         r1 <- stats::cor(x_vec[idx1], y_vec[idx1])
         r2 <- stats::cor(x_vec[idx2], y_vec[idx2])
-        table$setNote("raw_data_note", paste0("Note. Estimated correlations from raw data: ", lvls[1], " (n = ", n1, ", r = ", round(r1, 3), ") vs ", lvls[2], " (n = ", n2, ", r = ", round(r2, 3), ")."))
+        table$setNote("raw_data_note", paste0("Estimated correlations from raw data: ", lvls[1], " (n = ", n1, ", r = ", round(r1, 3), ") vs ", lvls[2], " (n = ", n2, ", r = ", round(r2, 3), ")."))
       } else {
         n1 <- self$options$independent_n1
         n2 <- self$options$independent_n2
@@ -101,15 +119,15 @@ correlationComparisonClass <- R6::R6Class(
         if (private$.is_empty(n1) || private$.is_empty(n2) || private$.is_empty(r1) || private$.is_empty(r2)) return()
       }
       if (n1 < 4 || n2 < 4) {
-        table$setNote("warning", "Warning: Sample size in each group must be at least 4.")
+        jmvcore::reject("Warning: Sample size in each group must be at least 4.", code = "invalid_correlation_comparison")
         return()
       }
       if (abs(r1) > 1 || abs(r2) > 1) {
-        table$setNote("warning", "Warning: Correlation coefficients must be bounded within [-1, 1].")
+        jmvcore::reject("Warning: Correlation coefficients must be bounded within [-1, 1].", code = "invalid_correlation_comparison")
         return()
       }
       if (abs(r1) == 1 || abs(r2) == 1) {
-        table$setNote("warning", "Warning: Fisher's Z-transformation is undefined for perfect correlations (|r| = 1).")
+        jmvcore::reject("Warning: Fisher's Z-transformation is undefined for perfect correlations (|r| = 1).", code = "invalid_correlation_comparison")
         return()
       }
       z1 <- atanh(r1)
@@ -131,7 +149,7 @@ correlationComparisonClass <- R6::R6Class(
       ci_lower <- diff_r - sqrt((r1 - l1)^2 + (u2 - r2)^2)
       ci_upper <- diff_r + sqrt((u1 - r1)^2 + (r2 - l2)^2)
       
-      table$setNote("diff_ci", sprintf("Difference (r1 - r2) = %.3f, 95%% CI: %.3f to %.3f (Zou, 2007).", diff_r, ci_lower, ci_upper))
+      table$setNote("diff_ci", sprintf("Difference (r1 - r2) = %.3f, 95%% CI: %.3f to %.3f.", diff_r, ci_lower, ci_upper))
       if ('statistic' %in% names(table$columns)) table$getColumn('statistic')$setTitle("Z")
       
       table$setRow(rowNo = 1, values = list(
@@ -170,36 +188,36 @@ correlationComparisonClass <- R6::R6Class(
       
       table$setNote(
         "citation",
-        "Note. Williams' t-test (Hotelling-Williams modification) compares two dependent correlations sharing a common variable. Confidence interval based on Zou (2007). Citations: Williams, E. J. (1959). JRSS B, 21(2), 396-399; Steiger, J. H. (1980). Psychol Bull, 87(2), 244-251; Zou, G. Y. (2007). Psychol Methods, 12(4), 399-413."
+        "Williams' t-test (Hotelling-Williams modification) compares two dependent correlations sharing a common variable. Confidence interval for the difference based on Zou's method."
       )
       
       if (private$.is_empty(n) || private$.is_empty(r12) || private$.is_empty(r13) || private$.is_empty(r23)) return()
       
       if (n < 4) {
-        table$setNote("warning", "Warning: Sample size (N) must be at least 4 for Williams' t-test.")
+        jmvcore::reject("Warning: Sample size (N) must be at least 4 for Williams' t-test.", code = "invalid_correlation_comparison")
         return()
       }
       
       if (abs(r12) > 1 || abs(r13) > 1 || abs(r23) > 1) {
-        table$setNote("warning", "Warning: Correlation coefficients must be bounded within [-1, 1].")
+        jmvcore::reject("Warning: Correlation coefficients must be bounded within [-1, 1].", code = "invalid_correlation_comparison")
         return()
       }
       
       if (abs(r12) == 1 || abs(r13) == 1) {
-        table$setNote("warning", "Warning: Williams' test is undefined for perfect target correlations (|r12| = 1 or |r13| = 1).")
+        jmvcore::reject("Warning: Williams' test is undefined for perfect target correlations (|r12| = 1 or |r13| = 1).", code = "invalid_correlation_comparison")
         return()
       }
       
       det_R <- 1 - r12^2 - r13^2 - r23^2 + 2 * r12 * r13 * r23
       if (det_R <= 1e-10) {
-        table$setNote("warning", "Warning: The correlation matrix implied by r12, r13, and r23 is not positive-definite (det(R) <= 0). Input values are geometrically inconsistent.")
+        jmvcore::reject("Warning: The correlation matrix implied by r12, r13, and r23 is not positive-definite (det(R) <= 0). Input values are geometrically inconsistent.", code = "invalid_correlation_comparison")
         return()
       }
       
       r_bar <- (r12 + r13) / 2
       denom <- 2 * ((n - 1) / (n - 3)) * det_R + (r_bar^2) * ((1 - r23)^3)
       if (denom <= 1e-10) {
-        table$setNote("warning", "Warning: Denominator in Williams' t-statistic is near zero.")
+        jmvcore::reject("Warning: Denominator in Williams' t-statistic is near zero.", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -229,7 +247,7 @@ correlationComparisonClass <- R6::R6Class(
       ci_lower <- diff_r - sqrt(rad_l)
       ci_upper <- diff_r + sqrt(rad_u)
       
-      table$setNote("diff_ci", sprintf("Difference (r12 - r13) = %.3f, 95%% CI: %.3f to %.3f (Zou, 2007).", diff_r, ci_lower, ci_upper))
+      table$setNote("diff_ci", sprintf("Difference (r12 - r13) = %.3f, 95%% CI: %.3f to %.3f.", diff_r, ci_lower, ci_upper))
       if ('statistic' %in% names(table$columns)) {
         table$getColumn('statistic')$setTitle(paste0("t(", df, ")"))
       }
@@ -251,7 +269,7 @@ correlationComparisonClass <- R6::R6Class(
       
       if (isTRUE(self$options$show_ci_plot)) {
         plot_df <- data.frame(
-          label    = c("râ‚â‚‚ (Var 1 vs Var 2)", "râ‚â‚ƒ (Var 1 vs Var 3)"),
+          label    = c("r\u2081\u2082 (Var 1 vs Var 2)", "r\u2081\u2083 (Var 1 vs Var 3)"),
           r        = c(r12, r13),
           ci_lower = c(l1, l2),
           ci_upper = c(u1, u2),
@@ -273,14 +291,14 @@ correlationComparisonClass <- R6::R6Class(
       
       table$setNote(
         "citation",
-        "Note. Steiger's Z-test for non-overlapping dependent correlations (râ‚â‚‚ vs râ‚ƒâ‚„ measured in the same sample). Citations: Steiger, J. H. (1980). Psychol Bull, 87(2), 244-251; Raghunathan, T. E. et al. (1996). Psychol Methods, 1(2), 178-183."
+        "Dunn and Clark's Z-test, algebraically equivalent to the statistic of Raghunathan, Rosenthal, and Rubin, compares non-overlapping dependent correlations (r12 vs r34 measured in the same sample). Confidence interval for the difference based on Zou's method."
       )
       
       if (private$.is_empty(n) || private$.is_empty(r12) || private$.is_empty(r34) ||
           private$.is_empty(r13) || private$.is_empty(r14) || private$.is_empty(r23) || private$.is_empty(r24)) return()
       
       if (n < 5 || abs(r12) >= 1 || abs(r34) >= 1) {
-        table$setNote("warning", "Warning: Sample size must be >= 5 and correlations bounded within (-1, 1).")
+        jmvcore::reject("Warning: Sample size must be >= 5 and correlations bounded within (-1, 1).", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -293,7 +311,7 @@ correlationComparisonClass <- R6::R6Class(
       
       ev <- eigen(R4, symmetric = TRUE, only.values = TRUE)$values
       if (any(ev <= 1e-8)) {
-        table$setNote("warning", "Warning: The implied 4x4 correlation matrix is not positive-definite. Input correlations are geometrically inconsistent.")
+        jmvcore::reject("Warning: The implied 4x4 correlation matrix is not positive-definite. Input correlations are geometrically inconsistent.", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -327,7 +345,7 @@ correlationComparisonClass <- R6::R6Class(
       ci_lower <- diff_r - sqrt(rad_l)
       ci_upper <- diff_r + sqrt(rad_u)
       
-      table$setNote("diff_ci", sprintf("Difference (r12 - r34) = %.3f, 95%% CI: %.3f to %.3f (Zou, 2007).", diff_r, ci_lower, ci_upper))
+      table$setNote("diff_ci", sprintf("Difference (r12 - r34) = %.3f, 95%% CI: %.3f to %.3f.", diff_r, ci_lower, ci_upper))
       if ('statistic' %in% names(table$columns)) table$getColumn('statistic')$setTitle("Z")
       
       table$setRow(rowNo = 1, values = list(
@@ -347,7 +365,7 @@ correlationComparisonClass <- R6::R6Class(
       
       if (isTRUE(self$options$show_ci_plot)) {
         plot_df <- data.frame(
-          label    = c("râ‚â‚‚ (Var 1 vs Var 2)", "râ‚ƒâ‚„ (Var 3 vs Var 4)"),
+          label    = c("r\u2081\u2082 (Var 1 vs Var 2)", "r\u2083\u2084 (Var 3 vs Var 4)"),
           r        = c(r12, r34),
           ci_lower = c(l1, l2),
           ci_upper = c(u1, u2),
@@ -360,6 +378,8 @@ correlationComparisonClass <- R6::R6Class(
     .runMultiGroup = function() {
       mg_table <- self$results$multiGroupTable
       ov_table <- self$results$multiGroupOverallTable
+      ov_table$setNote("excluded_groups", NULL)
+      ov_table$setNote("warning", NULL)
       if (mg_table$rowCount > 0) mg_table$deleteRows()
       
       data <- self$data
@@ -377,9 +397,9 @@ correlationComparisonClass <- R6::R6Class(
       df_clean[[vy]] <- as.numeric(df_clean[[vy]])
       df_clean[[vg]] <- factor(df_clean[[vg]])
       
-      grps <- levels(df_clean[[vg]])
+      grps <- levels(droplevels(factor(data[[vg]])))
       if (length(grps) < 2) {
-        ov_table$setNote("warning", "Grouping variable must have at least 2 distinct levels with valid data.")
+        jmvcore::reject("Grouping variable must have at least 2 distinct levels with valid data.", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -388,13 +408,23 @@ correlationComparisonClass <- R6::R6Class(
       r_vec <- numeric(0)
       n_vec <- integer(0)
       valid_grps <- character(0)
+      excluded_groups <- character(0)
       
       for (g in grps) {
         sub_df <- df_clean[df_clean[[vg]] == g, ]
         n_g <- nrow(sub_df)
-        if (n_g < 4) next
-        r_g <- stats::cor(sub_df[[vx]], sub_df[[vy]])
-        if (is.na(r_g) || abs(r_g) >= 1) next
+        reason <- NULL
+        if (n_g < 4) {
+          reason <- paste0("N = ", n_g, " complete cases; at least 4 required")
+        } else if (!is.finite(stats::var(sub_df[[vx]])) || !is.finite(stats::var(sub_df[[vy]])) || stats::var(sub_df[[vx]]) == 0 || stats::var(sub_df[[vy]]) == 0) {
+          reason <- "zero or non-finite variance; correlation undefined"
+        }
+        r_g <- if (is.null(reason)) stats::cor(sub_df[[vx]], sub_df[[vy]]) else NA_real_
+        if (is.null(reason) && (!is.finite(r_g) || abs(r_g) >= 1)) reason <- "non-finite or perfect correlation; Fisher transformation unavailable"
+        if (!is.null(reason)) {
+          excluded_groups <- c(excluded_groups, paste0(g, " (", reason, ")"))
+          next
+        }
         
         z_g <- atanh(r_g)
         w_g <- n_g - 3
@@ -418,9 +448,10 @@ correlationComparisonClass <- R6::R6Class(
         ))
       }
       
+      if (length(excluded_groups) > 0) ov_table$setNote("excluded_groups", paste0("Excluded groups: ", paste(excluded_groups, collapse = "; "), "."))
       k <- length(valid_grps)
       if (k < 2) {
-        ov_table$setNote("warning", "At least 2 groups with N >= 4 are required to compute homogeneity.")
+        jmvcore::reject("At least 2 groups with N >= 4 are required to compute homogeneity.", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -440,12 +471,12 @@ correlationComparisonClass <- R6::R6Class(
       
       ov_table$setNote(
         "citation",
-        "Note. Cochran's Q (Ï‡Â²) test for correlation homogeneity across k independent groups based on Fisher's z-transformation. Citation: Cochran, W. G. (1954). Biometrics, 10(1), 101-129."
+        "Cochran's Q (\u03c7\u00b2) test for correlation homogeneity across k independent groups based on Fisher's z-transformation."
       )
       
       if (isTRUE(self$options$show_ellipse_plot)) {
         self$results$ellipsePlot$setState(list(
-          df = df_clean[df_clean[[vg]] %in% valid_grps, ],
+          rows = match(rownames(df_clean[df_clean[[vg]] %in% valid_grps, , drop = FALSE]), rownames(self$data)),
           x_col = vx,
           y_col = vy,
           grp_col = vg
@@ -455,6 +486,11 @@ correlationComparisonClass <- R6::R6Class(
     
     .runPartialComparison = function() {
       p_table <- self$results$partialTable
+      p_table$deleteRows()
+      p_table$addRow(rowKey = 1, values = list())
+      p_table$setNote("warning", NULL)
+      p_table$setNote("citation", NULL)
+      self$results$ellipsePlot$setState(NULL)
       data <- self$data
       if (is.null(data)) return()
       
@@ -471,8 +507,8 @@ correlationComparisonClass <- R6::R6Class(
       df_clean <- stats::na.omit(data[, cols_needed])
       df_clean[[vg]] <- factor(df_clean[[vg]])
       lvls <- levels(df_clean[[vg]])
-      if (length(lvls) < 2) {
-        p_table$setNote("warning", "Grouping variable must have at least 2 distinct levels.")
+      if (length(lvls) != 2) {
+        jmvcore::reject("Grouping variable must have exactly 2 distinct levels with complete data.", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -484,22 +520,44 @@ correlationComparisonClass <- R6::R6Class(
       n1 <- nrow(sub1); n2 <- nrow(sub2)
       
       if (n1 <= (k_cov + 3) || n2 <= (k_cov + 3)) {
-        p_table$setNote("warning", paste0("Sample sizes (N1=", n1, ", N2=", n2, ") must exceed k_cov + 3 = ", k_cov + 3, "."))
+        jmvcore::reject(paste0("Sample sizes (N1=", n1, ", N2=", n2, ") must exceed k_cov + 3 = ", k_cov + 3, "."), code = "invalid_correlation_comparison")
         return()
+      }
+
+      numeric_columns <- c(vx, vy, if (k_cov > 0) covs)
+      if (!all(vapply(df_clean[, unique(numeric_columns), drop = FALSE], function(column) is.numeric(column) && !is.complex(column) && is.null(dim(column)) && all(is.finite(column)), logical(1)))) {
+        jmvcore::reject("Correlation variables and controls must contain finite real numeric values in the complete cases.", code = "invalid_correlation_comparison")
+      }
+
+      for (group_data in list(sub1, sub2)) {
+        control_design <- matrix(1, nrow = nrow(group_data), ncol = 1)
+        if (k_cov > 0) control_design <- cbind(control_design, as.matrix(group_data[, covs, drop = FALSE]))
+        if (qr(control_design)$rank != k_cov + 1) {
+          jmvcore::reject("Control variables must be linearly independent within each group; remove constant or redundant controls.", code = "invalid_correlation_comparison")
+        }
+        correlation_design <- scale(cbind(group_data[[vx]], group_data[[vy]]))
+        if (any(!is.finite(correlation_design)) || qr(cbind(control_design, correlation_design), tol = .Machine$double.eps * nrow(group_data))$rank != k_cov + 3) {
+          jmvcore::reject("Variables must have nonzero residual variation and a non-perfect partial correlation within each group.", code = "invalid_correlation_comparison")
+        }
       }
       
       if (k_cov == 0) {
         r_p1 <- stats::cor(sub1[[vx]], sub1[[vy]])
         r_p2 <- stats::cor(sub2[[vx]], sub2[[vy]])
       } else {
-        f_x <- stats::as.formula(paste(vx, "~", paste(covs, collapse = " + ")))
-        f_y <- stats::as.formula(paste(vy, "~", paste(covs, collapse = " + ")))
+        quote_names <- function(names) vapply(names, function(name) paste(deparse(as.name(name), backtick = TRUE), collapse = ""), character(1))
+        f_x <- stats::as.formula(paste(quote_names(vx), "~", paste(quote_names(covs), collapse = " + ")))
+        f_y <- stats::as.formula(paste(quote_names(vy), "~", paste(quote_names(covs), collapse = " + ")))
         rx1 <- stats::residuals(stats::lm(f_x, data = sub1))
         ry1 <- stats::residuals(stats::lm(f_y, data = sub1))
         r_p1 <- stats::cor(rx1, ry1)
         rx2 <- stats::residuals(stats::lm(f_x, data = sub2))
         ry2 <- stats::residuals(stats::lm(f_y, data = sub2))
         r_p2 <- stats::cor(rx2, ry2)
+      }
+
+      if (!is.finite(r_p1) || !is.finite(r_p2) || abs(r_p1) >= 1 || abs(r_p2) >= 1) {
+        jmvcore::reject("Fisher's Z-transformation requires finite partial correlations strictly between -1 and 1 in both groups.", code = "invalid_correlation_comparison")
       }
       
       z1 <- atanh(r_p1); z2 <- atanh(r_p2)
@@ -522,11 +580,11 @@ correlationComparisonClass <- R6::R6Class(
       
       p_table$setNote(
         "citation",
-        paste0("Note. Comparison of partial correlations controlling for ", k_cov, " covariate(s) (Z) using Fisher's Z-test with Var(Z) = 1/(N - k - 3). Citation: Steiger (1980).")
+        paste0("Comparison of partial correlations controlling for ", k_cov, " covariate(s) (Z) using Fisher's Z-test with Var(Z) = 1/(N - k - 3).")
       )
       
       self$results$ellipsePlot$setState(list(
-        df = df_clean[df_clean[[vg]] %in% c(g1, g2), ],
+        rows = match(rownames(df_clean[df_clean[[vg]] %in% c(g1, g2), , drop = FALSE]), rownames(self$data)),
         x_col = vx,
         y_col = vy,
         grp_col = vg
@@ -535,6 +593,7 @@ correlationComparisonClass <- R6::R6Class(
     
     .runJennrich = function() {
       table <- self$results$jennrichTable
+      table$setNote("warning", NULL)
       data <- self$data
       if (is.null(data)) return()
       
@@ -548,8 +607,8 @@ correlationComparisonClass <- R6::R6Class(
       clean_data[[groupVar]] <- factor(clean_data[[groupVar]])
       lvls <- levels(clean_data[[groupVar]])
       
-      if (length(lvls) < 2) {
-        table$setNote("warning", "Grouping variable must have at least 2 distinct levels.")
+      if (length(lvls) != 2) {
+        jmvcore::reject("Grouping variable must have exactly 2 distinct levels with complete data.", code = "invalid_correlation_comparison")
         return()
       }
       
@@ -558,7 +617,7 @@ correlationComparisonClass <- R6::R6Class(
       
       n1 <- nrow(g1_clean); n2 <- nrow(g2_clean); p <- length(vars)
       if (n1 <= p || n2 <= p) {
-        table$setNote("warning", paste0("Sample sizes in both groups (N1 = ", n1, ", N2 = ", n2, ") must exceed the number of variables (p = ", p, ")."))
+        jmvcore::reject(paste0("Sample sizes in both groups (N1 = ", n1, ", N2 = ", n2, ") must exceed the number of variables (p = ", p, ")."), code = "invalid_correlation_comparison")
         return()
       }
       
@@ -597,7 +656,7 @@ correlationComparisonClass <- R6::R6Class(
       
       p <- ggplot2::ggplot(plot_df, ggplot2::aes(y = label, x = r)) +
         ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey60", linewidth = 0.7) +
-        ggplot2::geom_errorbarh(ggplot2::aes(xmin = ci_lower, xmax = ci_upper), height = 0.25, color = "#2c3e50", linewidth = 0.9) +
+        ggplot2::geom_errorbar(ggplot2::aes(xmin = ci_lower, xmax = ci_upper), orientation = "y", width = 0.25, color = "#2c3e50", linewidth = 0.9) +
         ggplot2::geom_point(color = "#e67e22", size = 3.5) +
         ggplot2::scale_x_continuous(limits = c(-1, 1)) +
         ggplot2::labs(
@@ -617,14 +676,17 @@ correlationComparisonClass <- R6::R6Class(
     
     .renderEllipsePlot = function(image, ggtheme, ...) {
       state <- image$state
-      if (is.null(state) || is.null(state$df) || nrow(state$df) == 0) return(FALSE)
+      if (is.null(state) || length(state$rows) == 0 || is.null(self$data)) return(FALSE)
       
-      df <- state$df
+      df <- self$data[state$rows, c(state$x_col, state$y_col, state$grp_col), drop = FALSE]
+      df[[state$x_col]] <- as.numeric(df[[state$x_col]])
+      df[[state$y_col]] <- as.numeric(df[[state$y_col]])
+      df[[state$grp_col]] <- factor(df[[state$grp_col]])
       x_col <- state$x_col
       y_col <- state$y_col
       grp_col <- state$grp_col
       
-      p <- ggplot2::ggplot(df, ggplot2::aes_string(x = x_col, y = y_col, color = grp_col, fill = grp_col)) +
+      p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]], color = .data[[grp_col]], fill = .data[[grp_col]])) +
         ggplot2::geom_point(alpha = 0.65, size = 2) +
         ggplot2::stat_ellipse(type = "norm", level = 0.95, linewidth = 1.1, geom = "polygon", alpha = 0.12) +
         ggplot2::stat_ellipse(type = "norm", level = 0.95, linewidth = 1.1) +

@@ -37,49 +37,70 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       (m4 / (m2^2)) - 3
     },
     
-    .get_normality_p = function(x, test_type = "shapiro") {
+    .normality_result = function(x, test_type = "shapiro") {
       n <- length(x)
-      if (n < 3) return(NA_real_)
+      minimum <- switch(test_type, anderson_darling = 8L, shapiro_francia = 5L, 3L)
+      label <- switch(test_type, anderson_darling = "Anderson-Darling", shapiro_francia = "Shapiro-Francia", "Shapiro-Wilk")
+      if (n < minimum || any(!is.finite(x))) return(list(stat = NA_real_, p = NA_real_, note = paste0(label, " requires at least ", minimum, " finite observations.")))
+      if (stats::sd(x) == 0) return(list(stat = NA_real_, p = NA_real_, note = paste0(label, " is unavailable for constant data.")))
       data_sample <- x
-      if (test_type == "shapiro" && n > 5000) {
-        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-          old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-          on.exit(assign(".Random.seed", old_seed, envir = .GlobalEnv))
-        }
-        set.seed(12345)
+      note <- NULL
+      if (test_type %in% c("shapiro", "shapiro_francia") && n > 5000) {
+        seed_present <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+        previous_seed <- if (seed_present) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+        on.exit({
+          if (seed_present) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+          else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(list = ".Random.seed", envir = .GlobalEnv)
+        }, add = TRUE)
+        set.seed(12345L)
         data_sample <- sample(x, 5000)
+        note <- paste0(label, " uses a deterministic random subsample of 5000 from N = ", n, " (seed 12345); the caller RNG state is restored.")
       }
-      
-      if (test_type == "anderson_darling") {
-        if (requireNamespace("nortest", quietly = TRUE)) {
-          res <- tryCatch(nortest::ad.test(data_sample), error = function(e) NULL)
-          if (!is.null(res)) return(as.numeric(res$p.value))
-        }
-        return(private$.calc_anderson_darling(data_sample)$p)
-      } else if (test_type == "shapiro_francia") {
-        if (requireNamespace("nortest", quietly = TRUE)) {
-          res <- tryCatch(nortest::sf.test(data_sample), error = function(e) NULL)
-          if (!is.null(res)) return(as.numeric(res$p.value))
-        }
-        return(private$.calc_shapiro_francia(data_sample)$p)
-      } else {
-        res <- tryCatch(stats::shapiro.test(data_sample), error = function(e) NULL)
-        if (!is.null(res)) return(as.numeric(res$p.value))
-        return(NA_real_)
-      }
+      error_message <- NULL
+      result <- tryCatch(
+        switch(test_type,
+          anderson_darling = nortest::ad.test(data_sample),
+          shapiro_francia = nortest::sf.test(data_sample),
+          stats::shapiro.test(data_sample)
+        ), error = function(e) { error_message <<- conditionMessage(e); NULL }
+      )
+      if (is.null(result) || !is.finite(result$p.value)) return(list(stat = NA_real_, p = NA_real_, note = paste0(label, " could not be computed. ", error_message)))
+      list(stat = as.numeric(result$statistic), p = as.numeric(result$p.value), note = note)
     },
-    
+
+    .get_normality_p = function(x, test_type = "shapiro") {
+      private$.normality_result(x, test_type)$p
+    },
+
+    .fit_johnson = function(x) {
+      tryCatch(SuppDists::JohnsonFit(x, moment = "quant"),
+        error = function(e) tryCatch(SuppDists::JohnsonFit(x, moment = "find"), error = function(e2) NULL))
+    },
+
+    .bounded_values = function(values) {
+      scale <- if (identical(self$options$bounded_scale, "percentage")) 100 else 1
+      if (length(values) == 0 || any(!is.finite(values)) || any(values < 0 | values > scale)) return(NULL)
+      values / scale
+    },
+
+    .update_help = function() {
+      if (!is.null(self$results$transformInfo)) self$results$transformInfo$setVisible(length(self$options$vars) == 0)
+      scale_notice <- if (length(self$options$vars) > 0 && isTRUE(self$options$method %in% c("boxcox", "yeojohnson"))) "Box-Cox and Yeo-Johnson values are centered and scaled to sample mean zero and sample standard deviation one (bestNormalize default standardize=TRUE). Saved values are not on the raw power-transformation scale." else NULL
+      if (!is.null(self$results$lambdaTable)) self$results$lambdaTable$setNote("transformation_scale", scale_notice)
+    },
+
     .init = function() {
-      if (is.null(self$options$vars) || length(self$options$vars) == 0) return()
+      private$.update_help()
       
       html <- self$results$transformInfo
-      html$setContent("<h3>Data Transformation</h3><p>Power, bounded, and rank-based inverse normal transformations for Gaussian normalization. Missing values (NAs) are preserved.</p>")
+      html$setContent("<h3>Data Transformation</h3><p>Power, bounded, and rank-based inverse normal transformations for Gaussian normalization. Missing values (NAs) are preserved.</p><p>Box-Cox and Yeo-Johnson also center and scale the power-transformed analysis values to sample mean zero and sample standard deviation one (bestNormalize default: standardize = TRUE). Saved values are on this standardized scale, not the raw power-transformation scale.</p><p>Logit uses the Smithson-Verkuilen (2006) compression p_adj = (p*(n-1)+0.5)/n, followed by log(p_adj/(1-p_adj)); this is not a count-based empirical logit.</p>")
+      if (is.null(self$options$vars) || length(self$options$vars) == 0) return()
       
       if (self$options$show_lambda_table) {
         tbl <- self$results$lambdaTable
         tbl$setNote(
           "citation",
-          "Note. Box-Cox and Yeo-Johnson transformations are performed using bestNormalize. Johnson curves follow SuppDists. Arcsine and Logit follow Bartlett (1937) and Cox (1970). Rank-based inverse normal transformations (INT) follow Blom (1958) and van der Waerden (1952). Citations: (1) Peterson (2021); (2) Wheeler (2020); (3) Box & Cox (1964); (4) Yeo & Johnson (2000); (5) Johnson (1949); (6) Bartlett (1937); (7) Blom (1958); (8) van der Waerden (1952)."
+          "Box-Cox and Yeo-Johnson transformations are performed using bestNormalize. Johnson curves follow SuppDists. Arcsine applies to proportions or rates. Logit uses Smithson-Verkuilen (2006) compression p_adj = (p*(n-1)+0.5)/n before log(p_adj/(1-p_adj)); no epsilon parameter is used. Rank-based inverse normal transformations (INT) use the selected plotting-position formula."
         )
         for (var in self$options$vars) {
           if (self$options$method == "johnson") {
@@ -91,7 +112,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           } else if (self$options$method == "arcsine") {
             tbl$addRow(rowKey=var, values=list(variable=var, method="Arcsine", parameter="Scale Factor"))
           } else if (self$options$method == "logit") {
-            tbl$addRow(rowKey=var, values=list(variable=var, method="Empirical Logit", parameter="Epsilon (\u03b5)"))
+            tbl$addRow(rowKey=var, values=list(variable=var, method="Logit (Smithson-Verkuilen)", parameter="Compression sample size (n)"))
           } else if (self$options$method == "int") {
             int_name <- switch(
               self$options$int_formula,
@@ -111,21 +132,22 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       
       if (self$options$show_normality_table) {
         ntbl <- self$results$normalityTable
+        ntbl$setNote("decision", "Labels compare the p-value with the selected significance level; p > alpha does not establish normality. Unavailable tests are reported as 'Not available'.")
         norm_method <- if (!is.null(self$options$normality_test)) self$options$normality_test else "shapiro"
         if (norm_method == "anderson_darling") {
           ntbl$setNote(
             "citation",
-            "Note. Anderson-Darling normality test is performed based on Stephens (1974). Citation: Stephens, M. A. (1974). EDF statistics for goodness of fit and some comparisons. JASA, 69(347), 730-737."
+            "Anderson-Darling normality test evaluates departures from a normal distribution."
           )
         } else if (norm_method == "shapiro_francia") {
           ntbl$setNote(
             "citation",
-            "Note. Shapiro-Francia normality test is performed based on Royston (1993). Citation: Royston, P. (1993). A pocket-calculator algorithm for the Shapiro-Francia test for non-normality. Statistics in Medicine, 12(2), 181-184."
+            "Shapiro-Francia normality test evaluates departures from a normal distribution."
           )
         } else {
           ntbl$setNote(
             "citation",
-            "Note. Shapiro-Wilk normality test is performed using stats::shapiro.test. Citation: Shapiro, S. S., & Wilk, M. B. (1965). An analysis of variance test for normality (complete samples). Biometrika, 52(3/4), 591-611."
+            "Shapiro-Wilk normality test is performed using stats::shapiro.test."
           )
         }
         for (var in self$options$vars) {
@@ -138,12 +160,14 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
         rec_tbl <- self$results$recommendationTable
         rec_tbl$setNote(
           "recommender_note",
-          "Note. Methods are evaluated and ranked by minimizing composite deviation from Gaussian normality: Criterion = |Skewness| + 0.5 \u00d7 |Excess Kurtosis|. Lower criterion scores indicate shapes closer to the standard normal bell curve. Citations: Blom (1958); van der Waerden (1952); Peterson (2021)."
+          "Methods are evaluated and ranked by minimizing composite deviation from Gaussian normality: Criterion = |Skewness| + 0.5 \u00d7 |Excess Kurtosis|. Lower criterion scores indicate shapes closer to the standard normal bell curve."
         )
       }
     },
     
     .run = function() {
+      private$.update_help()
+      self$results$transformStatus$setContent("")
       vars <- self$options$vars
       if (is.null(vars) || length(vars) == 0) return()
       
@@ -154,14 +178,22 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       norm_test <- if (!is.null(self$options$normality_test)) self$options$normality_test else "shapiro"
       int_form <- if (!is.null(self$options$int_formula)) self$options$int_formula else "blom"
       all_treated_vectors <- list()
+      skipped_vars <- character()
       
       for (var in vars) {
         x <- private$.to_numeric_vec(data[[var]])
-        if (is.null(x)) next
+        if (is.null(x)) {
+          skipped_vars <- c(skipped_vars, paste0(var, " (no numeric data)"))
+          next
+        }
         is_valid <- !is.na(x)
         x_clean <- x[is_valid]
         
-        if (length(x_clean) < 3 || stats::var(x_clean) == 0) next
+        if (length(x_clean) < 3 || any(!is.finite(x_clean)) || stats::var(x_clean) == 0) {
+          reason <- if (length(x_clean) < 3) "fewer than 3 valid values" else if (any(!is.finite(x_clean))) "non-finite values" else "zero variance"
+          skipped_vars <- c(skipped_vars, paste0(var, " (", reason, ")"))
+          next
+        }
         
         shift_val <- 0
         x_trans_clean <- NULL
@@ -199,28 +231,27 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
             self$results$lambdaTable$setRow(rowKey=var, values=list(value=yj$lambda, shift_applied="No", shift_value=0))
           }
         } else if (method == "arcsine") {
-          scale_val <- 1
-          if (max(x_clean, na.rm=TRUE) > 1.05 && max(x_clean, na.rm=TRUE) <= 100 && min(x_clean, na.rm=TRUE) >= 0) {
-            scale_val <- 100
+          scale_val <- if (identical(self$options$bounded_scale, "percentage")) 100 else 1
+          p_bounded <- private$.bounded_values(x_clean)
+          if (is.null(p_bounded)) {
+            skipped_vars <- c(skipped_vars, paste0(var, " (requires finite values in [0, ", scale_val, "]; select the correct input scale)"))
+            next
           }
-          p_val <- x_clean / scale_val
-          p_bounded <- pmin(pmax(p_val, 0), 1)
           x_trans_clean <- asin(sqrt(p_bounded))
           if (self$options$show_lambda_table) {
             self$results$lambdaTable$setRow(rowKey=var, values=list(value=scale_val, shift_applied="No", shift_value=0))
           }
         } else if (method == "logit") {
-          scale_val <- 1
-          if (max(x_clean, na.rm=TRUE) > 1.05 && max(x_clean, na.rm=TRUE) <= 100 && min(x_clean, na.rm=TRUE) >= 0) {
-            scale_val <- 100
+          scale_val <- if (identical(self$options$bounded_scale, "percentage")) 100 else 1
+          p_bounded <- private$.bounded_values(x_clean)
+          if (is.null(p_bounded)) {
+            skipped_vars <- c(skipped_vars, paste0(var, " (requires finite values in [0, ", scale_val, "]; select the correct input scale)"))
+            next
           }
-          p_val <- x_clean / scale_val
-          p_bounded <- pmin(pmax(p_val, 0), 1)
-          eps <- 0.001
           p_adj <- (p_bounded * (length(p_bounded) - 1) + 0.5) / length(p_bounded)
           x_trans_clean <- log(p_adj / (1 - p_adj))
           if (self$options$show_lambda_table) {
-            self$results$lambdaTable$setRow(rowKey=var, values=list(value=eps, shift_applied="No", shift_value=0))
+            self$results$lambdaTable$setRow(rowKey=var, values=list(value=length(p_bounded), shift_applied="No", shift_value=0))
           }
         } else if (method == "int") {
           c_val <- switch(
@@ -243,12 +274,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
             )
           }
         } else if (method == "johnson") {
-          jt <- tryCatch(
-            SuppDists::JohnsonFit(x_clean, moment="quant"),
-            error = function(e) {
-              tryCatch(SuppDists::JohnsonFit(x_clean, moment="use"), error = function(e2) NULL)
-            }
-          )
+          jt <- private$.fit_johnson(x_clean)
           
           if (is.null(jt)) {
             if (self$options$show_lambda_table) {
@@ -285,9 +311,11 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
             private$runNormality(var, x_clean, "before", alpha_sw, norm_test)
             private$runNormality(var, x_trans_clean, "after", alpha_sw, norm_test)
           }
-          if (self$options$show_qq_plot) self$results$qqPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
-          if (self$options$show_hist_plot) self$results$histPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
-          if (self$options$show_density_plot) self$results$densityPlots$get(key=var)$setState(data.frame(before=x_clean, after=x_trans_clean))
+          if (self$options$show_qq_plot || self$options$show_hist_plot || self$options$show_density_plot) {
+            image <- self$results$distributionPlots$get(key = var)
+            image$setState(data.frame(before = x_clean, after = x_trans_clean))
+            image$setSize(650, 400 * sum(c(self$options$show_qq_plot, self$options$show_hist_plot, self$options$show_density_plot)))
+          }
         }
         
         if (self$options$show_recommendation_table) {
@@ -315,7 +343,8 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           cands[["Rank-Based INT (Van der Waerden)"]] <- stats::qnorm(p_vdw)
           
           j_try <- tryCatch({
-            jt_fit <- SuppDists::JohnsonFit(x_clean, moment = "quant")
+            jt_fit <- private$.fit_johnson(x_clean)
+            if (is.null(jt_fit)) stop("Johnson fitting failed")
             y_j <- (x_clean - jt_fit$xi) / jt_fit$lambda
             if (jt_fit$type == "SL") y_j <- pmax(y_j, 1e-09)
             if (jt_fit$type == "SB") y_j <- pmin(pmax(y_j, 1e-09), 1 - 1e-09)
@@ -335,12 +364,11 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           shift_sqrt <- if (min_val < 0) abs(min_val) else 0
           cands[["Square Root"]] <- sqrt(x_clean + shift_sqrt)
           
-          if (min_val >= 0 && max(x_clean) <= 100) {
-            scale_prop <- ifelse(max(x_clean) > 1.05, 100, 1)
-            p_unit <- x_clean / scale_prop
-            cands[["Arcsine Square Root"]] <- asin(sqrt(pmin(pmax(p_unit, 0), 1)))
-            p_logit <- (pmin(pmax(p_unit, 0), 1) * (n_c - 1) + 0.5) / n_c
-            cands[["Empirical Logit"]] <- log(p_logit / (1 - p_logit))
+          p_unit <- private$.bounded_values(x_clean)
+          if (!is.null(p_unit)) {
+            cands[["Arcsine Square Root"]] <- asin(sqrt(p_unit))
+            p_logit <- (p_unit * (n_c - 1) + 0.5) / n_c
+            cands[["Logit (Smithson-Verkuilen)"]] <- log(p_logit / (1 - p_logit))
           }
           
           cand_results <- list()
@@ -387,6 +415,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
         }
       }
       
+      if (length(skipped_vars) > 0) self$results$transformStatus$setContent(paste0("Variables not transformed: ", paste(skipped_vars, collapse = "; "), "."))
       if (length(all_treated_vectors) > 0 && self$results$transformedVarsOutput$isNotFilled()) {
         keys <- names(all_treated_vectors)
         titles <- paste0(keys, self$options$suffix)
@@ -397,119 +426,41 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
           measureTypes=rep("continuous", length(keys))
         )
         for (var in keys) self$results$transformedVarsOutput$setValues(key=var, values=all_treated_vectors[[var]])
+        self$results$transformedVarsOutput$setRowNums(rownames(data))
       }
     },
     
     runNormality = function(var, data_clean, moment, alpha, test_type="shapiro") {
-      n <- length(data_clean)
-      if (n < 3) return()
-      
-      data_sample <- data_clean
-      if (test_type == "shapiro" && n > 5000) {
-        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-          old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-          on.exit(assign(".Random.seed", old_seed, envir = .GlobalEnv))
-        }
-        set.seed(12345)
-        data_sample <- sample(data_clean, 5000)
-        self$results$normalityTable$setNote(
-          "sample_size_note",
-          "Note. For sample sizes N > 5000, Shapiro-Wilk statistic is computed on a representative random subsample of N = 5000."
-        )
-      }
-      
-      stat_val <- NA
-      p_val <- NA
-      
-      if (test_type == "anderson_darling") {
-        if (requireNamespace("nortest", quietly = TRUE)) {
-          res <- tryCatch(nortest::ad.test(data_sample), error=function(e) NULL)
-          if (!is.null(res)) {
-            stat_val <- as.numeric(res$statistic)
-            p_val <- as.numeric(res$p.value)
-          }
-        }
-        if (is.na(stat_val)) {
-          ad_res <- private$.calc_anderson_darling(data_sample)
-          stat_val <- ad_res$stat
-          p_val <- ad_res$p
-        }
-      } else if (test_type == "shapiro_francia") {
-        if (requireNamespace("nortest", quietly = TRUE)) {
-          res <- tryCatch(nortest::sf.test(data_sample), error=function(e) NULL)
-          if (!is.null(res)) {
-            stat_val <- as.numeric(res$statistic)
-            p_val <- as.numeric(res$p.value)
-          }
-        }
-        if (is.na(stat_val)) {
-          sf_res <- private$.calc_shapiro_francia(data_sample)
-          stat_val <- sf_res$stat
-          p_val <- sf_res$p
-        }
-      } else {
-        res <- tryCatch(stats::shapiro.test(data_sample), error=function(e) NULL)
-        if (!is.null(res)) {
-          stat_val <- as.numeric(res$statistic)
-          p_val <- as.numeric(res$p.value)
-        }
-      }
-      
+      result <- private$.normality_result(data_clean, test_type)
+      self$results$normalityTable$setNote("sample_size_note", NULL)
+      self$results$normalityTable$setNote(paste0("normality_", var, "_", moment), result$note)
       self$results$normalityTable$setRow(
         rowKey = paste0(var, "_", moment),
         values = list(
-          W = stat_val,
-          p = p_val,
-          result = ifelse(!is.na(p_val) && p_val > alpha, "Normal", "Non-Normal")
+          W = result$stat,
+          p = result$p,
+          result = if (is.na(result$p)) "Not available" else if (result$p > alpha) "p > \u03b1" else "p \u2264 \u03b1"
         )
       )
     },
-    
-    .calc_anderson_darling = function(x) {
-      n <- length(x)
-      s <- stats::sd(x)
-      if (n < 5 || is.na(s) || s == 0) return(list(stat=NA, p=NA))
-      y <- sort((x - mean(x)) / s)
-      p <- stats::pnorm(y)
-      p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-      h <- (2 * seq_len(n) - 1) * (log(p) + log(1 - rev(p)))
-      A <- -n - mean(h)
-      AA <- A * (1 + 0.75 / n + 2.25 / (n^2))
-      
-      pval <- if (AA >= 0.60) {
-        exp(1.2937 - 5.709 * AA + 0.0186 * (AA^2))
-      } else if (AA > 0.34) {
-        exp(0.9177 - 4.279 * AA - 1.38 * (AA^2))
-      } else if (AA > 0.20) {
-        1 - exp(-8.318 + 42.796 * AA - 59.938 * (AA^2))
-      } else {
-        1 - exp(-13.436 + 101.14 * AA - 223.73 * (AA^2))
-      }
-      pval <- max(0, min(1, pval))
-      list(stat = A, p = pval)
+
+    .distributionPlot = function(image, ggtheme, ...) {
+      if (is.null(image$state) || nrow(image$state) == 0) return(FALSE)
+      panels <- list()
+      if (self$options$show_qq_plot) panels[[length(panels) + 1L]] <- private$.qqPlot(image, ggtheme)
+      if (self$options$show_hist_plot) panels[[length(panels) + 1L]] <- private$.histPlot(image, ggtheme)
+      if (self$options$show_density_plot) panels[[length(panels) + 1L]] <- private$.densityPlot(image, ggtheme)
+      if (length(panels) == 0) return(FALSE)
+      grid::grid.draw(gridExtra::arrangeGrob(grobs = panels, ncol = 1))
+      TRUE
     },
-    
-    .calc_shapiro_francia = function(x) {
-      n <- length(x)
-      if (n < 5 || stats::sd(x) == 0) return(list(stat=NA, p=NA))
-      y <- sort(x)
-      m <- stats::qnorm((seq_len(n) - 0.375) / (n + 0.25))
-      w <- (sum(m * y)^2) / (sum(m^2) * sum((y - mean(y))^2))
-      
-      u <- log(log(n)) - log(n)
-      mu <- -1.2725 + 1.0521 * u
-      sig <- 1.0308 - 0.26758 * u
-      z <- (log(1 - pmin(w, 0.99999)) - mu) / sig
-      pval <- stats::pnorm(z, lower.tail = FALSE)
-      list(stat = w, p = pval)
-    },
-    
+
     .qqPlot = function(image, ggtheme, ...) {
       if (is.null(image$state) || nrow(image$state) == 0) return(FALSE)
       df <- image$state
       p1 <- ggplot2::ggplot(df, ggplot2::aes(sample=before)) + ggplot2::stat_qq(color="#336699") + ggplot2::stat_qq_line(color="red") + ggplot2::labs(title="Before Transformation") + ggtheme
       p2 <- ggplot2::ggplot(df, ggplot2::aes(sample=after)) + ggplot2::stat_qq(color="#339966") + ggplot2::stat_qq_line(color="red") + ggplot2::labs(title="After Transformation") + ggtheme
-      print(gridExtra::grid.arrange(p1, p2, ncol=2)); TRUE
+      gridExtra::arrangeGrob(p1, p2, ncol = 2)
     },
     
     .histPlot = function(image, ggtheme, ...) {
@@ -517,7 +468,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
       df <- image$state
       p1 <- ggplot2::ggplot(df, ggplot2::aes(x=before)) + ggplot2::geom_histogram(fill="#336699", bins=30) + ggplot2::labs(title="Before Transformation") + ggtheme
       p2 <- ggplot2::ggplot(df, ggplot2::aes(x=after)) + ggplot2::geom_histogram(fill="#339966", bins=30) + ggplot2::labs(title="After Transformation") + ggtheme
-      print(gridExtra::grid.arrange(p1, p2, ncol=2)); TRUE
+      gridExtra::arrangeGrob(p1, p2, ncol = 2)
     },
     
     .densityPlot = function(image, ggtheme, ...) {
@@ -540,8 +491,7 @@ dataTransformClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class
         ggplot2::labs(title="After (Empirical vs Normal)", x="Value", y="Density") +
         ggtheme
       
-      print(gridExtra::grid.arrange(p1, p2, ncol=2))
-      TRUE
+      gridExtra::arrangeGrob(p1, p2, ncol = 2)
     }
   )
 )

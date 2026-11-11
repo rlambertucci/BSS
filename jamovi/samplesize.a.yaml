@@ -1,5 +1,5 @@
 name:  samplesize
-title: Sample size calculation
+title: "Sample Size Calculation"
 menuGroup: BSS
 menuSubgroup: Study Design & Presentation
 menuSubtitle: Sample size calculation for finite population, animal design, t-tests, TOST and proportions
@@ -12,15 +12,15 @@ options:
     type: List
     options:
       - name: finite
-        title: For finite population
+        title: "Finite population"
       - name: animals
-        title: For animals design
+        title: "Animal designs"
       - name: power_t
-        title: Power & Sample Size for t-tests
+        title: "Power & sample size for t-tests"
       - name: tost
-        title: Equivalence Testing (TOST)
+        title: "Equivalence testing (TOST)"
       - name: proportions
-        title: Proportions & McNemar Test
+        title: "Proportions & McNemar test"
     default: finite
 
   - name: method_finite
@@ -32,27 +32,27 @@ options:
     default: Slovin
 
   - name: population_size_finite
-    title: Population Size (N)
+    title: "Population size (N)"
     type: Integer
     default: 1000
 
   - name: confidence_level_finite
-    title: Confidence Level (%)
+    title: "Confidence level (%)"
     type: Number
     default: 95
 
   - name: margin_error_finite
-    title: Margin of Error (%)
+    title: "Margin of error (%)"
     type: Number
     default: 5
 
   - name: population_proportion_finite
-    title: Population Proportion (p)
+    title: "Population proportion (p)"
     type: Number
     default: 0.5
 
   - name: design_animals
-    title: Design Type
+    title: "Design type"
     type: List
     options:
       - Design 1 (One-way ANOVA)
@@ -61,47 +61,47 @@ options:
     default: Design 1 (One-way ANOVA)
 
   - name: nGroups_animals
-    title: Number of Groups (k) (Designs 1 and 3)
+    title: "Number of groups (k) (designs 1 and 3)"
     type: Integer
     default: 2
 
   - name: nMeasures_animals
-    title: Number of Repeated Measures (r) (Designs 2 and 3)
+    title: "Number of repeated measures (r) (designs 2 and 3)"
     type: Integer
     default: 2
 
   - name: sacrifice_animals
-    title: Animals Sacrificed at Each Measure (Designs 2 and 3)
+    title: "Animals sacrificed at each measure (designs 2 and 3)"
     type: Bool
     default: false
   - name: dropout_animals
-    title: Expected Attrition / Dropout Rate (%)
+    title: "Expected attrition / dropout rate (%)"
     type: Number
     min: 0
     max: 50
     default: 10
 
   - name: calc_power_anova_animals
-    title: Compare with Power-based ANOVA (Festing & Altman, 2002)
+    title: "Power-based ANOVA sample size comparison"
     type: Bool
     default: false
 
   - name: power_f_animals
-    title: Effect Size (Cohen's f)
+    title: "Effect size (Cohen's f)"
     type: Number
     min: 0.05
     max: 2.0
     default: 0.40
 
   - name: power_alpha_animals
-    title: Significance Level (α)
+    title: "Significance level (α)"
     type: Number
     min: 0.001
     max: 0.20
     default: 0.05
 
   - name: power_target_animals
-    title: Target Power (1 - β)
+    title: "Target power (1 - β)"
     type: Number
     min: 0.50
     max: 0.99
@@ -109,34 +109,34 @@ options:
 
   # Power & Sample Size for t-tests (BSS-FEAT-016)
   - name: t_test_type
-    title: Test Type
+    title: "Test type"
     type: List
     options:
       - name: two_sample
-        title: Two-Sample Independent t-test
+        title: "Two-sample independent t-test"
       - name: one_sample
-        title: One-Sample t-test
+        title: "One-sample t-test"
       - name: paired
-        title: Paired-Samples t-test
+        title: "Paired-samples t-test"
     default: two_sample
 
   - name: t_effect_size
-    title: Effect Size (Cohen's d)
+    title: "Effect size (Cohen's d)"
     type: Number
     default: 0.5
 
   - name: t_alpha
-    title: Significance Level (α)
+    title: "Significance level (α)"
     type: Number
     default: 0.05
 
   - name: t_power
-    title: Target Power (1 - β)
+    title: "Target power (1 - β)"
     type: Number
     default: 0.80
 
   - name: t_alternative
-    title: Alternative Hypothesis
+    title: "Alternative hypothesis"
     type: List
     options:
       - name: two_sided
@@ -146,57 +146,57 @@ options:
     default: two_sided
 
   - name: show_power_curve
-    title: Show Power Sensitivity Curves
+    title: "Power sensitivity curves"
     type: Bool
     default: true
 
   - name: curve_n_max
-    title: Maximum Sample Size on Curve
+    title: "Maximum sample size on curve"
     type: Integer
     default: 150
 
   # Equivalence Testing (TOST) (BSS-FEAT-017)
   - name: tost_eq_bound
-    title: Equivalence Bound (Δ in Cohen's d)
+    title: "Equivalence bound (Δ in Cohen's d)"
     type: Number
     default: 0.5
 
   - name: tost_true_diff
-    title: Expected True Difference (δ)
+    title: "Expected true difference (δ)"
     type: Number
     default: 0.0
 
   - name: tost_alpha
-    title: Significance Level (α)
+    title: "Significance level (α)"
     type: Number
     default: 0.05
 
   - name: tost_power
-    title: Target Power (1 - β)
+    title: "Target power (1 - β)"
     type: Number
     default: 0.80
 
   - name: tost_type
-    title: Design Type
+    title: "Design type"
     type: List
     options:
       - name: two_sample
-        title: Two Independent Groups
+        title: "Two independent groups"
       - name: paired
-        title: Paired Samples
+        title: "Paired samples"
     default: two_sample
 
   # Proportions & McNemar Test (BSS-FEAT-018)
   - name: prop_test_type
-    title: Test Type
+    title: "Test type"
     type: List
     options:
       - name: two_prop
-        title: Two Independent Proportions
+        title: "Two independent proportions"
       - name: one_prop
-        title: One Proportion vs. Null Value
+        title: "One proportion vs. null value"
       - name: mcnemar
-        title: Paired Proportions (McNemar Test)
+        title: "Paired proportions (McNemar test)"
     default: two_prop
 
   - name: prop_p1
@@ -210,32 +210,32 @@ options:
     default: 0.40
 
   - name: prop_p0
-    title: Null Proportion (p₀)
+    title: "Null proportion (p₀)"
     type: Number
     default: 0.50
 
   - name: prop_p12
-    title: Discordant Proportion p₁₂ (Case + / Control -)
+    title: "Discordant proportion p₁₂ (case + / control -)"
     type: Number
     default: 0.25
 
   - name: prop_p21
-    title: Discordant Proportion p₂₁ (Case - / Control +)
+    title: "Discordant proportion p₂₁ (case - / control +)"
     type: Number
     default: 0.10
 
   - name: prop_alpha
-    title: Significance Level (α)
+    title: "Significance level (α)"
     type: Number
     default: 0.05
 
   - name: prop_power
-    title: Target Power (1 - β)
+    title: "Target power (1 - β)"
     type: Number
     default: 0.80
 
   - name: prop_alternative
-    title: Alternative Hypothesis
+    title: "Alternative hypothesis"
     type: List
     options:
       - name: two_sided

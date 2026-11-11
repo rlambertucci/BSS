@@ -1,8 +1,8 @@
 Package: BSS
 Type: Package
 Title: BSS
-Version: 0.6.0
-Date: 2026-10-13
+Version: 0.6.1
+Date: 2026-11-03
 Author: Rafael Lambertucci
 Maintainer: Rafael Lambertucci <rlambertucci@unifesp.br>
 Description: This module provides a comprehensive suite of advanced statistical procedures for behavioral and health sciences: 
@@ -15,10 +15,10 @@ Description: This module provides a comprehensive suite of advanced statistical 
   7) Sample size calculation for finite populations, resource equation, t-test power curves, TOST equivalence, and proportions; 
   8) Correlation comparison for independent and dependent coefficients with Jennrich matrix test and CI plots;
   9) Power and bounded transformations for normality (Box-Cox, Yeo-Johnson, Johnson curves, Arcsine, and Logit) with Anderson-Darling and Shapiro-Francia tests;
-  10) Publication-ready group comparison plots, APA 7th HTML export, correlation matrices with significance stars, and clustered heatmaps.
+  10) Publication-ready group comparison plots, native descriptive tables, correlation matrices with significance stars, and clustered heatmaps.
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
-Imports: jmvcore (>= 0.8.5), R6, ggplot2, gridExtra, missRanger, GGally, VIM, effsize, effectsize, bootnet, qgraph, reshape2, gtools, igraph, mgm, mice, lattice, miceadds, bestNormalize, SuppDists, stats, dplyr, tidyr, ARTool, emmeans, MASS
+Imports: jmvcore (>= 0.8.5), R6, ggplot2, grid, gridExtra, missRanger, GGally, VIM, effsize, effectsize, bootnet, qgraph, reshape2, gtools, igraph, mgm, mice, miceadds, bestNormalize, SuppDists, stats, dplyr, tidyr, ARTool, emmeans, MASS, networktools, nortest, cowplot, scales, Hmisc, graphics, grDevices, tools, utils
 Suggests: statmod, knitr, rmarkdown
 RoxygenNote: 7.3.1

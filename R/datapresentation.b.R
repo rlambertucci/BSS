@@ -3,7 +3,27 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
   "DataPresentationClass",
   inherit = DataPresentationBase,
   private = list(
+    .group_names = NULL,
+
+    .groupColumns = function(groups) {
+      reserved <- c("variable", "n", "mean", "sd", "se", "ci_lower", "ci_upper", "median", "min", "max")
+      stats::setNames(tail(make.unique(c(reserved, groups)), length(groups)), groups)
+    },
+
+    .groupLabels = function(groups) {
+      if (is.null(private$.group_names)) return(groups)
+      unname(private$.group_names[groups])
+    },
+
+    .groupColumn = function(group) {
+      columns <- private$.groupColumns(unname(private$.group_names))
+      unname(columns[private$.groupLabels(group)])
+    },
     
+    .quote_names = function(names) {
+      vapply(names, function(name) paste(deparse(as.name(name), backtick = TRUE), collapse = ""), character(1), USE.NAMES = FALSE)
+    },
+
     .to_numeric_vec = function(x) {
       if (is.null(x)) return(NULL)
       if (is.numeric(x)) return(as.numeric(x))
@@ -18,6 +38,99 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       suppressWarnings(as.numeric(x))
     },
     
+    .fitDistribution = function(values, family, ci_prop) {
+      values <- values[!is.na(values)]
+      count <- length(values)
+      if (count < 2) stop("At least two non-missing observations are required.")
+      if (any(!is.finite(values))) stop("All non-missing observations must be finite.")
+      if (any(values <= 0)) stop("All non-missing observations must be strictly positive; no observations were removed.")
+      if (all(values == values[1])) stop("The group is constant; dispersion cannot be estimated.")
+      if (!family %in% c('gamma', 'inv_gaussian')) stop("Unsupported distribution.")
+      average <- mean(values)
+      scaled <- values / average
+      if (any(!is.finite(scaled)) || any(scaled <= 0)) stop("The data range exceeds numerical precision.")
+      if (family == 'gamma') {
+        mean_log <- mean(log(scaled))
+        shape_for <- function(gap) {
+          if (!is.finite(gap) || gap <= 0) stop("Gamma shape cannot be estimated at numerical precision.")
+          equation <- function(log_shape) {
+            shape <- exp(log_shape)
+            difference <- if (shape > 1e5) 1 / (2 * shape) + 1 / (12 * shape^2) else log_shape - digamma(shape)
+            difference - gap
+          }
+          exp(stats::uniroot(equation, c(-30, 36), tol = 1e-10)$root)
+        }
+        shape <- shape_for(-mean_log)
+        fitted_loglik <- sum(stats::dgamma(scaled, shape = shape, scale = 1 / shape, log = TRUE))
+        likelihood_ratio <- function(log_ratio) {
+          inverse_mean <- exp(-log_ratio)
+          gap <- inverse_mean + log_ratio - 1 - mean_log
+          profile_shape <- shape_for(gap)
+          profile_loglik <- sum(stats::dgamma(scaled, shape = profile_shape, scale = exp(log_ratio) / profile_shape, log = TRUE))
+          2 * (fitted_loglik - profile_loglik)
+        }
+        deviation <- average / sqrt(shape)
+      } else {
+        inverse_shape <- mean((scaled - 1)^2 / scaled)
+        if (!is.finite(inverse_shape) || inverse_shape <= 0) stop("Inverse Gaussian shape cannot be estimated at numerical precision.")
+        likelihood_ratio <- function(log_ratio) count * log1p((exp(-log_ratio) - 1)^2 / inverse_shape)
+        deviation <- average * sqrt(inverse_shape)
+        if (count * log1p(1 / inverse_shape) <= stats::qchisq(ci_prop, df = 1)) {
+          stop("The profile-likelihood confidence interval has an unbounded upper limit; no finite interval is available.")
+        }
+      }
+      cutoff <- stats::qchisq(ci_prop, df = 1)
+      confidence_limit <- function(direction) {
+        distance <- 0.25
+        while (distance <= 512) {
+          boundary <- direction * distance
+          value <- likelihood_ratio(boundary) - cutoff
+          if (is.finite(value) && value >= 0) {
+            limits <- sort(c(0, boundary))
+            return(average * exp(stats::uniroot(function(log_ratio) likelihood_ratio(log_ratio) - cutoff, limits, tol = 1e-9)$root))
+          }
+          distance <- distance * 2
+        }
+        stop("The profile-likelihood confidence limit could not be bracketed at numerical precision.")
+      }
+      lower <- confidence_limit(-1)
+      upper <- confidence_limit(1)
+      if (any(!is.finite(c(average, deviation, lower, upper))) || deviation <= 0 || lower <= 0 || lower >= average || upper <= average) {
+        stop("The fitted summary is outside numerical precision.")
+      }
+      list(n = count, mean = average, sd = deviation, se = deviation / sqrt(count), ci_lower = lower, ci_upper = upper,
+           median = stats::median(values), min = min(values), max = max(values))
+    },
+
+    .presentationMessages = function(messages = character()) {
+      if (self$options$plotType == 'density' && self$options$theo_dist != 'none') {
+        messages <- c(messages, "Saved-analysis migration: theoretical density curves have been retired. This plot now shows empirical density only. The previous curve selection has not been converted into a summary distribution.")
+      }
+      self$results$messages$setContent(paste(messages, collapse = "\n"))
+      self$results$messages$setVisible(length(messages) > 0)
+    },
+
+    .plotGroups = function(data, groups, occasion = NULL) {
+      if (!is.null(occasion)) {
+        x_var <- occasion
+        fill_var <- if (length(groups) > 0) interaction(data[groups], sep = " - ") else occasion
+        leg_title <- if (length(groups) > 0) paste(private$.groupLabels(groups), collapse = " & ") else "Time"
+      } else if (length(groups) == 1) {
+        x_var <- data[[groups[1]]]
+        fill_var <- x_var
+        leg_title <- private$.groupLabels(groups[1])
+      } else if (self$options$intStyle == 'legend') {
+        x_var <- data[[groups[1]]]
+        fill_var <- interaction(data[groups[-1]], sep = " - ")
+        leg_title <- paste(private$.groupLabels(groups[-1]), collapse = " & ")
+      } else {
+        x_var <- interaction(data[groups], sep = " - ")
+        fill_var <- x_var
+        leg_title <- "Groups"
+      }
+      list(x_var = x_var, fill_var = fill_var, leg_title = rep(leg_title, length(x_var)))
+    },
+
     .get_rm_dim_name = function(fit, rm_vars) {
       tryCatch({
         rg <- emmeans::ref_grid(fit)
@@ -29,6 +142,13 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
     },
     
     .init = function() {
+      grouping_vars <- if (self$options$analysisType == 'cross_sectional') self$options$group else self$options$group_long
+      private$.syncTableColumns(self$results$descriptiveTable, grouping_vars)
+      private$.formatTableByNorm(self$results$descriptiveTable)
+      num_vars <- if (self$options$analysisType == 'cross_sectional') self$options$deps else self$options$rm_vars
+      private$.syncCorrTableColumns(self$results$corrMatrixTable, num_vars)
+      if (self$results$corrMatrixTable$rowCount > 0) self$results$corrMatrixTable$deleteRows()
+      for (index in seq_along(num_vars)) self$results$corrMatrixTable$addRow(rowKey = index, values = list(num = as.character(index), var = num_vars[index]))
       plots <- self$results$plots
       if (self$options$analysisType == 'cross_sectional') {
         keys <- self$options$deps
@@ -37,7 +157,10 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       }
       
       if (length(keys) > 0) {
-        for (k in keys) plots$addItem(key = k)
+        for (k in keys) {
+          plots$addItem(key = k)
+          if (self$options$analysisType == 'longitudinal') plots$get(key = k)$setTitle("Repeated Measures")
+        }
       }
     },
     
@@ -46,16 +169,20 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         tryCatch(sapply(tbl$columns, function(col) col$name), error = function(e) character(0))
       }
       base_cols <- c("variable", "n", "mean", "sd", "se", "ci_lower", "ci_upper", "median", "min", "max")
+      group_columns <- private$.groupColumns(grouping_vars)
       current_cols <- get_col_names(table)
-      cols_to_remove <- setdiff(current_cols, c(base_cols, grouping_vars))
+      cols_to_remove <- setdiff(current_cols, c(base_cols, unname(group_columns)))
       for (col_name in cols_to_remove) {
-        try(table$deleteColumn(name = col_name), silent = TRUE)
+        table$getColumn(col_name)$setVisible(FALSE)
       }
       current_cols_after_remove <- get_col_names(table)
       for (i in seq_along(grouping_vars)) {
-        g_var <- grouping_vars[[i]]
-        if (!g_var %in% current_cols_after_remove) {
-          table$addColumn(name = g_var, title = g_var, type = 'text', combineBelow = TRUE, index = i + 1)
+        g_var <- unname(group_columns[i])
+        if (g_var %in% current_cols_after_remove) {
+          table$getColumn(g_var)$setTitle(grouping_vars[[i]])
+          table$getColumn(g_var)$setVisible(TRUE)
+        } else {
+          table$addColumn(name = g_var, title = grouping_vars[[i]], type = 'text', combineBelow = TRUE, index = i + 1)
         }
       }
     },
@@ -71,6 +198,13 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       data         <- self$data
       
       if (is.null(data) || nrow(data) == 0) return()
+      self$results$descriptiveTable$setNote('distribution', NULL)
+      self$results$descriptiveTable$setNote('distribution_failures', NULL)
+      grouping_vars <- if (analysisType == 'cross_sectional') self$options$group else self$options$group_long
+      missing_group <- if (length(grouping_vars) > 0) !complete.cases(data[, grouping_vars, drop = FALSE]) else rep(FALSE, nrow(data))
+      self$results$descriptiveTable$setNote('missing_groups', if (any(missing_group)) paste(sum(missing_group), 'rows with missing grouping values excluded from both table and plots.') else NULL)
+      data <- data[!missing_group, , drop = FALSE]
+      if (nrow(data) == 0) jmvcore::reject('No cases with complete grouping values.', code = 'missing_groups')
       
       has_cov <- FALSE
       cov_var <- NULL
@@ -81,13 +215,31 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         has_cov <- !is.null(self$options$cov_long) && self$options$cov_long != ""
         cov_var <- if (has_cov) self$options$cov_long else NULL
       }
+      if (has_cov) {
+        cov_source <- cov_var
+        cov_var <- tail(make.unique(c(names(data), ".bss_covariate")), 1)
+        data[[cov_var]] <- data[[cov_source]]
+      }
+
+      private$.group_names <- NULL
+      if (length(grouping_vars) > 0) {
+        group_keys <- tail(make.unique(c(names(data), paste0(".bss_group_", seq_along(grouping_vars)))), length(grouping_vars))
+        private$.group_names <- stats::setNames(grouping_vars, group_keys)
+        names(data)[match(grouping_vars, names(data))] <- group_keys
+        grouping_vars <- group_keys
+      }
       
+      if (self$options$plotType %in% c('bar', 'meandp') && self$options$summary_distribution != 'normal') {
+        private$.runDistributionPresentation(data, grouping_vars, has_cov)
+        return()
+      }
+
       plot_df_list <- list() 
       plot_stats_list <- list()
       
       if (analysisType == 'cross_sectional') {
         deps        <- self$options$deps
-        groups_vars <- self$options$group
+        groups_vars <- grouping_vars
         
         if (!isTRUE(length(deps) > 0) || !isTRUE(length(groups_vars) > 0)) {
           self$results$messages$setContent("Cross-Sectional: Assign at least one DV and one Grouping Variable.")
@@ -104,37 +256,21 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
           cols_needed <- c(dep, groups_vars)
           if (has_cov) cols_needed <- c(cols_needed, cov_var)
           df_temp <- data[, cols_needed, drop = FALSE]
-          colnames(df_temp)[1] <- "y"
+          df_clean <- df_temp[complete.cases(df_temp), , drop = FALSE]
+          aesthetics <- private$.plotGroups(df_clean, groups_vars)
+          plot_df_list[[dep]] <- data.frame(y = df_clean[[dep]], x_var = aesthetics$x_var,
+                                          fill_var = aesthetics$fill_var, leg_title = aesthetics$leg_title)
           
-          if (length(groups_vars) == 1) {
-            df_temp$x_var    <- df_temp[[groups_vars[1]]]
-            df_temp$fill_var <- df_temp[[groups_vars[1]]]
-            leg_title        <- groups_vars[1]
-          } else {
-            if (self$options$intStyle == 'legend') {
-              df_temp$x_var    <- df_temp[[groups_vars[1]]]
-              df_temp$fill_var <- interaction(df_temp[groups_vars[-1]], sep=" - ")
-              leg_title        <- paste(groups_vars[-1], collapse=" & ")
-            } else {
-              df_temp$x_var    <- interaction(df_temp[groups_vars], sep=" - ")
-              df_temp$fill_var <- df_temp$x_var
-              leg_title        <- "Groups"
-            }
-          }
-          df_temp$leg_title <- leg_title
-          plot_df_list[[dep]] <- df_temp[complete.cases(df_temp), ]
-          
-          if (has_cov) {
-            df_clean <- plot_df_list[[dep]]
-            formula_str <- paste("y ~", paste(groups_vars, collapse = " * "), "+", cov_var)
+          if (has_cov && nrow(df_clean) > 0) {
+            formula_str <- paste(private$.quote_names(dep), "~", paste(private$.quote_names(groups_vars), collapse = " * "), "+", private$.quote_names(cov_var))
             fit <- tryCatch({
               stats::lm(as.formula(formula_str), data = df_clean)
-            }, error = function(e) NULL)
+            }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
             
             if (!is.null(fit)) {
               emm <- tryCatch({
                 emmeans::emmeans(fit, specs = groups_vars, level = ciWidth)
-              }, error = function(e) NULL)
+              }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
               
               if (!is.null(emm)) {
                 emm_df <- as.data.frame(emm)
@@ -142,32 +278,21 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 raw_summary <- df_clean %>%
                   dplyr::group_by(dplyr::across(dplyr::all_of(groups_vars))) %>%
                   dplyr::summarise(
-                    sd = sd(y, na.rm = TRUE),
+                    sd = sd(.data[[dep]], na.rm = TRUE),
                     .groups = 'drop'
                   )
                 
                 merged_df <- merge(emm_df, raw_summary, by = groups_vars, all.x = TRUE)
                 
-                if (length(groups_vars) == 1) {
-                  merged_df$x_var    <- merged_df[[groups_vars[1]]]
-                  merged_df$fill_var <- merged_df[[groups_vars[1]]]
-                } else {
-                  if (self$options$intStyle == 'legend') {
-                    merged_df$x_var    <- merged_df[[groups_vars[1]]]
-                    merged_df$fill_var <- interaction(merged_df[groups_vars[-1]], sep=" - ")
-                  } else {
-                    merged_df$x_var    <- interaction(merged_df[groups_vars], sep=" - ")
-                    merged_df$fill_var <- merged_df$x_var
-                  }
-                }
+                aesthetics <- private$.plotGroups(merged_df, groups_vars)
                 
                 lower_col <- grep("lower|LCL", names(merged_df), value = TRUE, ignore.case = TRUE)[1]
                 upper_col <- grep("upper|UCL", names(merged_df), value = TRUE, ignore.case = TRUE)[1]
                 ci_half <- (merged_df[[upper_col]] - merged_df[[lower_col]]) / 2
                 
                 plot_stats_list[[dep]] <- data.frame(
-                  x_var = factor(merged_df$x_var),
-                  fill_var = factor(merged_df$fill_var),
+                  x_var = factor(aesthetics$x_var),
+                  fill_var = factor(aesthetics$fill_var),
                   mean = merged_df$emmean,
                   sd = merged_df$sd,
                   se = merged_df$SE,
@@ -181,7 +306,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       
       else if (analysisType == 'longitudinal') {
         rm_vars    <- self$options$rm_vars
-        group_long <- self$options$group_long
+        group_long <- grouping_vars
         
         if (!isTRUE(length(rm_vars) > 1)) {
           self$results$messages$setContent("Longitudinal: Assign at least TWO Repeated Measures Variables.")
@@ -209,45 +334,34 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         colnames(stacked) <- c("y", "x_var")
         stacked$x_var <- factor(stacked$x_var, levels = rm_vars)
         
-        if (length(group_long) > 0) {
-          info_df <- data_clean[rep(seq_len(nrow(data_clean)), times = length(rm_vars)), group_long, drop = FALSE]
-          df_temp <- cbind(stacked, info_df)
-          
-          if (length(group_long) == 1) {
-            df_temp$fill_var <- df_temp[[group_long[1]]]
-            leg_title <- group_long[1]
-          } else {
-            df_temp$fill_var <- interaction(df_temp[group_long], sep=" - ")
-            leg_title <- paste(group_long, collapse=" & ")
-          }
-        } else {
-          df_temp <- stacked; df_temp$fill_var <- df_temp$x_var; leg_title <- "Time"
-        }
-        df_temp$leg_title <- leg_title
+        info_df <- data_clean[rep(seq_len(nrow(data_clean)), times = length(rm_vars)), group_long, drop = FALSE]
+        aesthetics <- private$.plotGroups(info_df, group_long, stacked$x_var)
+        df_temp <- data.frame(y = stacked$y, x_var = aesthetics$x_var,
+                              fill_var = aesthetics$fill_var, leg_title = aesthetics$leg_title)
         plot_df_list[["Repeated_Measures"]] <- df_temp[complete.cases(df_temp), ]
         
-        if (has_cov) {
+        if (has_cov && nrow(data_clean) > 0) {
           if (length(group_long) > 0) {
-            formula_str <- paste0("cbind(", paste(rm_vars, collapse = ", "), ") ~ ", paste(group_long, collapse = " * "), " + ", cov_var)
+            formula_str <- paste0("cbind(", paste(private$.quote_names(rm_vars), collapse = ", "), ") ~ ", paste(private$.quote_names(group_long), collapse = " * "), " + ", private$.quote_names(cov_var))
           } else {
-            formula_str <- paste0("cbind(", paste(rm_vars, collapse = ", "), ") ~ ", cov_var)
+            formula_str <- paste0("cbind(", paste(private$.quote_names(rm_vars), collapse = ", "), ") ~ ", private$.quote_names(cov_var))
           }
           
           fit <- tryCatch({
             stats::lm(as.formula(formula_str), data = data_clean)
-          }, error = function(e) NULL)
+          }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
           
           if (!is.null(fit)) {
             rm_dim_name <- private$.get_rm_dim_name(fit, rm_vars)
             if (length(group_long) > 0) {
-              specs_formula <- as.formula(paste("~", rm_dim_name, "|", paste(group_long, collapse = " + ")))
+              specs_formula <- as.formula(paste("~", private$.quote_names(rm_dim_name), "|", paste(private$.quote_names(group_long), collapse = " + ")))
             } else {
-              specs_formula <- as.formula(paste("~", rm_dim_name))
+              specs_formula <- as.formula(paste("~", private$.quote_names(rm_dim_name)))
             }
             
             emm <- tryCatch({
               emmeans::emmeans(fit, specs = specs_formula, level = ciWidth)
-            }, error = function(e) NULL)
+            }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
             
             if (!is.null(emm)) {
               emm_df <- as.data.frame(emm)
@@ -267,7 +381,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
               
               group_cols_summary <- if (length(group_long) > 0) c("variable", group_long) else "variable"
               
-              raw_summary <- data_clean %>%
+              raw_summary <- data_clean[, c(rm_vars, group_long), drop = FALSE] %>%
                 tidyr::pivot_longer(cols = dplyr::all_of(rm_vars), names_to = "variable", values_to = "value") %>%
                 dplyr::mutate(variable = factor(variable, levels = rm_vars)) %>%
                 dplyr::group_by(dplyr::across(dplyr::all_of(group_cols_summary))) %>%
@@ -283,24 +397,15 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
               if (length(group_long) > 0) merge_cols <- c(merge_cols, group_long)
               merged_df <- merge(emm_df, raw_summary, by = merge_cols, all.x = TRUE)
               
-              merged_df$x_var <- factor(merged_df$variable, levels = rm_vars)
-              if (length(group_long) > 0) {
-                if (length(group_long) == 1) {
-                  merged_df$fill_var <- merged_df[[group_long[1]]]
-                } else {
-                  merged_df$fill_var <- interaction(merged_df[group_long], sep=" - ")
-                }
-              } else {
-                merged_df$fill_var <- merged_df$x_var
-              }
+              aesthetics <- private$.plotGroups(merged_df, group_long, factor(merged_df$variable, levels = rm_vars))
               
               lower_col <- grep("lower|LCL", names(merged_df), value = TRUE, ignore.case = TRUE)[1]
               upper_col <- grep("upper|UCL", names(merged_df), value = TRUE, ignore.case = TRUE)[1]
               ci_half <- (merged_df[[upper_col]] - merged_df[[lower_col]]) / 2
               
               plot_stats_list[["Repeated_Measures"]] <- data.frame(
-                x_var = factor(merged_df$x_var, levels = rm_vars),
-                fill_var = factor(merged_df$fill_var),
+                x_var = factor(aesthetics$x_var, levels = rm_vars),
+                fill_var = factor(aesthetics$fill_var),
                 mean = merged_df$emmean,
                 sd = merged_df$sd,
                 se = merged_df$SE,
@@ -315,10 +420,6 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         table <- self$results$descriptiveTable
         table$deleteRows()
         
-        grouping_vars <- if (analysisType == 'cross_sectional') self$options$group else self$options$group_long
-        private$.syncTableColumns(table, grouping_vars)
-        private$.formatTableByNorm(table)
-        
         if (has_cov) {
           if (analysisType == 'cross_sectional') {
             deps <- self$options$deps
@@ -326,19 +427,19 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
             for (dep in deps) {
               cols_needed <- c(dep, groups_vars, cov_var)
               df_temp <- data[, cols_needed, drop = FALSE]
-              colnames(df_temp)[1] <- "y"
               df_temp <- df_temp[complete.cases(df_temp), ]
+              if (nrow(df_temp) == 0) next
               for (v in groups_vars) df_temp[[v]] <- as.factor(df_temp[[v]])
               
-              formula_str <- paste("y ~", paste(groups_vars, collapse = " * "), "+", cov_var)
+              formula_str <- paste(private$.quote_names(dep), "~", paste(private$.quote_names(groups_vars), collapse = " * "), "+", private$.quote_names(cov_var))
               fit <- tryCatch({
                 stats::lm(as.formula(formula_str), data = df_temp)
-              }, error = function(e) NULL)
+              }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
               
               if (!is.null(fit)) {
                 emm <- tryCatch({
                   emmeans::emmeans(fit, specs = groups_vars, level = ciWidth)
-                }, error = function(e) NULL)
+                }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
                 
                 if (!is.null(emm)) {
                   emm_df <- as.data.frame(emm)
@@ -346,11 +447,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                   raw_summary <- df_temp %>%
                     dplyr::group_by(dplyr::across(dplyr::all_of(groups_vars))) %>%
                     dplyr::summarise(
-                      n = sum(!is.na(y)),
-                      sd = sd(y, na.rm = TRUE),
-                      median = median(y, na.rm = TRUE),
-                      min = min(y, na.rm = TRUE),
-                      max = max(y, na.rm = TRUE),
+                      n = sum(!is.na(.data[[dep]])),
+                      sd = sd(.data[[dep]], na.rm = TRUE),
+                      median = median(.data[[dep]], na.rm = TRUE),
+                      min = min(.data[[dep]], na.rm = TRUE),
+                      max = max(.data[[dep]], na.rm = TRUE),
                       .groups = 'drop'
                     )
                   
@@ -373,7 +474,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                       max = row_data$max
                     )
                     for (g_var in grouping_vars) {
-                      row_values[[g_var]] <- as.character(row_data[[g_var]])
+                      row_values[[private$.groupColumn(g_var)]] <- as.character(row_data[[g_var]])
                     }
                     table$addRow(rowKey = row_index, values = row_values)
                     row_index <- row_index + 1
@@ -393,26 +494,26 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
             }
             
             if (length(group_long) > 0) {
-              formula_str <- paste0("cbind(", paste(rm_vars, collapse = ", "), ") ~ ", paste(group_long, collapse = " * "), " + ", cov_var)
+              formula_str <- paste0("cbind(", paste(private$.quote_names(rm_vars), collapse = ", "), ") ~ ", paste(private$.quote_names(group_long), collapse = " * "), " + ", private$.quote_names(cov_var))
             } else {
-              formula_str <- paste0("cbind(", paste(rm_vars, collapse = ", "), ") ~ ", cov_var)
+              formula_str <- paste0("cbind(", paste(private$.quote_names(rm_vars), collapse = ", "), ") ~ ", private$.quote_names(cov_var))
             }
             
-            fit <- tryCatch({
+            fit <- if (nrow(data_clean) == 0) NULL else tryCatch({
               stats::lm(as.formula(formula_str), data = data_clean)
-            }, error = function(e) NULL)
+            }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
             
             if (!is.null(fit)) {
               rm_dim_name <- private$.get_rm_dim_name(fit, rm_vars)
               if (length(group_long) > 0) {
-                specs_formula <- as.formula(paste("~", rm_dim_name, "|", paste(group_long, collapse = " + ")))
+                specs_formula <- as.formula(paste("~", private$.quote_names(rm_dim_name), "|", paste(private$.quote_names(group_long), collapse = " + ")))
               } else {
-                specs_formula <- as.formula(paste("~", rm_dim_name))
+                specs_formula <- as.formula(paste("~", private$.quote_names(rm_dim_name)))
               }
               
               emm <- tryCatch({
                 emmeans::emmeans(fit, specs = specs_formula, level = ciWidth)
-              }, error = function(e) NULL)
+              }, error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
               
               if (!is.null(emm)) {
                 emm_df <- as.data.frame(emm)
@@ -432,7 +533,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 
                 group_cols_summary <- if (length(group_long) > 0) c("variable", group_long) else "variable"
                 
-                raw_summary <- data_clean %>%
+                raw_summary <- data_clean[, c(rm_vars, group_long), drop = FALSE] %>%
                   tidyr::pivot_longer(cols = dplyr::all_of(rm_vars), names_to = "variable", values_to = "value") %>%
                   dplyr::mutate(variable = factor(variable, levels = rm_vars)) %>%
                   dplyr::group_by(dplyr::across(dplyr::all_of(group_cols_summary))) %>%
@@ -477,7 +578,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                     max = row_data$max
                   )
                   for (g_var in grouping_vars) {
-                    row_values[[g_var]] <- as.character(row_data[[g_var]])
+                    row_values[[private$.groupColumn(g_var)]] <- as.character(row_data[[g_var]])
                   }
                   table$addRow(rowKey = j, values = row_values)
                 }
@@ -493,7 +594,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
               if (length(grouping_vars) > 0) {
                 grouping_cols <- c(grouping_cols, grouping_vars)
               }
-              summary_df <- data %>%
+              summary_df <- data[, c(deps, grouping_vars), drop = FALSE] %>%
                 tidyr::pivot_longer(cols = dplyr::all_of(deps), names_to = "variable", values_to = "value") %>%
                 dplyr::group_by(dplyr::across(dplyr::all_of(grouping_cols))) %>%
                 dplyr::summarise(
@@ -513,7 +614,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
               if (length(grouping_vars) > 0) {
                 grouping_cols <- c(grouping_cols, grouping_vars)
               }
-              summary_df <- data %>%
+              summary_df <- data[, c(rm_vars, grouping_vars), drop = FALSE] %>%
                 tidyr::pivot_longer(cols = dplyr::all_of(rm_vars), names_to = "variable", values_to = "value") %>%
                 dplyr::mutate(variable = factor(variable, levels = rm_vars)) %>%
                 dplyr::group_by(dplyr::across(dplyr::all_of(grouping_cols))) %>%
@@ -530,10 +631,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
           }
           
           if (!is.null(summary_df) && nrow(summary_df) > 0) {
-            private$.syncTableColumns(table, grouping_vars)
-            private$.formatTableByNorm(table)
             for (i in 1:nrow(summary_df)) {
               row_data <- as.list(summary_df[i, ])
+              if (row_data$n == 0) {
+                row_data[c("mean", "sd", "median", "min", "max")] <- list(NA, NA, NA, NA, NA)
+              }
               se <- if (row_data$n > 1) row_data$sd / sqrt(row_data$n) else NA
               t_crit <- if (row_data$n > 1) stats::qt(1 - (1 - ciWidth) / 2, df = row_data$n - 1) else NA
               
@@ -550,7 +652,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                 max = row_data$max
               )
               for (g_var in grouping_vars) {
-                row_values[[g_var]] <- as.character(row_data[[g_var]])
+                row_values[[private$.groupColumn(g_var)]] <- as.character(row_data[[g_var]])
               }
               
               table$addRow(rowKey = i, values = row_values)
@@ -561,15 +663,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       
       for (dep_key in names(plot_df_list)) {
         state <- list(
-          data = plot_df_list[[dep_key]],
+          data = plot_df_list[[dep_key]][, c("y", "x_var", "fill_var", "leg_title"), drop = FALSE],
           dep = dep_key,
-          options = self$options,
           stats_df = plot_stats_list[[dep_key]]
         )
         self$results$plots$get(key = dep_key)$setState(state)
-      }
-      if (isTRUE(self$options$showFormattedTable) && isTRUE(showTable)) {
-        private$.generateApaHtml(table)
       }
 
       num_vars <- if (analysisType == 'cross_sectional') self$options$deps else self$options$rm_vars
@@ -577,19 +675,104 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         private$.runCorrelationMatrix(num_vars, data, self$options$corrMethod)
         private$.setHeatmapState(num_vars, data, self$options$corrMethod, self$options$corrCluster)
       }
+      empty_plots <- names(plot_df_list)[vapply(plot_df_list, nrow, integer(1)) == 0]
+      private$.presentationMessages(if (length(empty_plots) > 0) paste0("No complete observations for: ", paste(empty_plots, collapse = ", "), ". The affected plots were not generated; check missing values in the selected measures, groups and covariate.") else character())
     },
+    .runDistributionPresentation = function(data, grouping_vars, has_cov) {
+      longitudinal <- self$options$analysisType == 'longitudinal'
+      variables <- if (longitudinal) self$options$rm_vars else self$options$deps
+      keys <- if (longitudinal) 'Repeated_Measures' else variables
+      table <- self$results$descriptiveTable
+      table$deleteRows()
+      table$setNote('covariate_note', NULL)
+      table$setNote('distribution_failures', NULL)
+      for (key in keys) self$results$plots$get(key = key)$setState(NULL)
+      family <- self$options$summary_distribution
+      family_label <- if (family == 'gamma') 'Gamma' else 'Inverse Gaussian'
+      method_note <- paste0(family_label, ' fitted separately by group and occasion using maximum likelihood. SD is fitted data dispersion; SE = fitted SD / sqrt(N) is plug-in asymptotic uncertainty of the mean. ', self$options$ciWidth, '% CI uses profile likelihood with a chi-square(1) likelihood-ratio cutoff. SD/SE bars are symmetric, not coverage intervals; CI limits may be asymmetric. Observed N, median, minimum and maximum are not model adjusted. These summaries do not test changes between occasions or adjust for covariates.')
+      table$setNote('distribution', method_note)
+      if ((!longitudinal && (length(variables) == 0 || length(grouping_vars) == 0)) || (longitudinal && length(variables) < 2)) {
+        private$.presentationMessages(if (longitudinal) 'Longitudinal: Assign at least TWO Repeated Measures Variables.' else 'Cross-Sectional: Assign at least one DV and one Grouping Variable.')
+        return()
+      }
+      for (variable in variables) data[[variable]] <- private$.to_numeric_vec(data[[variable]])
+      for (group in grouping_vars) data[[group]] <- as.factor(data[[group]])
+      if (length(variables) >= 2) {
+        private$.runCorrelationMatrix(variables, data, self$options$corrMethod)
+        private$.setHeatmapState(variables, data, self$options$corrMethod, self$options$corrCluster)
+      }
+      if (has_cov) {
+        private$.presentationMessages(paste0(family_label, ': remove the selected covariate to use descriptive distribution fits, or select Normal to retain the existing covariate-adjusted analysis. No covariate was ignored or removed.'))
+        return()
+      }
+      plot_data <- setNames(vector('list', length(keys)), keys)
+      plot_stats <- setNames(vector('list', length(keys)), keys)
+      failures <- character()
+      failed_keys <- character()
+      row_index <- 0
+      cells <- if (length(grouping_vars) > 0) dplyr::group_rows(dplyr::group_by(data[, grouping_vars, drop = FALSE], dplyr::across(dplyr::all_of(grouping_vars)))) else list(seq_len(nrow(data)))
+      for (variable in variables) {
+        key <- if (longitudinal) 'Repeated_Measures' else variable
+        frame <- data.frame(y = data[[variable]])
+        if (longitudinal) {
+          frame$x_var <- factor(rep(variable, nrow(frame)), levels = variables)
+          frame$fill_var <- if (length(grouping_vars) > 0) interaction(data[grouping_vars], sep = ' - ', drop = TRUE) else frame$x_var
+          legend <- if (length(grouping_vars) > 0) paste(private$.groupLabels(grouping_vars), collapse = ' & ') else 'Time'
+        } else if (length(grouping_vars) == 1) {
+          frame$x_var <- data[[grouping_vars[1]]]
+          frame$fill_var <- frame$x_var
+          legend <- private$.groupLabels(grouping_vars[1])
+        } else if (self$options$intStyle == 'legend') {
+          frame$x_var <- data[[grouping_vars[1]]]
+          frame$fill_var <- interaction(data[grouping_vars[-1]], sep = ' - ', drop = TRUE)
+          legend <- paste(private$.groupLabels(grouping_vars[-1]), collapse = ' & ')
+        } else {
+          frame$x_var <- interaction(data[grouping_vars], sep = ' - ', drop = TRUE)
+          frame$fill_var <- frame$x_var
+          legend <- 'Groups'
+        }
+        frame$leg_title <- legend
+        plot_data[[key]] <- dplyr::bind_rows(plot_data[[key]], frame[!is.na(frame$y), c('y', 'x_var', 'fill_var', 'leg_title'), drop = FALSE])
+        for (cell_rows in cells) {
+          cell <- frame[cell_rows, , drop = FALSE]
+          context <- paste(c(paste0(if (longitudinal) 'Occasion=' else 'Variable=', variable), vapply(grouping_vars, function(group) paste0(private$.groupLabels(group), '=', as.character(data[[group]][cell_rows[1]])), character(1))), collapse = '; ')
+          fitted <- tryCatch(private$.fitDistribution(cell$y, family, self$options$ciWidth / 100), error = function(error) error)
+          if (inherits(fitted, 'error')) {
+            failures <- c(failures, paste0(context, ': ', conditionMessage(fitted)))
+            failed_keys <- c(failed_keys, key)
+            observed <- cell$y[!is.na(cell$y)]
+            finite <- length(observed) > 0 && all(is.finite(observed))
+            fitted <- list(n = length(observed), mean = NA_real_, sd = NA_real_, se = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, median = if (finite) stats::median(observed) else NA_real_, min = if (finite) min(observed) else NA_real_, max = if (finite) max(observed) else NA_real_)
+          } else {
+            plot_stats[[key]] <- dplyr::bind_rows(plot_stats[[key]], data.frame(x_var = cell$x_var[1], fill_var = cell$fill_var[1], as.data.frame(fitted[c('mean', 'sd', 'se', 'ci_lower', 'ci_upper')])))
+          }
+          if (isTRUE(self$options$showTable)) {
+            row_index <- row_index + 1
+            row_values <- c(list(variable = variable), fitted)
+            for (group in grouping_vars) row_values[[private$.groupColumn(group)]] <- as.character(data[[group]][cell_rows[1]])
+            table$addRow(rowKey = row_index, values = row_values)
+          }
+        }
+      }
+      for (key in setdiff(keys, failed_keys)) {
+        self$results$plots$get(key = key)$setState(list(data = plot_data[[key]], dep = key, stats_df = plot_stats[[key]], distribution_label = family_label))
+      }
+      table$setNote('distribution_failures', if (length(failures) > 0) paste(failures, collapse = '\n') else NULL)
+      private$.presentationMessages(if (length(failures) > 0) c('The affected plots were not generated. No observations were silently excluded and no substitute distribution was used.', failures) else character())
+    },
+
     .formatTableByNorm = function(table) {
       format <- self$options$tableFormat
-      title <- self$options$tableTitle
-      note <- self$options$tableNote
+      title <- 'Descriptive statistics by group'
+      note <- 'M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
       analysisType <- self$options$analysisType
       col_titles <- switch(
         format,
         'abnt' = list(
-          variable = if (analysisType == 'longitudinal') 'Tempo' else 'VariÃƒÂ¡vel',
-          n = 'N', mean = 'MÃƒÂ©dia', sd = 'DP', se = 'EP', 
+          variable = if (analysisType == 'longitudinal') 'Tempo' else 'Vari\u00e1vel',
+          n = 'N', mean = 'M\u00e9dia', sd = 'DP', se = 'EP',
           ci_lower = 'IC Inferior', ci_upper = 'IC Superior', 
-          median = 'Mediana', min = 'MÃƒÂ­n', max = 'MÃƒÂ¡x'
+          median = 'Mediana', min = 'M\u00edn', max = 'M\u00e1x'
         ),
         'apa' = list(
           variable = if (analysisType == 'longitudinal') 'Time' else 'Variable',
@@ -618,11 +801,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       }
       
       title_to_set <- title
-      if (title == 'Table 1. Descriptive statistics by group') {
+      if (title == 'Descriptive statistics by group') {
         title_to_set <- switch(
           format,
-          'abnt' = 'Tabela 1. EstatÃƒÂ­sticas descritivas por grupo',
-          'Table 1. Descriptive statistics by group'
+          'abnt' = 'Estat\u00edsticas descritivas por grupo',
+          'Descriptive statistics by group'
         )
       }
       if (nzchar(title_to_set)) {
@@ -630,28 +813,21 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       }
       
       note_to_set <- note
-      if (note == 'Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.') {
+      if (note == 'M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.') {
         note_to_set <- switch(
           format,
-          'abnt' = 'MÃƒÂ©dia = mÃƒÂ©dia; DP = desvio padrÃƒÂ£o; EP = erro padrÃƒÂ£o; IC = intervalo de confianÃƒÂ§a; N = tamanho da amostra.',
+          'abnt' = 'M\u00e9dia = m\u00e9dia; DP = desvio padr\u00e3o; EP = erro padr\u00e3o; IC = intervalo de confian\u00e7a; N = tamanho da amostra.',
           'apa' = 'M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.',
           'vancouver' = 'Mean = mean; SD = standard deviation; SE = standard error; CI = confidence interval; n = sample size.',
           'chicago' = 'Mean = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
         )
       }
       
-      note_prefix <- switch(
-        format,
-        'abnt' = "Fonte: ",
-        "Note. "
-      )
-      if (nzchar(note_to_set)) {
-        table$setNote(key = 'general_note', note = paste0(note_prefix, note_to_set))
-      }
+      table$setNote(key = 'general_note', note = note_to_set)
       
       ci_note_text <- switch(
         format,
-        'abnt' = paste0('IC = ', self$options$ciWidth, '% Intervalo de ConfianÃƒÂ§a.'),
+        'abnt' = paste0('IC = ', self$options$ciWidth, '% Intervalo de Confian\u00e7a.'),
         paste0('CI = ', self$options$ciWidth, '% Confidence Interval.')
       )
       table$setNote(key = 'ci_note', note = ci_note_text)
@@ -665,8 +841,8 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       if (has_cov) {
         cov_note_text <- switch(
           format,
-          'abnt' = "Nota. EstatÃƒÂ­sticas ajustadas (MÃƒÂ©dias Marginais Estimadas) sÃƒÂ£o calculadas controlando para a covariÃƒÂ¡vel usando o pacote R 'emmeans' (Lenth, 2024).",
-          "Note. Adjusted statistics (Estimated Marginal Means) are computed controlling for the covariate using the 'emmeans' R package (Lenth, 2024)."
+          'abnt' = "Nota. Estat\u00edsticas ajustadas (M\u00e9dias Marginais Estimadas) s\u00e3o calculadas controlando para a covari\u00e1vel usando o pacote R 'emmeans'.",
+          "Adjusted statistics (Estimated Marginal Means) are computed controlling for the covariate using the 'emmeans' R package."
         )
         table$setNote(key = 'covariate_note', note = cov_note_text)
       } else {
@@ -680,7 +856,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       state     <- image$state
       plot_data <- state$data
       dep       <- state$dep
-      opts      <- state$options
+      opts      <- self$options
       
       if (nrow(plot_data) == 0) return(FALSE)
       
@@ -695,10 +871,7 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                                                opts$color4, opts$color5, opts$color6,
                                                opts$color7, opts$color8))
       
-      base_theme <- switch(opts$themePlot, classic = ggplot2::theme_classic(), minimal = ggplot2::theme_minimal(),
-                           bw = ggplot2::theme_bw(), light = ggplot2::theme_light(), ggplot2::theme_classic())
-      
-      custom_theme <- base_theme + ggplot2::theme(
+      custom_theme <- ggplot2::theme(
         plot.title      = ggplot2::element_text(size = opts$fontSizeTitle),
         plot.subtitle   = ggplot2::element_text(size = opts$fontSizeSubtitle),
         axis.title      = ggplot2::element_text(size = opts$fontSizeAxisTitle),
@@ -708,13 +881,31 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
         legend.text     = ggplot2::element_text(size = opts$fontSizeLegend),
         legend.title    = ggplot2::element_text(size = opts$fontSizeLegend),
         legend.position = opts$legendPosition,
+        panel.background = ggplot2::element_blank(),
+        plot.background = ggplot2::element_blank(),
+        panel.grid      = ggplot2::element_blank(),
+        panel.grid.major.x = ggplot2::element_blank(),
+        panel.grid.major.y = ggplot2::element_blank(),
+        panel.grid.minor.x = ggplot2::element_blank(),
+        panel.grid.minor.y = ggplot2::element_blank(),
+        panel.border    = ggplot2::element_blank(),
+        legend.background = ggplot2::element_blank(),
+        legend.box.background = ggplot2::element_blank(),
+        legend.key      = ggplot2::element_blank(),
+        axis.line.x.bottom = ggplot2::element_line(colour = '#333333', linewidth = opts$axisLineWidth),
+        axis.line.y.left = ggplot2::element_line(colour = '#333333', linewidth = opts$axisLineWidth),
         axis.line       = ggplot2::element_line(linewidth = opts$axisLineWidth),
         axis.ticks      = ggplot2::element_line(linewidth = opts$axisLineWidth)
       )
       
       error_col <- switch(opts$errorType, sd = 'sd', se = 'se', ci = 'ci_half')
-      stats_df$ymin <- stats_df$mean - stats_df[[error_col]]
-      stats_df$ymax <- stats_df$mean + stats_df[[error_col]]
+      if (opts$errorType == 'ci' && all(c('ci_lower', 'ci_upper') %in% names(stats_df))) {
+        stats_df$ymin <- stats_df$ci_lower
+        stats_df$ymax <- stats_df$ci_upper
+      } else {
+        stats_df$ymin <- stats_df$mean - stats_df[[error_col]]
+        stats_df$ymax <- stats_df$mean + stats_df[[error_col]]
+      }
       
       dodge_val <- if (opts$plotType == 'meandp') 0.2 else 0.8
       jitter_pos <- ggplot2::position_jitterdodge(jitter.width = 0.1, dodge.width = dodge_val)
@@ -751,59 +942,13 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
                     gg
                   },
                   density = {
-                    theo <- if (!is.null(opts$theo_dist)) opts$theo_dist else "none"
                     gg <- ggplot2::ggplot(plot_data, ggplot2::aes(x = y, fill = fill_var, color = fill_var)) +
                       ggplot2::geom_density(alpha = 0.35, linewidth = opts$lineWidth)
-                    if (theo == "normal") {
-                      for (lvl in unique(plot_data$fill_var)) {
-                        sub_y <- plot_data$y[plot_data$fill_var == lvl]
-                        sub_y <- sub_y[!is.na(sub_y)]
-                        if (length(sub_y) >= 3 && stats::sd(sub_y) > 0) {
-                          m <- mean(sub_y)
-                          s <- stats::sd(sub_y)
-                          gg <- gg + ggplot2::stat_function(fun = stats::dnorm, args = list(mean = m, sd = s), linetype = "dashed", linewidth = 0.8)
-                        }
-                      }
-                    } else if (theo == "gamma") {
-                      for (lvl in unique(plot_data$fill_var)) {
-                        sub_y <- plot_data$y[plot_data$fill_var == lvl]
-                        sub_y <- sub_y[!is.na(sub_y) & sub_y > 0]
-                        if (length(sub_y) >= 3 && stats::sd(sub_y) > 0) {
-                          m <- mean(sub_y)
-                          v <- stats::var(sub_y)
-                          sh <- m^2 / v
-                          ra <- m / v
-                          gg <- gg + ggplot2::stat_function(fun = stats::dgamma, args = list(shape = sh, rate = ra), linetype = "dashed", linewidth = 0.8)
-                        }
-                      }
-                    } else if (theo == "inv_gaussian") {
-                      dinvgauss_fn <- function(x, mu, lambda) {
-                        res <- rep(0, length(x))
-                        pos <- x > 0
-                        if (any(pos)) {
-                          xp <- x[pos]
-                          res[pos] <- sqrt(lambda / (2 * pi * xp^3)) * exp(-lambda * (xp - mu)^2 / (2 * mu^2 * xp))
-                        }
-                        res
-                      }
-                      for (lvl in unique(plot_data$fill_var)) {
-                        sub_y <- plot_data$y[plot_data$fill_var == lvl]
-                        sub_y <- sub_y[!is.na(sub_y) & sub_y > 0]
-                        if (length(sub_y) >= 3 && stats::sd(sub_y) > 0) {
-                          mu_ig <- mean(sub_y)
-                          lam_inv <- mean(1 / sub_y) - 1 / mu_ig
-                          if (lam_inv > 0) {
-                            lam_ig <- 1 / lam_inv
-                            gg <- gg + ggplot2::stat_function(fun = dinvgauss_fn, args = list(mu = mu_ig, lambda = lam_ig), linetype = "dashed", linewidth = 0.8)
-                          }
-                        }
-                      }
-                    }
                     gg
                   }
       )
       
-      p <- p + ggplot2::scale_fill_manual(values = colors) + ggplot2::scale_color_manual(values = colors)
+      p <- p + ggtheme + custom_theme + ggplot2::scale_fill_manual(values = colors) + ggplot2::scale_color_manual(values = colors)
       y_expand <- if (opts$removeGap) ggplot2::expansion(mult = c(0, 0.05)) else ggplot2::waiver()
       
       if (opts$customYAxis && opts$plotType != 'density') {
@@ -815,13 +960,11 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       
       label_x <- if(opts$xLabel != '') opts$xLabel else (if(opts$plotType == 'density') dep else (if(opts$analysisType == 'longitudinal') "Time" else opts$group[1]))
       plot_title <- if(opts$titleText != '') opts$titleText else NULL
+      distribution_caption <- if (!is.null(state$distribution_label)) paste0(state$distribution_label, ' maximum-likelihood fit; ', switch(opts$errorType, sd = 'fitted SD (data dispersion)', se = 'asymptotic SE of the mean', ci = paste0(opts$ciWidth, '% profile-likelihood CI of the mean'))) else NULL
       
-      p <- p + custom_theme + ggplot2::labs(title = plot_title,
+      p <- p + ggplot2::labs(title = plot_title,
                                             x = label_x, y = if(opts$yLabel != '') opts$yLabel else (if(opts$plotType == 'density') "Density" else dep),
-                                            fill = plot_data$leg_title[1], color = plot_data$leg_title[1])
-      if (isTRUE(opts$exportPlots)) {
-        private$.exportVectorPlot(p, dep, opts)
-      }
+                                            fill = plot_data$leg_title[1], color = plot_data$leg_title[1], caption = distribution_caption)
       print(p)
       return(TRUE)
     },
@@ -863,113 +1006,83 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       if (n <= length(base)) return(base[1:n])
       return(grDevices::colorRampPalette(base)(n))
     },
-    .generateApaHtml = function(table) {
-      df <- tryCatch(table$asDF, error = function(e) NULL)
-      if (is.null(df) || nrow(df) == 0) return()
-      
-      title_text <- if (nzchar(self$options$tableTitle)) self$options$tableTitle else 'Descriptive Statistics by Group'
-      note_text <- if (nzchar(self$options$tableNote)) self$options$tableNote else 'Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
-      
-      col_names <- colnames(df)
-      header_html <- paste0('<tr>', paste0(sapply(col_names, function(c) paste0('<th style="padding: 6px 12px; font-weight: bold; border-bottom: 1px solid #000; text-align: left;">', c, '</th>')), collapse = ''), '</tr>')
-      
-      rows_html <- character(nrow(df))
-      for (i in seq_len(nrow(df))) {
-        row_vals <- df[i, ]
-        cells <- sapply(row_vals, function(v) {
-          val_str <- if (is.numeric(v)) sprintf('%.2f', v) else as.character(v)
-          paste0('<td style="padding: 5px 12px; text-align: left;">', val_str, '</td>')
-        })
-        rows_html[i] <- paste0('<tr>', paste0(cells, collapse = ''), '</tr>')
-      }
-      
-      html_content <- paste0(
-        '<div style="font-family: Times New Roman, serif; font-size: 13px; color: #111; max-width: 900px; margin: 15px 0;">',
-        '<p style="font-weight: bold; margin-bottom: 2px;">Table 1</p>',
-        '<p style="font-style: italic; margin-top: 0; margin-bottom: 10px;">', title_text, '</p>',
-        '<table style="border-collapse: collapse; width: 100%; border-top: 2px solid #000; border-bottom: 2px solid #000;">',
-        '<thead>', header_html, '</thead>',
-        '<tbody>', paste0(rows_html, collapse = ''), '</tbody>',
-        '</table>',
-        '<p style="font-size: 11px; margin-top: 8px; font-style: italic;">', note_text, '</p>',
-        '</div>'
-      )
-      self$results$formattedTable$setContent(html_content)
-    },
-    
     .syncCorrTableColumns = function(corr_tbl, num_vars) {
       get_col_names <- function(tbl) {
         tryCatch(sapply(tbl$columns, function(col) col$name), error = function(e) character(0))
       }
+      expected_cols <- paste0('col_', seq_along(num_vars))
+      for (col_id in setdiff(get_col_names(corr_tbl), c('num', 'var', 'mean', 'sd', expected_cols))) corr_tbl$getColumn(col_id)$setVisible(FALSE)
       current_cols <- get_col_names(corr_tbl)
       for (j in seq_along(num_vars)) {
         col_id <- paste0('col_', j)
-        if (!col_id %in% current_cols) {
-          corr_tbl$addColumn(name = col_id, title = as.character(j), type = 'text')
-        }
+        corr_tbl$addColumn(name = col_id, title = as.character(j), type = 'number', format = 'zto')
       }
     },
     
     .runCorrelationMatrix = function(num_vars, data, method) {
       if (!isTRUE(self$options$showCorrMatrix)) return()
       tbl <- self$results$corrMatrixTable
-      tbl$deleteRows()
-      private$.syncCorrTableColumns(tbl, num_vars)
       
       k <- length(num_vars)
+      unavailable <- character()
       for (i in seq_len(k)) {
         v_i <- num_vars[i]
         vals_i <- private$.to_numeric_vec(data[[v_i]])
         m <- mean(vals_i, na.rm = TRUE)
         s <- stats::sd(vals_i, na.rm = TRUE)
-        row_vals <- list(num = as.character(i), var = v_i, mean = m, sd = s)
+        row_vals <- list(num = as.character(i), var = v_i, mean = if (is.na(m)) NA else m, sd = if (is.na(s)) NA else s)
         
+        symbols <- list()
         for (j in seq_len(k)) {
           col_id <- paste0('col_', j)
           if (j == i) {
-            row_vals[[col_id]] <- '-'
+            row_vals[[col_id]] <- NA
           } else if (j > i) {
-            row_vals[[col_id]] <- ''
+            row_vals[[col_id]] <- NA
           } else {
             v_j <- num_vars[j]
             vals_j <- private$.to_numeric_vec(data[[v_j]])
             ct <- tryCatch(stats::cor.test(vals_i, vals_j, method = method), error = function(e) NULL)
-            if (!is.null(ct)) {
+            if (!is.null(ct) && is.finite(ct$estimate) && is.finite(ct$p.value)) {
               r_val <- ct$estimate
               p_val <- ct$p.value
               stars <- if (p_val < 0.001) '***' else if (p_val < 0.01) '**' else if (p_val < 0.05) '*' else ''
-              row_vals[[col_id]] <- sprintf('%.2f%s', r_val, stars)
+              row_vals[[col_id]] <- as.numeric(r_val)
+              if (nzchar(stars)) symbols[[col_id]] <- stars
             } else {
-              row_vals[[col_id]] <- 'NA'
+              row_vals[[col_id]] <- NA
+              unavailable <- c(unavailable, paste(v_i, v_j, sep = ' / '))
             }
           }
         }
-        tbl$addRow(rowKey = i, values = row_vals)
+        tbl$setRow(rowKey = i, values = row_vals)
+        for (col_id in names(symbols)) tbl$addSymbol(col = col_id, symbol = symbols[[col_id]], rowKey = i)
       }
-      tbl$setNote('stars_note', 'Note. * p < .05, ** p < .01, *** p < .001. Lower diagonal contains bivariate correlation coefficients. M and SD represent mean and standard deviation.')
+      tbl$setNote('unavailable', if (length(unavailable) > 0) paste('Correlations unavailable (insufficient complete pairs or zero variance):', paste(unavailable, collapse = '; ')) else NULL)
+      tbl$setNote('stars_note', '* p < .05, ** p < .01, *** p < .001. Lower triangle contains bivariate correlation coefficients; missing entries there indicate unavailable correlations. Diagonal and upper triangle are intentionally omitted. M and SD represent mean and standard deviation.')
     },
     
     .setHeatmapState = function(num_vars, data, method, cluster) {
       if (!isTRUE(self$options$showCorrHeatmap)) return()
       sub_df <- as.data.frame(lapply(data[, num_vars, drop = FALSE], private$.to_numeric_vec))
-      self$results$corrHeatmapPlot$setState(list(vars = num_vars, data = sub_df, method = method, cluster = cluster))
+      cor_mat <- stats::cor(sub_df, use = 'pairwise.complete.obs', method = method)
+      self$results$corrHeatmapPlot$setState(list(cor_mat = cor_mat, method = method, cluster = cluster))
     },
     
     .plotCorrHeatmap = function(image, ggtheme, theme, ...) {
       if (is.null(image$state)) return(FALSE)
       state <- image$state
-      num_vars <- state$vars
-      sub_df <- state$data
+      cor_mat <- state$cor_mat
+      num_vars <- colnames(cor_mat)
       method <- state$method
-      cluster <- state$cluster
-      
-      cor_mat <- stats::cor(sub_df, use = 'pairwise.complete.obs', method = method)
-      cor_mat[is.na(cor_mat)] <- 0
+      unavailable <- any(!is.finite(cor_mat))
+      cluster <- isTRUE(state$cluster) && !unavailable
+      subtitle <- if (unavailable) paste(strwrap(paste0('NA = correlation unavailable.', if (isTRUE(state$cluster)) ' Clustering not applied because some correlations are unavailable.' else ''), width = 60), collapse = '\n') else NULL
       
       ordered_vars <- num_vars
       if (isTRUE(cluster) && ncol(cor_mat) > 2) {
         dist_mat <- stats::as.dist(1 - abs(cor_mat))
-        hc <- tryCatch(stats::hclust(dist_mat, method = 'complete'), error = function(e) NULL)
+        hc <- tryCatch(stats::hclust(dist_mat, method = 'complete'), error = function(e) jmvcore::reject(conditionMessage(e), code = 'presentation_estimation_failed'))
         if (!is.null(hc)) {
           ordered_vars <- colnames(cor_mat)[hc$order]
         }
@@ -977,59 +1090,38 @@ DataPresentationClass <- if (requireNamespace('jmvcore', quietly = TRUE)) R6::R6
       
       df_heat <- expand.grid(Var1 = ordered_vars, Var2 = ordered_vars, stringsAsFactors = FALSE)
       df_heat$value <- apply(df_heat, 1, function(row) cor_mat[row['Var1'], row['Var2']])
+      df_heat$label <- ifelse(is.finite(df_heat$value), sprintf('%.2f', df_heat$value), 'NA')
       df_heat$Var1 <- factor(df_heat$Var1, levels = ordered_vars)
       df_heat$Var2 <- factor(df_heat$Var2, levels = rev(ordered_vars))
       
       p <- ggplot2::ggplot(df_heat, ggplot2::aes(x = Var1, y = Var2, fill = value)) +
         ggplot2::geom_tile(color = 'white', linewidth = 0.5) +
-        ggplot2::geom_text(ggplot2::aes(label = sprintf('%.2f', value)), color = ifelse(abs(df_heat$value) > 0.6, 'white', 'black'), size = 3.5) +
-        ggplot2::scale_fill_gradient2(low = '#2166AC', mid = '#FFFFFF', high = '#B2182B', midpoint = 0, limits = c(-1, 1), name = 'Correlation') +
-        ggplot2::theme_minimal() +
+        ggplot2::geom_text(ggplot2::aes(label = label), color = ifelse(is.finite(df_heat$value) & abs(df_heat$value) > 0.6, 'white', 'black'), size = 3.5) +
+        ggtheme +
+        ggplot2::scale_fill_gradient2(low = '#2166AC', mid = '#FFFFFF', high = '#B2182B', midpoint = 0, limits = c(-1, 1), name = 'Correlation', na.value = '#D9D9D9') +
         ggplot2::theme(
           axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 10, face = 'bold'),
           axis.text.y = ggplot2::element_text(size = 10, face = 'bold'),
-          axis.title = ggplot2::element_blank(),
-          panel.grid = ggplot2::element_blank()
+          axis.title.x = ggplot2::element_blank(),
+          axis.title.y = ggplot2::element_blank(),
+          plot.subtitle = ggplot2::element_text(size = 10, hjust = 0),
+          panel.background = ggplot2::element_blank(),
+          plot.background = ggplot2::element_blank(),
+          panel.border = ggplot2::element_blank(),
+          legend.background = ggplot2::element_blank(),
+          legend.box.background = ggplot2::element_blank(),
+          legend.key = ggplot2::element_blank(),
+          axis.line.x.bottom = ggplot2::element_line(colour = '#333333', linewidth = self$options$axisLineWidth),
+          axis.line.y.left = ggplot2::element_line(colour = '#333333', linewidth = self$options$axisLineWidth),
+          panel.grid = ggplot2::element_blank(),
+          panel.grid.major.x = ggplot2::element_blank(),
+          panel.grid.major.y = ggplot2::element_blank(),
+          panel.grid.minor.x = ggplot2::element_blank(),
+          panel.grid.minor.y = ggplot2::element_blank()
         ) +
-        ggplot2::labs(title = paste0('Correlation Heatmap (', tools::toTitleCase(method), if (cluster) ', Clustered' else '', ')'))
+        ggplot2::labs(title = paste0('Correlation Heatmap (', tools::toTitleCase(method), if (cluster) ', Clustered' else '', ')'), subtitle = subtitle)
       print(p)
       TRUE
-    }
-    ,
-    .exportVectorPlot = function(p, dep, opts) {
-      export_dir <- if (!is.null(opts$exportDir) && nzchar(opts$exportDir)) opts$exportDir else getwd()
-      if (!dir.exists(export_dir)) {
-        tryCatch(dir.create(export_dir, recursive = TRUE), error = function(e) NULL)
-      }
-      clean_name <- gsub('[^A-Za-z0-9_-]', '_', dep)
-      fmt <- if (!is.null(opts$exportFormat)) opts$exportFormat else 'pdf'
-      dpi <- if (!is.null(opts$exportDpi) && opts$exportDpi >= 300) opts$exportDpi else 300
-      w <- if (!is.null(opts$exportWidth) && opts$exportWidth > 0) opts$exportWidth else 7.0
-      h <- if (!is.null(opts$exportHeight) && opts$exportHeight > 0) opts$exportHeight else 5.0
-      saved_files <- character()
-      if (fmt %in% c('pdf', 'both')) {
-        pdf_path <- file.path(export_dir, paste0('BSS_figure_', clean_name, '.pdf'))
-        tryCatch({
-          ggplot2::ggsave(filename = pdf_path, plot = p, device = 'pdf', width = w, height = h, dpi = dpi)
-          saved_files <- c(saved_files, pdf_path)
-        }, error = function(e) NULL)
-      }
-      if (fmt %in% c('svg', 'both')) {
-        svg_path <- file.path(export_dir, paste0('BSS_figure_', clean_name, '.svg'))
-        tryCatch({
-          dev_svg <- if (requireNamespace('svglite', quietly = TRUE)) 'svg' else grDevices::svg; ggplot2::ggsave(filename = svg_path, plot = p, device = dev_svg, width = w, height = h, dpi = dpi)
-          saved_files <- c(saved_files, svg_path)
-        }, error = function(e) NULL)
-      }
-      if (length(saved_files) > 0) {
-        msg <- paste0(
-          '<div style="padding: 8px 12px; background-color: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 4px; margin: 10px 0;">',
-          '<p style="color: #2e7d32; font-weight: bold; margin: 0 0 5px 0;">Vector figure(s) exported successfully (', dpi, ' DPI, Publication Quality):</p>',
-          '<ul style="margin: 0; padding-left: 20px;">', paste0('<li><code>', saved_files, '</code></li>', collapse = ''), '</ul>',
-          '</div>'
-        )
-        self$results$exportNotice$setContent(msg)
-      }
     }
   )
 )

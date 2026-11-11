@@ -1,5 +1,5 @@
 name:  DDA
-title: Post hoc analysis for MANOVA (DDA)
+title: "Post Hoc Analysis for MANOVA (DDA)"
 menuGroup: BSS
 menuSubgroup: Nonparametric ANOVA, Effect sizes & Post-Hocs
 menuSubtitle: Descriptive Discriminant Analysis + Effect size
@@ -11,7 +11,7 @@ options:
   type: Data
 
 - name: dep
-  title: Dependent
+  title: "Grouping Variable"
   type: Variable
   suggested:
     - nominal
@@ -19,7 +19,7 @@ options:
     - factor
 
 - name: covs
-  title: Covariates
+  title: "Dependent Variables"
   type: Variables
   suggested:
     - continuous
@@ -32,7 +32,7 @@ options:
   default: FALSE
   
 - name: coef
-  title: Coefficients of discriminants
+  title: "Coefficients of linear discriminants"
   type: Bool
   default: TRUE
 
@@ -47,7 +47,7 @@ options:
   default: TRUE
 
 - name: classTable
-  title: 'Classification & Cross-validation Matrix (LOOCV)'
+  title: "Classification & cross-validation matrix (LOOCV)"
   type: Bool
   default: FALSE
 
@@ -62,7 +62,7 @@ options:
   default: FALSE
 
 - name: showEllipse
-  title: 'Show confidence ellipses'
+  title: "Confidence ellipses"
   type: Bool
   default: TRUE
 
@@ -75,13 +75,17 @@ options:
 
 - name: width
   type: Integer
-  title: "DDA Plot width"
+  title: "DDA plot width"
   default: 500
 
 - name: height
   type: Integer
-  title: "DDA Plot height"
+  title: "DDA plot height"
   default: 500
+
+- name: discScoresOutput
+  title: Save discriminant scores
+  type: Output
 
 - name: discScores
   title: Discriminant scores
@@ -89,6 +93,6 @@ options:
   default: FALSE
 
 - name: pairwiseES
-  title: 'Pairwise Effect Sizes (d & g)'
+  title: "Pairwise effect sizes (d & g)"
   type: Bool
   default: FALSE
