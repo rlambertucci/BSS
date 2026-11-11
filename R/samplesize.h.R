@@ -366,7 +366,7 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             super$initialize(
                 options=options,
                 name="",
-                title="Sample size calculation")
+                title="Sample Size Calculation")
             self$add(jmvcore::Preformatted$new(
                 options=options,
                 name="text_finite",
@@ -383,29 +383,29 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 visible="(mode == 'finite')",
                 columns=list(
                     list(
-                        `name`="method", 
-                        `title`="Method", 
+                        `name`="method",
+                        `title`="Method",
                         `type`="text"),
                     list(
-                        `name`="population_size", 
-                        `title`="Population Size (N)", 
+                        `name`="population_size",
+                        `title`="Population Size (N)",
                         `type`="integer"),
                     list(
-                        `name`="confidence_level", 
-                        `title`="Confidence Level (%)", 
+                        `name`="confidence_level",
+                        `title`="Confidence Level (%)",
                         `type`="number"),
                     list(
-                        `name`="margin_error", 
-                        `title`="Margin of Error (%)", 
+                        `name`="margin_error",
+                        `title`="Margin of Error (%)",
                         `type`="number"),
                     list(
-                        `name`="population_proportion", 
-                        `title`="Population Proportion (p)", 
-                        `type`="number", 
+                        `name`="population_proportion",
+                        `title`="Population Proportion (p)",
+                        `type`="number",
                         `visible`="(method_finite == \"Cochran\")"),
                     list(
-                        `name`="sample_size", 
-                        `title`="Sample Size (n)", 
+                        `name`="sample_size",
+                        `title`="Sample Size (n)",
                         `type`="integer"))))
             self$add(jmvcore::Preformatted$new(
                 options=options,
@@ -421,14 +421,32 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "Arifin2017"),
                 title="Sample Size Calculation Results (Resource Equation)",
                 visible="(mode == 'animals')",
+                clearWith=list(
+                    "design_animals",
+                    "nGroups_animals",
+                    "nMeasures_animals",
+                    "sacrifice_animals",
+                    "dropout_animals",
+                    "calc_power_anova_animals",
+                    "power_f_animals",
+                    "power_alpha_animals",
+                    "power_target_animals"),
                 columns=list(
                     list(
-                        `name`="parameter", 
-                        `title`="Parameter", 
+                        `name`="parameter",
+                        `title`="Parameter",
                         `type`="text"),
                     list(
-                        `name`="value", 
-                        `title`="Value", 
+                        `name`="value",
+                        `title`="Count",
+                        `type`="integer"),
+                    list(
+                        `name`="estimate",
+                        `title`="Rate / Effect / Power",
+                        `type`="number"),
+                    list(
+                        `name`="detail",
+                        `title`="Design",
                         `type`="text"))))
             self$add(jmvcore::Preformatted$new(
                 options=options,
@@ -452,31 +470,28 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "t_alternative"),
                 columns=list(
                     list(
-                        `name`="test_type", 
-                        `title`="Test Type", 
+                        `name`="test_type",
+                        `title`="Test Type",
                         `type`="text"),
                     list(
-                        `name`="effect_size", 
-                        `title`="Effect Size (d)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="effect_size",
+                        `title`="Effect Size (d)",
+                        `type`="number"),
                     list(
-                        `name`="alpha", 
-                        `title`="\u03B1", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="alpha",
+                        `title`="\u03B1",
+                        `type`="number"),
                     list(
-                        `name`="power", 
-                        `title`="Target Power (1 - \u03B2)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="power",
+                        `title`="Target Power (1 - \u03B2)",
+                        `type`="number"),
                     list(
-                        `name`="n_per_group", 
-                        `title`="Required n per Group", 
+                        `name`="n_per_group",
+                        `title`="Required n per Group",
                         `type`="integer"),
                     list(
-                        `name`="total_n", 
-                        `title`="Total Sample Size (N)", 
+                        `name`="total_n",
+                        `title`="Total Sample Size (N)",
                         `type`="integer"))))
             self$add(jmvcore::Image$new(
                 options=options,
@@ -486,8 +501,6 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 height=420,
                 renderFun=".renderPowerCurve",
                 visible="(mode == 'power_t' && show_power_curve)",
-                refs=list(
-                    "ggplot2"),
                 clearWith=list(
                     "mode",
                     "t_test_type",
@@ -520,36 +533,32 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "tost_type"),
                 columns=list(
                     list(
-                        `name`="design", 
-                        `title`="Design", 
+                        `name`="design",
+                        `title`="Design",
                         `type`="text"),
                     list(
-                        `name`="eq_bound", 
-                        `title`="Equivalence Bound (\u00B1\u0394)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="eq_bound",
+                        `title`="Equivalence Bound (\u00B1\u0394)",
+                        `type`="number"),
                     list(
-                        `name`="true_diff", 
-                        `title`="True Difference (\u03B4)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="true_diff",
+                        `title`="True Difference (\u03B4)",
+                        `type`="number"),
                     list(
-                        `name`="alpha", 
-                        `title`="\u03B1 (per one-sided test)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="alpha",
+                        `title`="\u03B1 (per one-sided test)",
+                        `type`="number"),
                     list(
-                        `name`="power", 
-                        `title`="Target Power (1 - \u03B2)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="power",
+                        `title`="Target Power (1 - \u03B2)",
+                        `type`="number"),
                     list(
-                        `name`="n_per_group", 
-                        `title`="Required n per Group", 
+                        `name`="n_per_group",
+                        `title`="Required n per Group",
                         `type`="integer"),
                     list(
-                        `name`="total_n", 
-                        `title`="Total Sample Size (N)", 
+                        `name`="total_n",
+                        `title`="Total Sample Size (N)",
                         `type`="integer"))))
             self$add(jmvcore::Preformatted$new(
                 options=options,
@@ -561,7 +570,8 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 name="sampleSizeTable_proportions",
                 refs=list(
                     "Fleiss2003",
-                    "McNemar1947"),
+                    "McNemar1947",
+                    "Connor1987"),
                 title="Sample Size & Power for Proportions",
                 rows=1,
                 visible="(mode == 'proportions')",
@@ -578,36 +588,32 @@ samplesizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "prop_alternative"),
                 columns=list(
                     list(
-                        `name`="test_type", 
-                        `title`="Test Type", 
+                        `name`="test_type",
+                        `title`="Test Type",
                         `type`="text"),
                     list(
-                        `name`="p1", 
-                        `title`="p\u2081 / Proportion", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="p1",
+                        `title`="p\u2081 / Proportion",
+                        `type`="number"),
                     list(
-                        `name`="p2", 
-                        `title`="p\u2082 / Reference", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="p2",
+                        `title`="p\u2082 / Reference",
+                        `type`="number"),
                     list(
-                        `name`="alpha", 
-                        `title`="\u03B1", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="alpha",
+                        `title`="\u03B1",
+                        `type`="number"),
                     list(
-                        `name`="power", 
-                        `title`="Target Power (1 - \u03B2)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="power",
+                        `title`="Target Power (1 - \u03B2)",
+                        `type`="number"),
                     list(
-                        `name`="n_per_group", 
-                        `title`="Required n / Pairs", 
+                        `name`="n_per_group",
+                        `title`="Required n / Pairs",
                         `type`="integer"),
                     list(
-                        `name`="total_n", 
-                        `title`="Total Sample Size (N)", 
+                        `name`="total_n",
+                        `title`="Total Sample Size (N)",
                         `type`="integer"))))}))
 
 samplesizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -631,9 +637,9 @@ samplesizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 weightsSupport = 'na')
         }))
 
-#' Sample size calculation
+#' Sample Size Calculation
 #'
-#' 
+#'
 #' @param mode .
 #' @param method_finite .
 #' @param population_size_finite .

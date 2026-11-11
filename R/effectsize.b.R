@@ -5,6 +5,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
     .is_defined = function(x) {
       !is.null(x) && length(x) > 0 && all(nzchar(x))
     },
+
+    .is_finite_number = function(value) {
+      is.numeric(value) && !is.complex(value) && length(value) == 1 && is.finite(value)
+    },
     
     .to_numeric_vec = function(x) {
       if (is.null(x)) return(NULL)
@@ -26,44 +30,54 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       pmin(pmax(x, ql), qu)
     },
     
+    .update_help = function() {
+      configured <- length(c(self$options$dep_vars_cs, self$options$dep_vars_long, self$options$wave_vars, self$options$cat_var1, self$options$cat_var2)) > 0 || isTRUE(self$options$calc_from_test_stat)
+      if (!is.null(self$results$analysisInfo)) self$results$analysisInfo$setVisible(!configured)
+      benchmark <- if (isTRUE(self$options$use_glm)) "AME is a response-scale mean difference. Its interpretation is standardized by the dependent variable's sample standard deviation solely to apply the selected effect-size benchmarks; the displayed AME itself remains on the response scale." else NULL
+      for (name in "effectSizeTable") {
+        if (!is.null(self$results[[name]])) self$results[[name]]$setNote("ame_benchmark", benchmark)
+      }
+    },
+
     .init = function() {
+      private$.update_help()
       info_html <- paste0(
-        '<div style="font-size:0.9em; line-height:1.6; padding:4px;">',
-        '<h4 style="margin-bottom:6px;">&#128200; Pairwise Effect Size & Test Statistic Calculator</h4>',
-        '<p style="margin-bottom:8px;">Computes standardized, robust, and categorical effect sizes with analytical and bootstrap confidence intervals. ',
-        'Includes direct converter from test statistics (t, F, z, &chi;&sup2;).</p>',
-        '<ul style="margin-top:0px; padding-left:20px;">',
-        '<li><b>Independent Samples:</b> Cohen\'s d, Hedges\' g, Glass\' &Delta;, Rank Biserial, Algina-Keselman-Penfield d_R, and Akritas-Arnold &delta;&#770;.</li>',
-        '<li><b>Longitudinal / Paired:</b> Cohen\'s dz, Hedges\' gz, Glass\' &Delta;z, Paired Rank Biserial.</li>',
-        '<li><b>Categorical:</b> Cram&eacute;r\'s V, Odds Ratio (OR), and Relative Risk (RR).</li>',
+        '<div>',
+        '<h4> Pairwise Effect Size & Test Statistic Calculator</h4>',
+        '<p>Computes standardized, robust, and categorical effect sizes with analytical and bootstrap confidence intervals. ',
+        'Includes direct converter from test statistics (t, F, z, \u03c7\u00b2).</p>',
+        '<ul>',
+        '<li><b>Independent Samples:</b> Cohen\'s d, Hedges\' g, Glass\' \u0394, Rank Biserial, Algina-Keselman-Penfield d_R, and Akritas-Arnold \u03b4\u0302.</li>',
+        '<li><b>Longitudinal scope:</b> Pairwise within-subject comparisons only; between-subject factors, group-by-time effects and covariate adjustment are not implemented.</li>',
+        '<li><b>Longitudinal / Paired:</b> Cohen\'s dz, Hedges\' gz, Glass\' \u0394z, Paired Rank Biserial.</li>',
+        '<li><b>Glass references:</b> Select one control level per independent variable. Results use non-reference minus reference, divided by the reference SD, with small-sample correction. Interaction-factor Glass effects are not supported. Paired Glass uses the selected wave; an empty choice uses the first wave in each pair.</li>',
+        '<li><b>Conversions:</b> Only unadjusted independent-samples Cohen\'s d is converted; paired, adjusted, AME, Glass, Hedges, rank and robust effects are excluded. OR and AUC are distributional approximations.</li>',
+        '<li><b>Categorical:</b> Cram\u00e9r\'s V, Odds Ratio (OR), and Relative Risk (RR).</li>',
         '<li><b>Direct Calculator:</b> Convert directly from test statistics without raw data.</li>',
         '</ul>',
-        '<hr style="margin:8px 0;"/>',
-        '<p><b>&#9654; Interpretation Benchmarks</b></p>',
-        '<ul style="margin-top:0px; padding-left:20px;">',
-        '<li><b>Cohen (1988):</b> &lt; 0.2 (Negligible) | &ge; 0.2 (Small) | &ge; 0.5 (Medium) | &ge; 0.8 (Large)</li>',
-        '<li><b>Sawilowsky (2009):</b> &lt; 0.01 (Negligible) | 0.2 (Very small) | 0.5 (Small) | 0.8 (Medium) | 1.2 (Large) | 2.0 (Very large) | &ge; 2.0 (Huge)</li>',
-        '<li><b>Rank Biserial & Relative Effects:</b> &lt; 0.1 (Negligible) | &ge; 0.1 (Small) | &ge; 0.3 (Medium) | &ge; 0.5 (Large)</li>',
+        '<hr/>',
+        '<p><b> Interpretation Benchmarks</b></p>',
+        '<ul>',
+        '<li><b>Cohen (1988):</b> &lt; 0.2 (Negligible) | \u2265 0.2 (Small) | \u2265 0.5 (Medium) | \u2265 0.8 (Large)</li>',
+        '<li><b>Sawilowsky (2009):</b> &lt; 0.01 (Negligible) | 0.2 (Very small) | 0.5 (Small) | 0.8 (Medium) | 1.2 (Large) | 2.0 (Very large) | \u2265 2.0 (Huge)</li>',
+        '<li><b>Rank Biserial & Relative Effects:</b> &lt; 0.1 (Negligible) | \u2265 0.1 (Small) | \u2265 0.3 (Medium) | \u2265 0.5 (Large)</li>',
         '</ul>',
         '</div>'
       )
       self$results$analysisInfo$setContent(info_html)
       
-      ame_html <- paste0(
-        '<div style="font-size:0.9em; line-height:1.6; padding:8px; background-color:#f4f6f8; border-left:4px solid #2c3e50; margin-bottom:10px;">',
-        '<h4 style="margin-top:0; margin-bottom:6px;">&#128161; AME (Average Marginal Effect) Interpretation</h4>',
-        '<p style="margin-bottom:0;">The AME represents the discrete difference in the dependent variable\'s original metric between the two groups on the response scale. ',
-        'For the <b>Interpretation</b> column, the AME is internally standardized (divided by the standard deviation of the DV) ',
-        'so that effect size benchmarks can be applied.</p>',
-        '</div>'
-      )
-      self$results$ameBenchmark$setContent(ame_html)
+
     },
     
     .run = function() {
+      private$.update_help()
+      if (!is.null(self$results$text)) {
+        self$results$text$setContent("")
+        self$results$text$setVisible(FALSE)
+      }
       benchmark_std        <- if (!is.null(self$options$benchmark_standard)) self$options$benchmark_standard else "cohen"
       calc_from_test_stat  <- isTRUE(self$options$calc_from_test_stat)
-      show_categorical_es  <- isTRUE(self$options$show_categorical_es)
+      show_categorical_es  <- private$.is_defined(self$options$cat_var1) && private$.is_defined(self$options$cat_var2)
       ci_level_raw         <- if (!is.null(self$options$ci_level)) self$options$ci_level else "ci_95"
       ci_level             <- switch(ci_level_raw, ci_90 = 0.90, ci_99 = 0.99, 0.95)
       ci_method            <- if (!is.null(self$options$ci_method)) self$options$ci_method else "analytical"
@@ -72,16 +86,46 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       if (calc_from_test_stat) {
         dt_table <- self$results$directCalcTable
         if (dt_table$rowCount > 0) dt_table$deleteRows()
+        dt_table$setNote("direct_note", NULL)
         
-        stat_type <- if (!is.null(self$options$stat_type)) self$options$stat_type else "stat_t"
-        s_val <- if (!is.null(self$options$stat_val)) self$options$stat_val else 2.5
-        df1 <- if (!is.null(self$options$stat_df1)) self$options$stat_df1 else 30
-        df2 <- if (!is.null(self$options$stat_df2)) self$options$stat_df2 else 60
-        n_sample <- if (!is.null(self$options$stat_n) && self$options$stat_n > 0) self$options$stat_n else (df1 + 2)
+        stat_type <- self$options$stat_type
+        s_val <- self$options$stat_val
+        df1 <- self$options$stat_df1
+        df2 <- self$options$stat_df2
+        n_sample <- self$options$stat_n
+
+        if (length(stat_type) != 1 || is.na(stat_type) || !stat_type %in% c("stat_t", "stat_f", "stat_z", "stat_chisq")) {
+          jmvcore::reject("Choose a supported test statistic: t, F, z or chi-square.", code = "invalid_statistic_input")
+        }
+        if (!private$.is_finite_number(s_val)) {
+          jmvcore::reject("The statistic value must be a single finite real number.", code = "invalid_statistic_input")
+        }
+        if (stat_type %in% c("stat_f", "stat_chisq") && s_val < 0) {
+          jmvcore::reject("F and chi-square statistic values must be non-negative.", code = "invalid_statistic_input")
+        }
+        if (stat_type %in% c("stat_t", "stat_f") && (!private$.is_finite_number(df1) || df1 <= 0)) {
+          jmvcore::reject("The t or F numerator degrees of freedom must be finite and greater than zero.", code = "invalid_statistic_input")
+        }
+        if (stat_type == "stat_f" && (!private$.is_finite_number(df2) || df2 <= 0)) {
+          jmvcore::reject("F denominator degrees of freedom must be finite and greater than zero.", code = "invalid_statistic_input")
+        }
+        if (stat_type %in% c("stat_z", "stat_chisq") && (!private$.is_finite_number(n_sample) || n_sample <= 0 || n_sample != floor(n_sample))) {
+          jmvcore::reject("z and chi-square conversions require a finite positive integer sample size N.", code = "invalid_statistic_input")
+        }
+        if (stat_type == "stat_chisq") {
+          rows <- self$options$stat_rows
+          columns <- self$options$stat_cols
+          if (!private$.is_finite_number(rows) || !private$.is_finite_number(columns) || rows < 2 || columns < 2 || rows != floor(rows) || columns != floor(columns)) {
+            jmvcore::reject("Chi-square conversions require the contingency table's integer row and column counts, both at least 2.", code = "invalid_statistic_input")
+          }
+          if (s_val > n_sample * min(rows - 1, columns - 1)) {
+            jmvcore::reject("Chi-square, N and table dimensions must imply a finite Cramer's V between 0 and 1.", code = "invalid_statistic_input")
+          }
+        }
         
         dt_table$setNote(
           "direct_note",
-          "Note. Instant effect size conversions computed from user-specified test statistics without raw data. Citations: Cohen (1988); Borenstein et al. (2009)."
+          "Instant effect size conversions computed from user-specified test statistics without raw data. Negative t and z values and positive fractional degrees of freedom are allowed. z and chi-square require a positive integer N, never inferred from degrees of freedom. Partial omega-squared from F is an F/df-based approximation, not an exact design-specific unbiased estimator."
         )
         
         row_dt <- 1
@@ -122,7 +166,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             input_stat = paste0("t(", df1, ") = ", round(t_stat, 3)),
             metric = "Eta-squared (\u03b7\u00b2)",
             value = eta2_val,
-            interpretation = private$.interpret(d_val, "cohens_d", benchmark_std),
+            interpretation = private$.interpret_eta(eta2_val),
             formula_ref = "\u03b7\u00b2 = t^2 / (t^2 + df)"
           )); row_dt <- row_dt + 1
           
@@ -145,7 +189,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         } else if (stat_type == "stat_f") {
           f_stat <- s_val
           eta_p <- (f_stat * df1) / (f_stat * df1 + df2)
-          omega_p <- max(0, (df1 * (f_stat - 1)) / (df1 * (f_stat - 1) + df2 + 1))
+          omega_p <- max(0, (df1 * (f_stat - 1)) / (df1 * f_stat + df2 + 1))
           f_cohen <- sqrt(eta_p / max(1e-6, 1 - eta_p))
           
           dt_table$addRow(rowKey = row_dt, values = list(
@@ -161,7 +205,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             metric = "Partial \u03c9\u00b2",
             value = omega_p,
             interpretation = private$.interpret_eta(omega_p),
-            formula_ref = "\u03c9_p\u00b2 = max(0, df1*(F-1) / (df1*(F-1) + df2 + 1))"
+            formula_ref = "\u03c9_p\u00b2 = max(0, df1*(F-1) / (df1*F + df2 + 1))"
           )); row_dt <- row_dt + 1
           
           dt_table$addRow(rowKey = row_dt, values = list(
@@ -187,7 +231,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           z_stat <- s_val
           d_z <- (2 * z_stat) / sqrt(n_sample)
           r_z <- z_stat / sqrt(n_sample)
-          auc_z <- stats::pnorm(z_stat / sqrt(2))
+          auc_z <- stats::pnorm(d_z / sqrt(2))
           
           dt_table$addRow(rowKey = row_dt, values = list(
             input_stat = paste0("z = ", round(z_stat, 3), " (N = ", n_sample, ")"),
@@ -210,39 +254,41 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             metric = "AUC / Prob. Superiority",
             value = auc_z,
             interpretation = paste0(round(auc_z * 100, 1), "% chance of superiority"),
-            formula_ref = "AUC = \u03a6(z / sqrt(2))"
+            formula_ref = "AUC = \u03a6(d / sqrt(2)); d = 2*z / sqrt(N)"
           )); row_dt <- row_dt + 1
           
         } else if (stat_type == "stat_chisq") {
           chisq_val <- s_val
-          phi_val <- sqrt(chisq_val / n_sample)
-          k_factor <- max(1, df1)
+          k_factor <- min(rows - 1, columns - 1)
+          table_df <- (rows - 1) * (columns - 1)
           cramer_val <- sqrt(chisq_val / (n_sample * k_factor))
-          or_approx <- exp(sqrt(chisq_val) * pi / sqrt(3 * n_sample))
-          
+          dt_table$setNote("direct_note", "Cramer's V uses the specified table dimensions; verify the 2 by 2 defaults when restoring older analyses. Phi and the equivalent odds ratio are reported only for 2 by 2 tables. Chi-square cannot determine direction or the actual cell-based odds ratio. The unsigned OR equivalent assumes the phi-to-d conversion and the logistic approximation; its reciprocal represents the opposite direction.")
           dt_table$addRow(rowKey = row_dt, values = list(
-            input_stat = paste0("\u03c7\u00b2(", df1, ") = ", round(chisq_val, 3), " (N = ", n_sample, ")"),
-            metric = "Cram\u00e9r's V",
+            input_stat = paste0("Chi-square(", table_df, ") = ", round(chisq_val, 3), " (N = ", n_sample, "; ", rows, " x ", columns, ")"),
+            metric = "Cramer's V",
             value = cramer_val,
             interpretation = private$.interpret_cramer(cramer_val),
-            formula_ref = "V = sqrt(\u03c7\u00b2 / (N * min(r-1, c-1)))"
+            formula_ref = "V = sqrt(chi-square / (N * min(rows-1, columns-1)))"
           )); row_dt <- row_dt + 1
-          
-          dt_table$addRow(rowKey = row_dt, values = list(
-            input_stat = paste0("\u03c7\u00b2 = ", round(chisq_val, 3), " (N = ", n_sample, ")"),
-            metric = "Phi (\u03c6)",
-            value = phi_val,
-            interpretation = private$.interpret_cramer(phi_val),
-            formula_ref = "\u03c6 = sqrt(\u03c7\u00b2 / N)"
-          )); row_dt <- row_dt + 1
-          
-          dt_table$addRow(rowKey = row_dt, values = list(
-            input_stat = paste0("\u03c7\u00b2 = ", round(chisq_val, 3), " (N = ", n_sample, ")"),
-            metric = "Odds Ratio approx. (2\u00d72)",
-            value = or_approx,
-            interpretation = private$.interpret_ratio(or_approx),
-            formula_ref = "OR \u2248 exp(sqrt(\u03c7\u00b2) * \u03c0 / sqrt(3*N))"
-          )); row_dt <- row_dt + 1
+          if (rows == 2 && columns == 2) {
+            phi_val <- sqrt(chisq_val / n_sample)
+            d_equivalent <- if (phi_val < 1) 2 * phi_val / sqrt(1 - phi_val^2) else Inf
+            or_approx <- exp(d_equivalent * pi / sqrt(3))
+            dt_table$addRow(rowKey = row_dt, values = list(
+              input_stat = paste0("Chi-square = ", round(chisq_val, 3), " (N = ", n_sample, ")"),
+              metric = "Phi magnitude (unsigned)",
+              value = phi_val,
+              interpretation = private$.interpret_cramer(phi_val),
+              formula_ref = "|phi| = sqrt(chi-square / N)"
+            )); row_dt <- row_dt + 1
+            dt_table$addRow(rowKey = row_dt, values = list(
+              input_stat = paste0("Chi-square = ", round(chisq_val, 3), " (N = ", n_sample, ")"),
+              metric = "Odds Ratio equivalent (unsigned, approximate)",
+              value = or_approx,
+              interpretation = "Direction unavailable; reciprocal is equally compatible with chi-square",
+              formula_ref = "d = 2*|phi|/sqrt(1-phi^2); OR equivalent = exp(d*pi/sqrt(3))"
+            )); row_dt <- row_dt + 1
+          }
         }
       }
       
@@ -251,6 +297,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       if (show_categorical_es && !is.null(data)) {
         cat_tbl <- self$results$categoricalTable
         if (cat_tbl$rowCount > 0) cat_tbl$deleteRows()
+        cat_tbl$setNote("cramer_ci_unavailable", NULL)
         
         cat1 <- self$options$cat_var1
         cat2 <- self$options$cat_var2
@@ -260,7 +307,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           
           cat_tbl$setNote(
             "cat_note",
-            "Note. Cram\u00e9r's V computed following Cram\u00e9r (1946). Odds Ratio (OR) and Relative Risk (RR) with Wald asymptotic confidence intervals following Fleiss et al. (2003)."
+            "Unadjusted Cramer's V with a two-sided noncentral-chi-square confidence interval (effectsize). This is an asymptotic interval. Odds Ratio (OR) and Relative Risk (RR) use Wald asymptotic confidence intervals."
           )
           
           v1 <- factor(data[[cat1]])
@@ -280,9 +327,13 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             v_est <- sqrt(chi_stat / (n_cat * max(1, k_min)))
             
             z_crit <- stats::qnorm(1 - (1 - ci_level) / 2)
-            se_v <- sqrt((1 - v_est^2) / n_cat)
-            ci_lo_v <- max(0, v_est - z_crit * se_v)
-            ci_hi_v <- min(1, v_est + z_crit * se_v)
+            v_interval <- tryCatch(
+              as.data.frame(effectsize::cramers_v(tab, adjust = FALSE, ci = ci_level, alternative = "two.sided")),
+              error = function(e) NULL
+            )
+            ci_lo_v <- if (!is.null(v_interval)) as.numeric(v_interval$CI_low[1]) else NA_real_
+            ci_hi_v <- if (!is.null(v_interval)) as.numeric(v_interval$CI_high[1]) else NA_real_
+            if (!is.finite(ci_lo_v) || !is.finite(ci_hi_v)) cat_tbl$setNote("cramer_ci_unavailable", "The noncentral-chi-square confidence interval could not be obtained; no substitute interval is reported.")
             
             row_c <- 1
             cat_tbl$addRow(rowKey = row_c, values = list(
@@ -356,10 +407,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       if (is.null(data)) {
-        if (calc_from_test_stat) {
-          self$results$text$setContent("Direct test statistic calculations computed successfully without raw data.")
-          self$results$text$setVisible(TRUE)
-        }
         return()
       }
       
@@ -378,7 +425,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       } else {
         table$setTitle("Within-Subjects Effect Sizes (Time Effects)")
       }
-      table$setNote("engine", "Note. Computations powered by effectsize and robust algorithms. Robust d_R follows Algina et al. (2005) with 20% trimmed means and Winsorized variances. Akritas-Arnold relative effect \u03b4\u0302 follows Akritas & Arnold (1994).")
+      table$setNote("engine", "Robust effect sizes use 20% trimmed means and Winsorized variances. Robust d always uses a percentile bootstrap CI: 400 replicates under the analytical selection or the configured replicate count under bootstrap, with fixed seed 12345 and caller RNG state restored. The Akritas-Arnold relative effect is also available. For covariate-adjusted Cohen's d, Hedges' g and Glass' delta, analytical confidence intervals rescale the adjusted mean-difference interval while treating the estimated standard deviation as fixed; they do not propagate its estimation uncertainty.")
       
       if (mode == "cross_sectional") {
         dep_vars            <- self$options$dep_vars_cs
@@ -394,10 +441,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         es_method_long <- "cohens_dz"
       } else {
         dep_vars            <- self$options$dep_vars_long
-        indep_vars          <- self$options$indep_vars_long
+        indep_vars          <- character()
         es_method_long      <- self$options$es_method_long
         show_cles_long      <- self$options$show_cles_long
-        cov_var             <- self$options$cov_long
+        cov_var             <- NULL
         
         long_format    <- self$options$long_format
         time_var       <- self$options$time_var
@@ -412,16 +459,18 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       es_glm_dist      <- self$options$es_glm
       reference_group  <- self$options$reference_group
       reference_group_long <- self$options$reference_group_long
+      glass_references <- if (mode == "cross_sectional" && !isTRUE(use_glm) && es_method == "glass_delta") private$.glass_references(self$options$glass_references, indep_vars) else list()
       
       if (table$rowCount > 0) table$deleteRows()
       clesTable <- if (mode == "cross_sectional") self$results$clesTable else self$results$clesLongTable
       if (clesTable$rowCount > 0) clesTable$deleteRows()
       
-      table_long_between <- self$results$effectSizeTableLongBetween
-      if (table_long_between$rowCount > 0) table_long_between$deleteRows()
       
       conversion_tbl <- self$results$conversionTable
       if (conversion_tbl$rowCount > 0) conversion_tbl$deleteRows()
+      conversion_tbl$setVisible(isTRUE(run_analysis) && isTRUE(show_conversions) && mode == "cross_sectional" && es_method == "cohens_d" && !isTRUE(use_glm) && !private$.is_defined(cov_var))
+      conversion_tbl$setNote("scope", "Conversions are restricted to unadjusted independent-samples Cohen's d. Point-biserial r and eta-squared use the two group sample sizes and pooled-t degrees of freedom. OR and AUC are model-based approximations, not observed categorical effects. AME, adjusted, paired, Glass, Hedges, rank and robust effects are not converted.")
+      table$setNote("glass_method", if (es_method %in% c("glass_delta", "glass_dz") && (mode == "longitudinal" || !isTRUE(use_glm))) "Glass effects are small-sample bias corrected (effectsize adjust=TRUE). Differences are non-reference minus reference, standardized by the reference SD. An explicitly selected reference limits results to comparisons containing it. Bootstrap resamples preserve group or pair identity; fixed seed 12345, type-7 percentile CI, abort on the first undefined estimate. Adjusted independent analytical CIs condition on the estimated reference SD; its uncertainty is not propagated." else NULL)
       
       if (!isTRUE(run_analysis)) {
         if (!calc_from_test_stat && !show_categorical_es) {
@@ -435,7 +484,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       n_rows <- 0
       n_cles <- 0
-      n_rows_long_between <- 0
       n_cles_long <- 0
       n_conv <- 0
       
@@ -445,19 +493,13 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         for (iv in indep_vars) {
           if (iv %in% names(data)) grouping_factors[[iv]] <- factor(data[[iv]])
         }
-        if (isTRUE(include_interactions) && length(indep_vars) > 1) {
+        if (isTRUE(include_interactions) && length(indep_vars) > 1 && !(es_method == "glass_delta" && !isTRUE(use_glm))) {
           valid_ivs <- intersect(indep_vars, names(data))
           if (length(valid_ivs) > 1) {
             int_name <- paste(valid_ivs, collapse = " * ")
             grouping_factors[[int_name]] <- interaction(data[valid_ivs], drop = TRUE, sep = " * ")
           }
         }
-      }
-      
-      if (mode == "longitudinal" && length(grouping_factors) == 0) {
-        table_long_between$setVisible(FALSE)
-      } else if (mode == "longitudinal") {
-        table_long_between$setNote("engine", "Note. Computations powered by effectsize and robust algorithms. Variance is pooled locally between the compared pairs.")
       }
       
       if (mode == "cross_sectional") {
@@ -481,10 +523,16 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             
             groups      <- levels(iv_col)
             if (length(groups) < 2) next
+            selected_reference <- if (es_method == "glass_delta" && !isTRUE(use_glm)) private$.glass_reference(glass_references, iv_name, groups, reference_group) else NULL
             group_pairs <- combn(groups, 2, simplify = FALSE)
             groups_note <- paste0("[Available groups: ", paste(groups, collapse = ", "), "]")
             
             for (gp in group_pairs) {
+              if (es_method == "glass_delta" && !isTRUE(use_glm)) {
+                if (!is.null(selected_reference) && !selected_reference %in% gp) next
+                ref_grp <- if (is.null(selected_reference)) gp[[2]] else selected_reference
+                gp <- c(setdiff(gp, ref_grp), ref_grp)
+              }
               ga    <- dv_col[iv_col == gp[[1]]]
               gb    <- dv_col[iv_col == gp[[2]]]
               n_obs <- length(ga) + length(gb)
@@ -496,16 +544,15 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 result <- tryCatch({
                   private$.compute_glm(iv_col, dv_col, gp[[1]], gp[[2]], es_glm_dist, ci_method, ci_level, n_bootstrap, cov_col, benchmark = benchmark_std)
                 }, error = function(e) {
+                  if (identical(e$code, "restart")) stop(e)
                   list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = "AME (error)", interpretation = paste0("GLM error: ", e$message))
                 })
               } else {
-                ref_grp <- if (es_method == "glass_delta") {
-                  rg <- trimws(reference_group)
-                  if (nchar(rg) > 0 && rg %in% c(gp[[1]], gp[[2]])) rg else gp[[2]]
-                } else gp[[2]]
+                if (es_method != "glass_delta") ref_grp <- gp[[2]]
                 result <- tryCatch({
                   private$.compute_2groups(ga, gb, gp[[1]], gp[[2]], ref_grp, es_method, ci_method, ci_level, n_bootstrap, cov_a, cov_b, benchmark = benchmark_std)
                 }, error = function(e) {
+                  if (identical(e$code, "restart")) stop(e)
                   list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method, interpretation = paste0("Computation error: ", e$message))
                 })
               }
@@ -535,8 +582,8 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 )
               }
               
-              if (isTRUE(show_conversions) && !is.na(result$es_value)) {
-                convs <- private$.convert_metrics(result$es_value, es_method, benchmark_std)
+              if (isTRUE(show_conversions) && is.finite(result$es_value) && es_method == "cohens_d" && !isTRUE(use_glm) && !private$.is_defined(cov_var)) {
+                convs <- private$.convert_metrics(result$es_value, es_method, benchmark_std, origin = "independent", n_a = length(ga), n_b = length(gb))
                 n_conv <- n_conv + 1
                 conversion_tbl$addRow(rowKey = n_conv, values = list(
                   dv             = dv,
@@ -566,8 +613,14 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       } else {
         if (long_format == "wide") {
           if (private$.is_defined(wave_vars) && length(wave_vars) >= 2) {
+            selected_reference <- if (es_method_long == "glass_dz") private$.glass_reference(list(), "wave", wave_vars, reference_group_long) else NULL
             wave_pairs <- combn(wave_vars, 2, simplify = FALSE)
             for (wp in wave_pairs) {
+              if (es_method_long == "glass_dz") {
+                if (!is.null(selected_reference) && !selected_reference %in% wp) next
+                reference <- if (is.null(selected_reference)) wp[[1]] else selected_reference
+                wp <- c(setdiff(wp, reference), reference)
+              }
               w1 <- wp[[1]]; w2 <- wp[[2]]
               if (!(w1 %in% names(data)) || !(w2 %in% names(data))) next
               c1 <- private$.to_numeric_vec(data[[w1]])
@@ -578,8 +631,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               if (n_obs < 3) next
               
               result <- tryCatch({
-                private$.compute_dependent_paired(c1, c2, w1, w2, w1, es_method_long, ci_method, ci_level, n_bootstrap, cov_col = NULL, benchmark = benchmark_std)
+                private$.compute_dependent_paired(c1, c2, w1, w2, w2, es_method_long, ci_method, ci_level, n_bootstrap, benchmark = benchmark_std)
               }, error = function(e) {
+                if (identical(e$code, "restart")) stop(e)
                 list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Error: ", e$message))
               })
               
@@ -605,22 +659,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                   ci_upper = result$ci_upper
                 )
               }
-              
-              if (isTRUE(show_conversions) && !is.na(result$es_value)) {
-                convs <- private$.convert_metrics(result$es_value, es_method_long, benchmark_std)
-                n_conv <- n_conv + 1
-                conversion_tbl$addRow(rowKey = n_conv, values = list(
-                  dv             = "Wide Wave",
-                  comparison     = comp_str,
-                  cohen_d        = convs$cohen_d,
-                  correlation_r  = convs$correlation_r,
-                  eta_squared    = convs$eta_squared,
-                  odds_ratio     = convs$odds_ratio,
-                  auc            = convs$auc,
-                  interpretation = convs$interpretation
-                ))
-              }
-              
               if (isTRUE(show_cles_long)) {
                 cles_result <- private$.compute_cles_paired(c1, c2)
                 n_cles_long <- n_cles_long + 1
@@ -635,15 +673,25 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         } else if (long_format == "long") {
           if (private$.is_defined(dep_vars) && private$.is_defined(time_var) && private$.is_defined(subject_id_var)) {
             if (time_var %in% names(data) && subject_id_var %in% names(data)) {
+              pair_keys <- data[, unique(c(subject_id_var, time_var)), drop = FALSE]
+              if (anyDuplicated(pair_keys[stats::complete.cases(pair_keys), , drop = FALSE])) {
+                jmvcore::reject("Longitudinal pairing requires one observation per subject and occasion. Duplicate subject-by-occasion records must be resolved before analysis.", code = "duplicate_subject_occasion")
+              }
               time_lvls <- sort(unique(stats::na.omit(as.character(data[[time_var]]))))
               if (length(time_lvls) >= 2) {
+                selected_reference <- if (es_method_long == "glass_dz") private$.glass_reference(list(), "time", time_lvls, reference_group_long) else NULL
                 t_pairs <- combn(time_lvls, 2, simplify = FALSE)
                 for (dv in dep_vars) {
                   if (!(dv %in% names(data))) next
                   for (tp in t_pairs) {
+                    if (es_method_long == "glass_dz") {
+                      if (!is.null(selected_reference) && !selected_reference %in% tp) next
+                      reference <- if (is.null(selected_reference)) tp[[1]] else selected_reference
+                      tp <- c(setdiff(tp, reference), reference)
+                    }
                     t1 <- tp[[1]]; t2 <- tp[[2]]
-                    d1 <- data[as.character(data[[time_var]]) == t1 & !is.na(data[[time_var]]), c(subject_id_var, dv)]
-                    d2 <- data[as.character(data[[time_var]]) == t2 & !is.na(data[[time_var]]), c(subject_id_var, dv)]
+                    d1 <- data[as.character(data[[time_var]]) == t1 & !is.na(data[[time_var]]) & !is.na(data[[subject_id_var]]), c(subject_id_var, dv)]
+                    d2 <- data[as.character(data[[time_var]]) == t2 & !is.na(data[[time_var]]) & !is.na(data[[subject_id_var]]), c(subject_id_var, dv)]
                     m_df <- merge(d1, d2, by = subject_id_var, suffixes = c("_1", "_2"))
                     c1 <- private$.to_numeric_vec(m_df[[paste0(dv, "_1")]])
                     c2 <- private$.to_numeric_vec(m_df[[paste0(dv, "_2")]])
@@ -652,8 +700,9 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                     n_obs <- length(c1)
                     if (n_obs < 3) next
                     result <- tryCatch({
-                      private$.compute_dependent_paired(c1, c2, t1, t2, t1, es_method_long, ci_method, ci_level, n_bootstrap, cov_col = NULL, benchmark = benchmark_std)
+                      private$.compute_dependent_paired(c1, c2, t1, t2, t2, es_method_long, ci_method, ci_level, n_bootstrap, benchmark = benchmark_std)
                     }, error = function(e) {
+                      if (identical(e$code, "restart")) stop(e)
                       list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = es_method_long, interpretation = paste0("Error: ", e$message))
                     })
                     n_rows <- n_rows + 1
@@ -676,20 +725,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                         ci_lower = result$ci_lower,
                         ci_upper = result$ci_upper
                       )
-                    }
-                    if (isTRUE(show_conversions) && !is.na(result$es_value)) {
-                      convs <- private$.convert_metrics(result$es_value, es_method_long, benchmark_std)
-                      n_conv <- n_conv + 1
-                      conversion_tbl$addRow(rowKey = n_conv, values = list(
-                        dv             = dv,
-                        comparison     = comp_str,
-                        cohen_d        = convs$cohen_d,
-                        correlation_r  = convs$correlation_r,
-                        eta_squared    = convs$eta_squared,
-                        odds_ratio     = convs$odds_ratio,
-                        auc            = convs$auc,
-                        interpretation = convs$interpretation
-                      ))
                     }
                     if (isTRUE(show_cles_long)) {
                       cles_result <- private$.compute_cles_paired(c1, c2)
@@ -719,10 +754,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         }
       }
       
-      self$results$text$setContent(paste0(
-        (n_rows + n_rows_long_between), " pairwise effect size(s) computed."
-      ))
-      self$results$text$setVisible(TRUE)
+
     },
     
     .interpret = function(val, method, benchmark = "cohen") {
@@ -792,30 +824,134 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       return("Large / Strong (\u2265 0.50)")
     },
     
-    .convert_metrics = function(es_val, method, benchmark = "cohen") {
-      d <- if (method %in% c("rank_biserial", "rank_biserial_paired", "akritas_arnold_delta")) {
-        r_clamped <- max(min(es_val, 0.999), -0.999)
-        (2 * r_clamped) / sqrt(1 - r_clamped^2)
-      } else {
-        es_val
+    .glass_references = function(assignments, variables) {
+      references <- list()
+      seen <- character()
+      for (assignment in assignments) {
+        variable <- assignment$variable
+        reference <- assignment$reference
+        if (length(variable) != 1 || is.na(variable) || !variable %in% variables || variable %in% seen) jmvcore::reject("Glass references require a unique selected independent variable in each row.", code = "invalid_glass_reference")
+        seen <- c(seen, variable)
+        if (is.null(reference)) next
+        if (length(reference) != 1 || is.na(reference)) jmvcore::reject("Choose one reference level for each Glass reference row.", code = "invalid_glass_reference")
+        references[[variable]] <- as.character(reference)
       }
-      
-      r <- d / sqrt(d^2 + 4)
-      eta_sq <- r^2
-      or_val <- exp(1.813799 * d)
-      auc_val <- stats::pnorm(d / sqrt(2))
-      interp <- private$.interpret(d, "cohens_d", benchmark)
-      
+      references
+    },
+
+    .glass_reference = function(references, variable, groups, legacy = "") {
+      selected <- references[[variable]]
+      if (is.null(selected)) selected <- legacy
+      if (is.null(selected) || identical(selected, "")) return(NULL)
+      if (length(selected) != 1 || is.na(selected) || !selected %in% groups) jmvcore::reject(paste0("Glass reference for '", variable, "' must be an observed level available for the current comparison."), code = "invalid_glass_reference")
+      selected
+    },
+
+    .glass_bootstrap = function(statistic, n_bootstrap, ci_level) {
+      seed_present <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      previous_seed <- if (seed_present) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+      on.exit({
+        if (seed_present) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+        else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(list = ".Random.seed", envir = .GlobalEnv)
+      }, add = TRUE)
+      set.seed(12345L)
+      values <- rep(NA_real_, n_bootstrap)
+      for (index in seq_len(n_bootstrap)) {
+        private$.checkpoint(flush = FALSE)
+        value <- tryCatch(statistic(), error = function(error) {
+          if (identical(error$code, "restart")) stop(error)
+          NA_real_
+        })
+        if (length(value) != 1 || !is.finite(value)) return(list(lower = NA_real_, upper = NA_real_, note = paste0("Bootstrap aborted: ", index - 1L, " completed, 1 failed, ", n_bootstrap - index, " not attempted; no conditional CI reported.")))
+        values[index] <- value
+      }
+      bounds <- stats::quantile(values, c((1 - ci_level) / 2, 1 - (1 - ci_level) / 2), type = 7)
+      list(lower = as.numeric(bounds[1]), upper = as.numeric(bounds[2]), note = paste0("Percentile bootstrap: ", n_bootstrap, " completed, 0 failed; fixed seed 12345, caller RNG restored."))
+    },
+
+    .compute_glass_paired = function(col1, col2, name1, name2, ref_wave, ci_method, ci_level, n_bootstrap, benchmark) {
+      if (!ref_wave %in% c(name1, name2)) jmvcore::reject("The reference wave must belong to the paired comparison.", code = "invalid_glass_reference")
+      reference <- if (ref_wave == name1) col1 else col2
+      comparison <- if (ref_wave == name1) col2 else col1
+      reference_sd <- stats::sd(reference)
+      if (!is.finite(reference_sd) || reference_sd <= 0) return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = "glass_dz", interpretation = "Zero or undefined variance in reference wave"))
+      point <- effectsize::repeated_measures_d(comparison, reference, method = "b", adjust = TRUE, ci = if (ci_method == "analytical") ci_level else NULL, verbose = FALSE)
+      value <- as.numeric(point[[1]])
+      lower <- if (ci_method == "analytical") as.numeric(point$CI_low) else NA_real_
+      upper <- if (ci_method == "analytical") as.numeric(point$CI_high) else NA_real_
+      interpretation <- private$.interpret(value, "glass_dz", benchmark)
+      if (ci_method == "bootstrap" && is.finite(value)) {
+        interval <- private$.glass_bootstrap(function() {
+          positions <- sample.int(length(reference), length(reference), replace = TRUE)
+          if (!is.finite(stats::sd(reference[positions])) || stats::sd(reference[positions]) <= 0) return(NA_real_)
+          as.numeric(effectsize::repeated_measures_d(comparison[positions], reference[positions], method = "b", adjust = TRUE, ci = NULL, verbose = FALSE)[[1]])
+        }, n_bootstrap, ci_level)
+        lower <- interval$lower
+        upper <- interval$upper
+        interpretation <- paste(interpretation, interval$note)
+      }
+      list(es_value = value, ci_lower = lower, ci_upper = upper, method = "glass_dz", interpretation = interpretation)
+    },
+
+    .compute_glass_2groups = function(ga, gb, name_a, name_b, ref_grp, ci_method, ci_level, n_bootstrap, cov_a, cov_b, benchmark) {
+      if (!ref_grp %in% c(name_a, name_b)) jmvcore::reject("The Glass reference must belong to the independent comparison.", code = "invalid_glass_reference")
+      has_cov <- !is.null(cov_a) && !is.null(cov_b)
+      estimate <- function(first, second, first_cov, second_cov, level) {
+        reference <- if (ref_grp == name_a) first else second
+        reference_sd <- stats::sd(reference)
+        if (!is.finite(reference_sd) || reference_sd <= 0) return(list(value = NA_real_, lower = NA_real_, upper = NA_real_))
+        frame <- data.frame(y = c(first, second), group = factor(c(rep(name_a, length(first)), rep(name_b, length(second))), levels = c(name_a, name_b)))
+        if (!has_cov) {
+          result <- effectsize::glass_delta(y ~ group, data = frame, reference = ref_grp, adjust = TRUE, ci = level, verbose = FALSE)
+          return(list(value = as.numeric(result[[1]]), lower = if (is.null(level)) NA_real_ else as.numeric(result$CI_low), upper = if (is.null(level)) NA_real_ else as.numeric(result$CI_high)))
+        }
+        frame$covariate <- c(first_cov, second_cov)
+        model <- stats::lm(y ~ group + covariate, data = frame)
+        marginal <- as.data.frame(emmeans::emmeans(model, "group"))
+        contrast <- marginal$emmean[marginal$group == name_a] - marginal$emmean[marginal$group == name_b]
+        if (ref_grp == name_a) contrast <- -contrast
+        reference_df <- length(reference) - 1
+        correction <- exp(lgamma(reference_df / 2) - log(sqrt(reference_df / 2)) - lgamma((reference_df - 1) / 2))
+        value <- contrast * correction / reference_sd
+        lower <- upper <- NA_real_
+        if (!is.null(level)) {
+          standard_error <- as.data.frame(pairs(emmeans::emmeans(model, "group")))$SE[1]
+          margin <- stats::qt(1 - (1 - level) / 2, stats::df.residual(model)) * standard_error
+          lower <- (contrast - margin) * correction / reference_sd
+          upper <- (contrast + margin) * correction / reference_sd
+        }
+        list(value = as.numeric(value), lower = as.numeric(lower), upper = as.numeric(upper))
+      }
+      point <- estimate(ga, gb, cov_a, cov_b, if (ci_method == "analytical") ci_level else NULL)
+      interpretation <- if (is.finite(point$value)) private$.interpret(point$value, "glass_delta", benchmark) else "Reference variance is zero or the adjusted contrast is not estimable"
+      if (ci_method == "bootstrap" && is.finite(point$value)) {
+        interval <- private$.glass_bootstrap(function() {
+          first <- sample.int(length(ga), length(ga), replace = TRUE)
+          second <- sample.int(length(gb), length(gb), replace = TRUE)
+          estimate(ga[first], gb[second], if (has_cov) cov_a[first] else NULL, if (has_cov) cov_b[second] else NULL, NULL)$value
+        }, n_bootstrap, ci_level)
+        point$lower <- interval$lower
+        point$upper <- interval$upper
+        interpretation <- paste(interpretation, interval$note)
+      }
+      list(es_value = point$value, ci_lower = point$lower, ci_upper = point$upper, method = "glass_delta", interpretation = interpretation)
+    },
+
+    .convert_metrics = function(es_val, method, benchmark = "cohen", origin = "unknown", n_a = NULL, n_b = NULL) {
+      if (origin != "independent" || method != "cohens_d" || length(es_val) != 1 || !is.finite(es_val)) return(NULL)
+      if (length(n_a) != 1 || length(n_b) != 1 || !is.finite(n_a) || !is.finite(n_b) || n_a < 2 || n_b < 2) return(NULL)
+      statistic <- es_val / sqrt(1 / n_a + 1 / n_b)
+      correlation <- statistic / sqrt(statistic^2 + n_a + n_b - 2)
       list(
-        cohen_d       = d,
-        correlation_r = r,
-        eta_squared   = eta_sq,
-        odds_ratio    = or_val,
-        auc           = auc_val,
-        interpretation= interp
+        cohen_d = es_val,
+        correlation_r = correlation,
+        eta_squared = correlation^2,
+        odds_ratio = exp(pi * es_val / sqrt(3)),
+        auc = stats::pnorm(es_val / sqrt(2)),
+        interpretation = private$.interpret(es_val, "cohens_d", benchmark)
       )
     },
-    
+
     .compute_cles_independent = function(ga, gb) {
       ps <- try(effectsize::p_superiority(ga, gb, parametric = FALSE), silent = TRUE)
       if (inherits(ps, "try-error")) return(list(cles = NA_real_))
@@ -832,6 +968,10 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
     },
     
     .compute_2groups = function(ga, gb, name_a, name_b, ref_grp, method, ci_method, ci_level, n_bootstrap, cov_a = NULL, cov_b = NULL, benchmark = "cohen") {
+      if (method == "rank_biserial" && ci_method == "bootstrap" && !is.null(cov_a) && !is.null(cov_b)) {
+        jmvcore::reject("Bootstrap confidence intervals for covariate-adjusted rank-biserial effects are not supported. Choose analytical intervals or remove the covariate.", code = "unsupported_adjusted_rank_bootstrap")
+      }
+      if (method == "glass_delta") return(private$.compute_glass_2groups(ga, gb, name_a, name_b, ref_grp, ci_method, ci_level, n_bootstrap, cov_a, cov_b, benchmark))
       es_val <- NA_real_; ci_lo <- NA_real_; ci_hi <- NA_real_
       has_cov <- !is.null(cov_a) && !is.null(cov_b)
       n1 <- length(ga)
@@ -844,6 +984,13 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       if (method == "algina_keselman_d") {
+        seed_present <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+        previous_seed <- if (seed_present) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+        on.exit({
+          if (seed_present) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+          else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(list = ".Random.seed", envir = .GlobalEnv)
+        }, add = TRUE)
+        set.seed(12345L)
         m_ta <- mean(ga, trim = 0.20)
         m_tb <- mean(gb, trim = 0.20)
         wa <- private$.winsorize(ga, 0.20)
@@ -860,14 +1007,14 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           if (b_sw > 0) 0.642 * (mean(b1, trim = 0.20) - mean(b2, trim = 0.20)) / b_sw else NA_real_
         }
         b_reps <- if (ci_method == "bootstrap") n_bootstrap else 400
-        b_vals <- replicate(b_reps, boot_dr())
+        b_vals <- replicate(b_reps, { private$.checkpoint(flush = FALSE); boot_dr() })
         b_vals <- b_vals[is.finite(b_vals)]
         if (length(b_vals) >= 10) {
           alpha <- 1 - ci_level
           q <- stats::quantile(b_vals, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)
           ci_lo <- as.numeric(q[[1]]); ci_hi <- as.numeric(q[[2]])
         }
-        return(list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = "Robust d (Algina-Keselman-Penfield)", interpretation = private$.interpret(es_val, "cohens_d", benchmark)))
+        return(list(es_value = es_val, ci_lower = ci_lo, ci_upper = ci_hi, method = paste0("Robust d (Algina-Keselman-Penfield; percentile bootstrap CI, B=", b_reps, ", seed=12345)"), interpretation = private$.interpret(es_val, "cohens_d", benchmark)))
       }
       
       if (method == "akritas_arnold_delta") {
@@ -949,19 +1096,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                 ci_lo <- (ci_lo_diff / raw_sd_pooled) * correction
                 ci_hi <- (ci_hi_diff / raw_sd_pooled) * correction
               }
-            } else if (method == "glass_delta") {
-              s_ref <- if (ref_grp == name_a) s1 else s2
-              if (is.na(s_ref) || s_ref == 0) return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in reference group"))
-              diff_glass <- if (ref_grp == name_a) -adj_diff else adj_diff
-              lo_glass   <- if (ref_grp == name_a) -ci_hi_diff else ci_lo_diff
-              hi_glass   <- if (ref_grp == name_a) -ci_lo_diff else ci_hi_diff
-              df_ref <- if (ref_grp == name_a) n1 - 1 else n2 - 1
-              corr_glass <- if (df_ref > 1) 1 - (3 / (4 * df_ref - 1)) else 1
-              es_val <- (diff_glass / s_ref) * corr_glass
-              if (ci_method == "analytical") {
-                ci_lo <- (lo_glass / s_ref) * corr_glass
-                ci_hi <- (hi_glass / s_ref) * corr_glass
-              }
             }
           }
         }
@@ -989,7 +1123,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
             if (method == "hedges_g") return((b_adj_diff / b_sd_pooled) * (1 - 3 / (4 * (b_n1 + b_n2 - 2) - 1)))
             NA_real_
           }
-          boot_vals <- replicate(n_bootstrap, boot_fn())
+          boot_vals <- replicate(n_bootstrap, { private$.checkpoint(flush = FALSE); boot_fn() })
           boot_vals <- boot_vals[is.finite(boot_vals)]
           if (length(boot_vals) >= 10) {
             alpha <- 1 - ci_level
@@ -1002,7 +1136,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           switch(method,
                  cohens_d      = effectsize::cohens_d(ga, gb, ci = ci_level),
                  hedges_g      = effectsize::hedges_g(ga, gb, ci = ci_level),
-                 glass_delta   = effectsize::glass_delta(y ~ group, data = df_pair, reference = ref_grp, ci = ci_level),
                  rank_biserial = effectsize::rank_biserial(ga, gb, ci = ci_level)
           )
         }, error = function(e) NULL)
@@ -1021,16 +1154,12 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
               switch(method,
                      cohens_d      = effectsize::cohens_d(b1, b2, ci = NULL)[[1]],
                      hedges_g      = effectsize::hedges_g(b1, b2, ci = NULL)[[1]],
-                     glass_delta   = {
-                       b_df <- data.frame(y = c(b1, b2), group = factor(c(rep(name_a, n1), rep(name_b, n2))))
-                       effectsize::glass_delta(y ~ group, data = b_df, reference = ref_grp, ci = NULL)[[1]]
-                     },
                      rank_biserial = effectsize::rank_biserial(b1, b2, ci = NULL)[[1]]
               )
             }, error = function(e) NA_real_)
             as.numeric(res_b)
           }
-          boot_vals <- replicate(n_bootstrap, boot_fn())
+          boot_vals <- replicate(n_bootstrap, { private$.checkpoint(flush = FALSE); boot_fn() })
           boot_vals <- boot_vals[is.finite(boot_vals)]
           if (length(boot_vals) >= 10) {
             alpha <- 1 - ci_level
@@ -1043,6 +1172,8 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
     },
     
     .compute_dependent_paired = function(col1, col2, name1, name2, ref_wave, method, ci_method, ci_level, n_bootstrap, cov_col = NULL, benchmark = "cohen") {
+      if (!is.null(cov_col)) jmvcore::reject("Longitudinal covariate adjustment is not supported.", code = "unsupported_longitudinal_covariate")
+      if (method == "glass_dz") return(private$.compute_glass_paired(col1, col2, name1, name2, ref_wave, ci_method, ci_level, n_bootstrap, benchmark))
       es_val <- NA_real_; ci_lo <- NA_real_; ci_hi <- NA_real_
       n <- length(col1)
       sd1 <- stats::sd(col1, na.rm = TRUE)
@@ -1050,8 +1181,11 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       diff_vec <- col1 - col2
       sd_diff <- stats::sd(diff_vec, na.rm = TRUE)
       
-      if (is.na(sd_diff) || sd_diff == 0) {
+      if (method %in% c("cohens_dz", "hedges_gz", "cohens_drm") && (is.na(sd_diff) || sd_diff == 0)) {
         return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in difference score"))
+      }
+      if (method == "cohens_dav" && (is.na(sd1) || is.na(sd2) || (sd1 == 0 && sd2 == 0))) {
+        return(list(es_value = NA_real_, ci_lower = NA_real_, ci_upper = NA_real_, method = method, interpretation = "Zero variance in both measurements"))
       }
       
       res <- tryCatch({
@@ -1060,13 +1194,6 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
                cohens_dav           = effectsize::repeated_measures_d(col1, col2, method = "av", ci = ci_level),
                cohens_drm           = effectsize::repeated_measures_d(col1, col2, method = "rm", ci = ci_level),
                hedges_gz            = effectsize::hedges_g(col1, col2, paired = TRUE, ci = ci_level),
-               glass_dz             = {
-                 if (ref_wave == name1) {
-                   effectsize::repeated_measures_d(col2, col1, method = "b", ci = ci_level)
-                 } else {
-                   effectsize::repeated_measures_d(col1, col2, method = "b", ci = ci_level)
-                 }
-               },
                rank_biserial_paired = effectsize::rank_biserial(col1, col2, paired = TRUE, ci = ci_level)
         )
       }, error = function(e) NULL)
@@ -1093,7 +1220,7 @@ effectSizeClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           }, error = function(e) NA_real_)
           as.numeric(res_b)
         }
-        boot_vals <- replicate(n_bootstrap, boot_fn())
+        boot_vals <- replicate(n_bootstrap, { private$.checkpoint(flush = FALSE); boot_fn() })
         boot_vals <- boot_vals[is.finite(boot_vals)]
         if (length(boot_vals) >= 10) {
           alpha <- 1 - ci_level

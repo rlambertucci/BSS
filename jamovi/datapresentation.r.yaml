@@ -13,8 +13,6 @@ items:
       type: Table
       visible: (showTable)
       refs:
-        - dplyr
-        - tidyr
         - emmeans
       clearWith:
         - analysisType
@@ -30,6 +28,8 @@ items:
         - tableNote
         - ciWidth
         - intStyle
+        - plotType
+        - summary_distribution
       columns:
         - name: variable
           title: Variable
@@ -43,51 +43,39 @@ items:
         - name: mean
           title: M
           type: number
-          format: dp:2
 
         - name: sd
           title: SD
           type: number
-          format: dp:2
 
         - name: se
           title: SE
           type: number
-          format: dp:2
 
         - name: ci_lower
           title: CI Lower
           type: number
-          format: dp:2
 
         - name: ci_upper
           title: CI Upper
           type: number
-          format: dp:2
 
         - name: median
           title: Mdn
           type: number
-          format: dp:2
 
         - name: min
           title: Min
           type: number
-          format: dp:2
 
         - name: max
           title: Max
           type: number
-          format: dp:2
 
     - name: plots
       title: Group Comparison Plot
       type: Array
       description: One plot per dependent variable
-      refs:
-        - ggplot2
-        - dplyr
-        - tidyr
       clearWith:
         - analysisType
         - deps
@@ -97,12 +85,13 @@ items:
         - cov
         - cov_long
         - plotType
+        - summary_distribution
+        - theo_dist
         - intStyle
         - showLines
         - errorType
         - ciWidth
         - showPoints
-        - themePlot
         - colorPalette
         - color1
         - color2
@@ -140,27 +129,8 @@ items:
         type: Image
         width: 600
         height: 500
-        requiresData: true
+        requiresData: false
         renderFun: .plotGroup
-    - name: formattedTable
-      title: APA 7th Formatted Table (Export Ready)
-      type: Html
-      visible: (showFormattedTable)
-      refs:
-        - APA2020
-      clearWith:
-        - analysisType
-        - deps
-        - group
-        - rm_vars
-        - group_long
-        - cov
-        - cov_long
-        - tableFormat
-        - tableTitle
-        - tableNote
-        - ciWidth
-
     - name: corrMatrixTable
       title: Correlation Matrix (APA Style)
       type: Table
@@ -171,6 +141,8 @@ items:
         - analysisType
         - deps
         - rm_vars
+        - group
+        - group_long
         - corrMethod
       columns:
         - name: num
@@ -182,11 +154,9 @@ items:
         - name: mean
           title: M
           type: number
-          format: dp:2
         - name: sd
           title: SD
           type: number
-          format: dp:2
 
     - name: corrHeatmapPlot
       title: Correlation Heatmap
@@ -194,19 +164,15 @@ items:
       width: 550
       height: 450
       visible: (showCorrHeatmap)
-      requiresData: true
+      requiresData: false
       renderFun: .plotCorrHeatmap
       refs:
-        - ggplot2
         - MurtaghLegendre2014
       clearWith:
         - analysisType
         - deps
         - rm_vars
+        - group
+        - group_long
         - corrMethod
         - corrCluster
-
-    - name: exportNotice
-      title: Vector Figure Export Status
-      type: Html
-      visible: (exportPlots)

@@ -38,88 +38,98 @@ outliersClass <- R6::R6Class(
       max(min(mc, 1), -1)
     },
     
+    .update_help = function() {
+      mode <- self$options$mode
+      configured <- list(dixon = length(self$options$var_dixon) > 0, modz = length(self$options$vars_modz) > 0, iqr = length(self$options$vars_iqr) > 0, mah = length(self$options$vars_mah) > 0)
+      for (name in names(configured)) {
+        result <- self$results[[paste0(name, "Info")]]
+        active_mode <- if (identical(name, "mah")) "mahalanobis" else name
+        if (!is.null(result)) result$setVisible(identical(mode, active_mode) && !configured[[name]])
+      }
+    },
+
     .init = function() {
+      for (variable in self$options$vars_modz) self$results$modzPlot$addItem(key = variable)
+      for (variable in self$options$vars_iqr) self$results$iqrPlot$addItem(key = variable)
+      private$.update_help()
       
       info_html_dixon <- paste0(
-        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
+        '<div>',
         '<ul>',
-        '<li><b>Dixon\'s Q Test</b> &rarr; A statistical test for detecting a single outlier in a ',
+        '<li><b>Dixon\'s Q Test</b> \u2192 A statistical test for detecting a single outlier in a ',
         'small dataset. The Q statistic is the ratio of the gap between the suspect value and its ',
         'nearest neighbor to the range of the dataset. Designed for sample sizes between 3 and 30. ',
         '<i>Dixon, W. J. (1950).</i></li>',
-        '<li><b>Two-sided test</b> &rarr; Both the minimum and maximum values are tested as potential ',
+        '<li><b>Two-sided test</b> \u2192 Both the minimum and maximum values are tested as potential ',
         'outliers. The value producing the largest Q statistic is reported as the suspect outlier.</li>',
-        '<li><b>Critical values</b> &rarr; Based on Dixon (1950) and Rorabacher (1991) tables, ',
+        '<li><b>Critical values</b> \u2192 Based on Dixon (1950) and Rorabacher (1991) tables, ',
         'varying by sample size and significance level.</li>',
         '</ul>',
-        '<p style=\"font-style: italic; padding-top: 10px;\">',
+        '<p>',
         'Note: Dixon\'s Q Test assumes normality and is sensitive to sample size. ',
         'It should only be applied to datasets with N between 3 and 30.',
         '</p>',
         '</div>'
       )
       self$results$dixonInfo$setContent(info_html_dixon)
-      self$results$dixonTable$setNote(
-        "citation", 
-        "Citations: Dixon, W. J. (1950). Analysis of extreme values. Annals of Mathematical Statistics, 21(4), 488-506. Rorabacher, D. B. (1991). Statistical treatment for rejection of deviant values: critical values of Dixon's Q parameter. Analytical Chemistry, 63(2), 139-146."
-      )
       
       info_html_modz <- paste0(
-        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
+        '<div>',
         '<ul>',
-        '<li><b>2.5</b> &rarr; High sensitivity; recommended for small samples or experimental designs where outliers significantly bias central tendency and dispersion estimates. <i>Leys et al. (2013).</i></li>',
-        '<li><b>3.0</b> &rarr; Conservative approach; ideal for rigorous experimental environments where data stability is paramount and variability must be strictly accounted for. <i>Wilcox (2017).</i></li>',
-        '<li><b>3.5</b> &rarr; Academic standard; the most widely accepted criterion in robust statistics for general outlier identification. <i>Iglewicz & Hoaglin (1993).</i></li>',
-        '<li><b>4.0</b> &rarr; Low sensitivity; suitable for large datasets where naturally occurring extreme values are expected and should be preserved to maintain heterogeneity. <i>Iglewicz & Hoaglin (1993).</i></li>',
+        '<li><b>2.5</b> \u2192 High sensitivity; recommended for small samples or experimental designs where outliers significantly bias central tendency and dispersion estimates. <i>Leys et al. (2013).</i></li>',
+        '<li><b>3.0</b> \u2192 Conservative approach; ideal for rigorous experimental environments where data stability is paramount and variability must be strictly accounted for. <i>Wilcox (2017).</i></li>',
+        '<li><b>3.5</b> \u2192 Academic standard; the most widely accepted criterion in robust statistics for general outlier identification. <i>Iglewicz & Hoaglin (1993).</i></li>',
+        '<li><b>4.0</b> \u2192 Low sensitivity; suitable for large datasets where naturally occurring extreme values are expected and should be preserved to maintain heterogeneity. <i>Iglewicz & Hoaglin (1993).</i></li>',
         '</ul>',
-        '<p style=\"font-style: italic; padding-top: 10px;\">',
-        'Modified Z-Score: M<sub>i</sub> = 0.6745 &times; (x<sub>i</sub> - median) / MAD. ',
-        'Values with |M<sub>i</sub>| greater than the threshold are considered outliers.',
+        '<p>',
+        'Modified Z-Score: M<sub>i</sub> = 0.6745 \u00d7 (x<sub>i</sub> - median) / MAD. ',
+        'Values with |M<sub>i</sub>| greater than the threshold are considered outliers. ',
+        'When MAD is zero, the fallback is (x<sub>i</sub> - median) / (1.253314 \u00d7 MeanAD), ',
+        'where MeanAD is the mean absolute deviation from the median (IBM SPSS Modeler Algorithms Guide). ',
+        'Groups with no dispersion cannot be evaluated; their data are preserved and omitted from this method\'s plot.',
         '</p>',
         '</div>'
       )
       self$results$modzInfo$setContent(info_html_modz)
-      self$results$modzTable$setNote(
-        "citation",
-        "Citations: Iglewicz, B., & Hoaglin, D. C. (1993). How to detect and handle outliers. ASQC Quality Press. Leys, C., et al. (2013). Detecting outliers: Do not use standard deviation and mean, use absolute deviation around the median. Journal of Experimental Social Psychology, 49(4), 764-766."
-      )
       
       info_html_iqr <- paste0(
-        '<div style=\"font-size: 0.9em; line-height: 1.5;\">', 
+        '<div>',
         '<ul>',
-        '<li><b>1.5 IQR</b> &rarr; Standard criterion; ideal for general outlier detection and common boxplot visualization. <i>Tukey, J. W. (1977).</i></li>',
-        '<li><b>2.2 IQR</b> &rarr; Balanced approach; recommended for a more conservative detection while preserving more data variance. <i>Hoaglin & Iglewicz (1987).</i></li>',
-        '<li><b>3.0 IQR</b> &rarr; Extreme criterion; identifies only blatant anomalies, highly effective for removing extreme outliers. <i>Tukey, J. W. (1977).</i></li>',
+        '<li><b>1.5 IQR</b> \u2192 Standard criterion; ideal for general outlier detection and common boxplot visualization. <i>Tukey, J. W. (1977).</i></li>',
+        '<li><b>2.2 IQR</b> \u2192 Balanced approach; recommended for a more conservative detection while preserving more data variance. <i>Hoaglin & Iglewicz (1987).</i></li>',
+        '<li><b>3.0 IQR</b> \u2192 Extreme criterion; identifies only blatant anomalies, highly effective for removing extreme outliers. <i>Tukey, J. W. (1977).</i></li>',
         '<li><b>Adjusted Boxplot:</b> Modifies fences via Medcouple (MC) for skewed data. <i>Hubert & Vandervieren (2008).</i></li>',
         '</ul>',
-        '<p style=\"font-style: italic; padding-top: 10px;\">Note: Lower multipliers are more aggressive in identifying outliers, while higher multipliers are more tolerant.</p>',
+        '<p>Note: Lower multipliers are more aggressive in identifying outliers, while higher multipliers are more tolerant.</p>',
         '</div>'
       )
       self$results$iqrInfo$setContent(info_html_iqr)
-      self$results$iqrTable$setNote(
-        "citation",
-        "Citations: Tukey, J. W. (1977). Exploratory data analysis. Addison-Wesley. Hoaglin, D. C., & Iglewicz, B. (1987). Fine-tuning some outlier diagnostics. JASA, 82(400), 1147-1149. Hubert, M., & Vandervieren, E. (2008). An adjusted boxplot for skewed distributions. CSDA, 52(12), 5186-5201."
-      )
       
       info_html_mah <- paste0(
-        '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
+        '<div>',
         '<ul>',
         '<li><b>Classical Mahalanobis Distance:</b> Measures distance from multivariate centroid taking covariance structure into account. Follows a Chi-square distribution under multivariate normality. <i>Mahalanobis (1936).</i></li>',
         '<li><b>Robust MCD (Minimum Covariance Determinant):</b> Highly robust against masking and swamping by computing location and scatter from the most concentrated subset of observations. <i>Rousseeuw & Van Driessen (1999).</i></li>',
         '</ul>',
-        '<p style=\"font-style: italic; padding-top: 10px;\">',
-        'Observations with DÂ² exceeding the critical Ï‡Â² value at the selected Î± level are identified as multivariate outliers.',
+        '<p>',
+        'Observations with D\u00b2 exceeding the critical \u03c7\u00b2 value at the selected \u03b1 level are identified as multivariate outliers.',
         '</p>',
         '</div>'
       )
       self$results$mahInfo$setContent(info_html_mah)
-      self$results$mahTable$setNote(
-        "citation",
-        "Citations: Mahalanobis, P. C. (1936). On the generalised distance in statistics. Proc. Natl. Inst. Sci. India, 2(1), 49-55. Rousseeuw, P. J., & Van Driessen, K. (1999). Fast MCD algorithm. Technometrics, 41(3), 212-223."
-      )
     },
     
+    .set_variable_plots = function(plots, variables, plot_data, metadata = list()) {
+      for (variable in variables) {
+        item <- plots$get(key = variable)
+        item$setState(NULL)
+        selected <- Filter(function(rows) nrow(rows) > 0 && identical(as.character(rows$variable[1]), variable), plot_data)
+        if (length(selected) > 0) item$setState(c(list(plot_data = selected), metadata))
+      }
+    },
+
     .run = function() {
+      private$.update_help()
       mode <- self$options$mode
       if (mode == "dixon") {
         private$.runDixon()
@@ -133,6 +143,8 @@ outliersClass <- R6::R6Class(
     },
     
     .runDixon = function() {
+      if (!is.null(self$results$dixonPlot)) self$results$dixonPlot$setState(NULL)
+      plot_data <- list()
       if (is.null(self$options$var_dixon)) return()
       
       if (self$results$dixonTable$rowCount > 0) try(self$results$dixonTable$deleteRows(), silent = TRUE)
@@ -202,6 +214,7 @@ outliersClass <- R6::R6Class(
         valid_idx <- which(!is.na(vec_raw))
         vec <- vec_raw[valid_idx]
         n <- length(vec)
+        plot_data[[group_name]] <<- data.frame(group = group_name, value = vec_raw, rowIndex = as.integer(rownames(data_sub)), outlierLevel = "Non-Outlier", stringsAsFactors = FALSE)
         
         if (n < 3 || n > 30) {
           self$results$dixonTable$addRow(rowKey = group_name, values = list(
@@ -227,6 +240,7 @@ outliersClass <- R6::R6Class(
         
         q_crit <- q_critical_table[[alpha_key]][[as.character(n)]]
         is_sig <- suspect$q > q_crit
+        if (is_sig) plot_data[[group_name]]$outlierLevel[which(vec_raw == suspect$value)] <<- "Outlier"
         
         row_vals <- list(
           variable = var, group_level = group_name, n = n,
@@ -254,10 +268,10 @@ outliersClass <- R6::R6Class(
         self$results$dixonTable$addRow(rowKey = group_name, values = row_vals)
         
         if (is_sig) {
-          out_row_indices <- which(data_sub[[var]] == suspect$value)
+          out_row_indices <- which(vec_raw == suspect$value)
           for (r_i in out_row_indices) {
             self$results$dixonOutlierList$addRow(rowKey = paste(group_name, r_i, sep="_"), values = list(
-              variable = var, group_level = group_name, rowNumber = as.integer(r_i),
+              variable = var, group_level = group_name, rowNumber = as.integer(rownames(data_sub)[r_i]),
               outlier_value = suspect$value, outlier_side = suspect_side, q_statistic = suspect$q
             ))
           }
@@ -273,7 +287,7 @@ outliersClass <- R6::R6Class(
         groups_list <- list("All Data" = df_work)
       }
       
-      treated_full <- rep(NA_real_, nrow(df_work))
+      treated_full <- private$.to_numeric_vec(df_work[[var]])
       for (grp_name in names(groups_list)) {
         sub_df <- groups_list[[grp_name]]
         treated_sub <- process_group(sub_df, grp_name)
@@ -283,10 +297,14 @@ outliersClass <- R6::R6Class(
         }
       }
       
+      if (isTRUE(self$options$dispBox_dixon) && length(plot_data) > 0) {
+        self$results$dixonPlot$setState(list(plot_data = plot_data, var_name = var, has_group = has_group, group_vars = group_vars))
+      }
+
       if (treatment_type != "none" && self$results$treatedData_dixon$isNotFilled()) {
         self$results$treatedData_dixon$set(keys = var, titles = paste0(var, "_treated"), descriptions = "Treated variable (Dixon)", measureTypes = "continuous")
         self$results$treatedData_dixon$setValues(key = var, values = treated_full)
-        self$results$treatedData_dixon$setRowNums(1:nrow(self$data))
+        self$results$treatedData_dixon$setRowNums(rownames(self$data))
       }
     },
     
@@ -297,9 +315,13 @@ outliersClass <- R6::R6Class(
       outlierList <- self$results$modzOutlierList
       if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
       if (outlierList$rowCount > 0) try(outlierList$deleteRows(), silent = TRUE)
+      try(table$deleteNote("modz_scale"), silent = TRUE)
+      private$.set_variable_plots(self$results$modzPlot, self$options$vars_modz, list())
       
       all_plot_data <- list()
       has_group     <- !is.null(self$options$group_modz) && length(self$options$group_modz) > 0
+      fallback_groups <- character()
+      unevaluated_groups <- character()
       group_vars    <- self$options$group_modz
       
       thresh_map <- c("t25" = 2.5, "t30" = 3.0, "t35" = 3.5, "t40" = 4.0)
@@ -338,13 +360,28 @@ outliersClass <- R6::R6Class(
             
             original_row_numbers_group <- data_group$.row_id
             med <- stats::median(data_var, na.rm = TRUE)
-            mad <- stats::mad(data_var, na.rm = TRUE)
-            if (is.na(mad) || mad == 0) mad <- mean(abs(data_var - med), na.rm = TRUE)
-            if (is.na(mad) || mad == 0) mad <- 1
-            
-            modified_z <- 0.6745 * (data_var - med) / mad
-            lower_threshold <- med - (threshold * mad / 0.6745)
-            upper_threshold <- med + (threshold * mad / 0.6745)
+            mad <- stats::mad(data_var, constant = 1, na.rm = TRUE)
+            is_evaluable <- TRUE
+            if (is.na(mad) || mad == 0) {
+              mean_ad <- mean(abs(data_var - med), na.rm = TRUE)
+              is_evaluable <- !is.na(mean_ad) && mean_ad > 0
+              if (is_evaluable) {
+                scale <- 1.253314 * mean_ad
+                modified_z <- (data_var - med) / scale
+                lower_threshold <- med - threshold * scale
+                upper_threshold <- med + threshold * scale
+                fallback_groups <- c(fallback_groups, paste0(var, " [", group_name, "]"))
+              } else {
+                modified_z <- rep(NA_real_, length(data_var))
+                lower_threshold <- NA_real_
+                upper_threshold <- NA_real_
+                unevaluated_groups <- c(unevaluated_groups, paste0(var, " [", group_name, "]"))
+              }
+            } else {
+              modified_z <- 0.6745 * (data_var - med) / mad
+              lower_threshold <- med - (threshold * mad / 0.6745)
+              upper_threshold <- med + (threshold * mad / 0.6745)
+            }
             
             outliers_indices_in_datavar <- which(abs(modified_z) > threshold)
             outliers_indices_in_group   <- non_na_indices_in_group[outliers_indices_in_datavar]
@@ -353,13 +390,13 @@ outliersClass <- R6::R6Class(
             outlierLevel_full[outliers_indices_in_group] <- thresh_label
             
             rowIndex_full <- rep(NA_integer_, nrow(data_group))
-            rowIndex_full[outliers_indices_in_group] <- original_row_numbers_group[outliers_indices_in_group]
+            rowIndex_full[outliers_indices_in_group] <- as.integer(rownames(data_group)[outliers_indices_in_group])
             
             treated_values <- data_var_full
             modified_n     <- length(non_na_indices_in_group)
-            applied_treatment_text <- "None"
+            applied_treatment_text <- if (is_evaluable) "None" else "Not applied (no dispersion)"
             
-            if (treatment_type != "none") {
+            if (is_evaluable && treatment_type != "none") {
               if (treatment_type == "trim_asym") {
                 treated_values[outliers_indices_in_group] <- NA_real_
                 modified_n <- modified_n - length(outliers_indices_in_group)
@@ -397,7 +434,7 @@ outliersClass <- R6::R6Class(
               group_level    = group_name,
               lowerThreshold = lower_threshold,
               upperThreshold = upper_threshold,
-              numOutliers    = length(outliers_indices_in_datavar)
+              numOutliers    = if (is_evaluable) length(outliers_indices_in_datavar) else NA_integer_
             )
             if (treatment_type != "none") {
               row_values_for_table$treatmentApplied <- applied_treatment_text
@@ -416,7 +453,7 @@ outliersClass <- R6::R6Class(
                   values = list(
                     variable    = var,
                     group_level = group_name,
-                    rowNumber   = as.integer(row_num),
+                    rowNumber   = as.integer(rownames(self$data)[row_num]),
                     modifiedZ   = round(z_score, 4)
                   )
                 )
@@ -424,7 +461,7 @@ outliersClass <- R6::R6Class(
               }
             }
             
-            if (self$options$dispBox_modz) {
+            if (self$options$dispBox_modz && is_evaluable) {
               plot_data <- data.frame(
                 variable     = var,
                 value        = data_var_full,
@@ -438,33 +475,43 @@ outliersClass <- R6::R6Class(
           }
           if (treatment_type != "none") all_treated_vectors[[var]] <- full_treated_data
         }, error = function(e) {
-          jmvcore::reject(paste("Error processing variable", var, ":", e$message), code = "error_processing_variable")
+          jmvcore::reject(paste0("Error processing variable ", var, ": ", e$message), code = "error_processing_variable")
         })
       }
       
       if (treatment_type != "none" && length(all_treated_vectors) > 0 && self$results$treatedData_modz$isNotFilled()) {
         output_keys   <- names(all_treated_vectors)
-        suffix <- if (treatment_type %in% c("trim_asym", "trim_sym")) "_trimmed" else "_winsorzd"
+        suffix <- if (treatment_type %in% c("trim_asym", "trim_sym")) "_trimmed" else "_winsorized"
         self$results$treatedData_modz$set(
           keys = output_keys,
           titles = paste0(output_keys, suffix),
-          descriptions = "Treated variable (Modified Z)",
+          descriptions = rep("Treated variable (Modified Z)", length(output_keys)),
           measureTypes = rep("continuous", length(output_keys))
         )
         for (var in output_keys) {
           self$results$treatedData_modz$setValues(key = var, values = all_treated_vectors[[var]])
         }
-        self$results$treatedData_modz$setRowNums(1:nrow(self$data))
+        self$results$treatedData_modz$setRowNums(rownames(self$data))
       }
       
+      scale_notes <- character()
+      if (length(fallback_groups) > 0) {
+        scale_notes <- c(scale_notes, paste0("MAD = 0: MeanAD fallback used for ", paste(fallback_groups, collapse = "; "), ". Scores use (x - median) / (1.253314 * MeanAD). This fallback is less robust to extreme values than MAD."))
+      }
+      if (length(unevaluated_groups) > 0) {
+        scale_notes <- c(scale_notes, paste0("Scores, thresholds and outlier counts are not calculable for ", paste(unevaluated_groups, collapse = "; "), ": no dispersion. Data are unchanged, no treatment is applied, and these groups are omitted from this method's plot."))
+      }
+      if (length(scale_notes) > 0) table$setNote("modz_scale", paste(scale_notes, collapse = " "))
+
       if (self$options$dispBox_modz && length(all_plot_data) > 0) {
-        self$results$modzPlot$setState(list(plot_data = all_plot_data, threshold = threshold, thresh_label = thresh_label))
+        private$.set_variable_plots(self$results$modzPlot, self$options$vars_modz, all_plot_data, list(threshold = threshold, thresh_label = thresh_label))
       }
     },
     
     .runIQR = function() {
       if (is.null(self$options$vars_iqr) || length(self$options$vars_iqr) == 0) return()
       
+      private$.set_variable_plots(self$results$iqrPlot, self$options$vars_iqr, list())
       table <- self$results$iqrTable
       if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
       try(table$deleteNote("adj_box_note"), silent = TRUE)
@@ -488,7 +535,7 @@ outliersClass <- R6::R6Class(
       df_work$.row_id <- seq_len(nrow(df_work))
       
       if (use_adj_box) {
-        table$setNote("adj_box_note", "Note. Fences adjusted for distribution skewness using the medcouple (Hubert & Vandervieren, 2008).")
+        table$setNote("adj_box_note", "Fences adjusted for distribution skewness using an approximate medcouple. Samples above 1,000 observations are reduced to 1,000 ordered values; pairs tied at the median are omitted.")
       }
       
       for (var in self$options$vars_iqr) {
@@ -538,7 +585,7 @@ outliersClass <- R6::R6Class(
             outlierLevel_full[outliers_indices_in_group] <- iqr_label
             
             rowIndex_full <- rep(NA_integer_, nrow(data_group))
-            rowIndex_full[outliers_indices_in_group] <- original_row_numbers_group[outliers_indices_in_group]
+            rowIndex_full[outliers_indices_in_group] <- as.integer(rownames(data_group)[outliers_indices_in_group])
             
             treated_values <- data_var_full
             modified_n     <- length(non_na_indices_in_group)
@@ -605,27 +652,27 @@ outliersClass <- R6::R6Class(
           }
           if (treatment_type != "none") all_treated_vectors[[var]] <- full_treated_data
         }, error = function(e) {
-          jmvcore::reject(paste("Error processing variable", var, ":", e$message), code = "error_processing_variable")
+          jmvcore::reject(paste0("Error processing variable ", var, ": ", e$message), code = "error_processing_variable")
         })
       }
       
       if (treatment_type != "none" && length(all_treated_vectors) > 0 && self$results$treatedData_iqr$isNotFilled()) {
         output_keys   <- names(all_treated_vectors)
-        suffix <- if (treatment_type %in% c("trim_asym", "trim_sym")) "_trimmed" else "_winsorzd"
+        suffix <- if (treatment_type %in% c("trim_asym", "trim_sym")) "_trimmed" else "_winsorized"
         self$results$treatedData_iqr$set(
           keys = output_keys,
           titles = paste0(output_keys, suffix),
-          descriptions = "Treated variable (IQR)",
+          descriptions = rep("Treated variable (IQR)", length(output_keys)),
           measureTypes = rep("continuous", length(output_keys))
         )
         for (var in output_keys) {
           self$results$treatedData_iqr$setValues(key = var, values = all_treated_vectors[[var]])
         }
-        self$results$treatedData_iqr$setRowNums(1:nrow(self$data))
+        self$results$treatedData_iqr$setRowNums(rownames(self$data))
       }
       
       if (self$options$dispBox_iqr && length(all_plot_data) > 0) {
-        self$results$iqrPlot$setState(list(plot_data = all_plot_data, iqr_mult = iqr_mult, iqr_label = iqr_label))
+        private$.set_variable_plots(self$results$iqrPlot, self$options$vars_iqr, all_plot_data, list(iqr_mult = iqr_mult, iqr_label = iqr_label))
       }
     },
     
@@ -634,6 +681,7 @@ outliersClass <- R6::R6Class(
       if (is.null(vars) || length(vars) < 2) return()
       
       table       <- self$results$mahTable
+      table$setNote("insufficient_cases", NULL)
       outlierList <- self$results$mahOutlierList
       table$setRow(rowNo = 1, values = list())
       if (outlierList$rowCount > 0) try(outlierList$deleteRows(), silent = TRUE)
@@ -645,6 +693,7 @@ outliersClass <- R6::R6Class(
       df_sub <- self$data[vars]
       complete_idx <- which(stats::complete.cases(df_sub))
       if (length(complete_idx) <= length(vars)) {
+        table$setNote("insufficient_cases", paste0("Mahalanobis analysis not performed: ", length(complete_idx), " complete cases for ", length(vars), " variables. The number of complete cases must exceed the number of variables."))
         table$setRow(rowNo = 1, values = list(
           method = if (method == "classic") "Classical" else "Robust MCD",
           numVars = length(vars),
@@ -698,7 +747,7 @@ outliersClass <- R6::R6Class(
         for (i in seq_along(out_indices)) {
           orig_row <- complete_idx[out_indices[i]]
           outlierList$addRow(rowKey = i, values = list(
-            rowNumber = as.integer(orig_row),
+            rowNumber = as.integer(rownames(self$data)[orig_row]),
             d_squared = d2[out_indices[i]],
             p_value   = p_vals[out_indices[i]]
           ))
@@ -722,7 +771,7 @@ outliersClass <- R6::R6Class(
         flag_vec <- rep(NA_integer_, nrow(self$data))
         flag_vec[complete_idx] <- as.integer(outlier_mask)
         self$results$treatedData_mah$setValues(key = "mah_outlier", values = flag_vec)
-        self$results$treatedData_mah$setRowNums(1:nrow(self$data))
+        self$results$treatedData_mah$setRowNums(rownames(self$data))
       }
     },
     
@@ -739,10 +788,10 @@ outliersClass <- R6::R6Class(
         ggplot2::geom_hline(yintercept = crit, linetype = "dotted", color = "#c0392b", linewidth = 0.9) +
         ggplot2::geom_point(color = "#2c3e50", size = 2.5, alpha = 0.8) +
         ggplot2::labs(
-          title = paste0("Chi-Square QQ-Plot (Mahalanobis DÂ², df = ", p_df, ")"),
+          title = paste0("Chi-Square QQ-Plot (Mahalanobis D\u00b2, df = ", p_df, ")"),
           x = "Theoretical Chi-Square Quantiles",
-          y = "Empirical Mahalanobis DÂ²",
-          caption = paste0("Dotted red line: Critical Ï‡Â² cutoff = ", round(crit, 2))
+          y = "Empirical Mahalanobis D\u00b2",
+          caption = paste0("Dotted red line: Critical \u03c7\u00b2 cutoff = ", round(crit, 2))
         ) +
         ggtheme +
         ggplot2::theme(
@@ -766,7 +815,7 @@ outliersClass <- R6::R6Class(
       FALSE
     },
     
-    .plotDixon = function(image, ...) {
+    .plotDixon = function(image, ggtheme, ...) {
       if (is.null(image$state)) return(FALSE)
       
       state      <- image$state
@@ -796,7 +845,7 @@ outliersClass <- R6::R6Class(
           ggplot2::labs(title = paste("Dixon's Q Test Boxplot for", var_name),
                         x = paste(group_vars, collapse = " x "),
                         y = "Value", color = "", shape = "") +
-          ggplot2::theme_classic() +
+          ggtheme +
           ggplot2::theme(
             plot.title      = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
             legend.position = "bottom"
@@ -817,7 +866,7 @@ outliersClass <- R6::R6Class(
           ggplot2::scale_shape_manual(values = shapes, breaks = "Outlier", labels = "Outlier") +
           ggplot2::labs(title = paste("Dixon's Q Test Boxplot for", var_name),
                         x = "", y = "Value", color = "", shape = "") +
-          ggplot2::theme_classic() +
+          ggtheme +
           ggplot2::theme(
             plot.title      = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
             axis.text.x     = ggplot2::element_blank(),
@@ -830,7 +879,7 @@ outliersClass <- R6::R6Class(
       TRUE
     },
     
-    .plotModZ = function(image, ...) {
+    .plotModZ = function(image, ggtheme, ...) {
       if (is.null(image$state)) return(FALSE)
       
       plot_list    <- list()
@@ -841,7 +890,7 @@ outliersClass <- R6::R6Class(
       shapes <- c("Non-Outlier" = 16, "2.5" = 16, "3.0" = 17, "3.5" = 15, "4.0" = 18)
       colors <- c("Non-Outlier" = "black", "2.5" = "orange", "3.0" = "red", "3.5" = "blue", "4.0" = "purple")
       
-      for (var in self$options$vars_modz) {
+      for (var in unique(vapply(image$state$plot_data, function(rows) as.character(rows$variable[1]), character(1)))) {
         all_data_for_var <- NULL
         for (var_group_name in names(image$state$plot_data)) {
           plotData <- image$state$plot_data[[var_group_name]]
@@ -874,7 +923,7 @@ outliersClass <- R6::R6Class(
             ggplot2::scale_color_manual(values = active_colors, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::scale_shape_manual(values = active_shapes, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::labs(title = paste("Modified Z-Score Boxplot for", var), x = x_axis_title, y = "Value", color = "", shape = "") +
-            ggplot2::theme_classic() +
+            ggtheme +
             ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
                            legend.position = "bottom")
         } else {
@@ -889,7 +938,7 @@ outliersClass <- R6::R6Class(
             ggplot2::scale_color_manual(values = active_colors, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::scale_shape_manual(values = active_shapes, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::labs(title = paste("Modified Z-Score Boxplot for", var), x = "", y = "Value", color = "", shape = "") +
-            ggplot2::theme_classic() +
+            ggtheme +
             ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
                            axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(),
                            legend.position = "bottom")
@@ -909,7 +958,7 @@ outliersClass <- R6::R6Class(
       TRUE
     },
     
-    .plotIQR = function(image, ...) {
+    .plotIQR = function(image, ggtheme, ...) {
       if (is.null(image$state)) return(FALSE)
       
       plot_list  <- list()
@@ -919,7 +968,7 @@ outliersClass <- R6::R6Class(
       shapes <- c("Non-Outlier" = 16, "1.5" = 16, "2.2" = 15, "3.0" = 17)
       colors <- c("Non-Outlier" = "black", "1.5" = "red", "2.2" = "blue", "3.0" = "purple")
       
-      for (var in self$options$vars_iqr) {
+      for (var in unique(vapply(image$state$plot_data, function(rows) as.character(rows$variable[1]), character(1)))) {
         all_data_for_var <- NULL
         for (var_group_name in names(image$state$plot_data)) {
           plotData <- image$state$plot_data[[var_group_name]]
@@ -952,7 +1001,7 @@ outliersClass <- R6::R6Class(
             ggplot2::scale_color_manual(values = active_colors, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::scale_shape_manual(values = active_shapes, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::labs(title = paste("Boxplot for", var), x = x_axis_title, y = "Value", color = "", shape = "") +
-            ggplot2::theme_classic() +
+            ggtheme +
             ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
                            legend.position = "bottom")
         } else {
@@ -967,7 +1016,7 @@ outliersClass <- R6::R6Class(
             ggplot2::scale_color_manual(values = active_colors, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::scale_shape_manual(values = active_shapes, breaks = legend_breaks, labels = legend_labels) +
             ggplot2::labs(title = paste("Boxplot for", var), x = "", y = "Value", color = "", shape = "") +
-            ggplot2::theme_classic() +
+            ggtheme +
             ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
                            axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(),
                            legend.position = "bottom")

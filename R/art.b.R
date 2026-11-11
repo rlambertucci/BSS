@@ -2,6 +2,10 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
   "artClass",
   inherit = artBase,
   private = list(
+    .wideNames = function() {
+      existing <- unique(c(names(self$data), self$options$fixed_factors_long, self$options$wave_vars, self$options$subject_id_var))
+      tail(make.unique(c(existing, ".dv_internal", ".time_internal")), 2)
+    },
     
     .is_defined = function(x) {
       !is.null(x) && length(x) > 0 && all(nzchar(x))
@@ -57,23 +61,44 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       return(any_within_diff && !any_between_diff)
     },
     
+    .update_help = function() {
+      configured <- if (identical(self$options$mode, "cross_sectional")) length(self$options$dep_var_cs) > 0 && length(self$options$fixed_factors_cs) > 0 else length(c(self$options$dep_var_long, self$options$wave_vars)) > 0
+      if (!is.null(self$results$analysisInfo)) self$results$analysisInfo$setVisible(!configured)
+    },
+
     .init = function() {
+      private$.update_help()
+      predictors <- if (self$options$mode == "cross_sectional") self$options$fixed_factors_cs else if (self$options$long_format == "wide") c(self$options$fixed_factors_long, private$.wideNames()[2]) else c(self$options$fixed_factors_long, self$options$within_factors_long, self$options$time_var)
+      predictors <- unique(predictors[nzchar(predictors)])
+      table <- self$results$anovaTable
+      if (table$rowCount > 0) table$deleteRows()
+      for (degree in seq_along(predictors)) {
+        terms <- utils::combn(predictors, degree, simplify = FALSE)
+        for (term in terms) {
+          label <- paste(term, collapse = ":")
+          term_key <- paste(match(term, predictors), collapse = "_")
+          table$addRow(rowKey = term_key, values = list(factor = label))
+        }
+      }
       info_html <- paste0(
-        '<div style=\"font-size:0.9em; line-height:1.6; padding:4px;\">',
-        '<h4 style=\"margin-bottom:6px;\">&#128200; Aligned Rank Transform (ART)</h4>',
-        '<p style=\"margin-bottom:8px;\">A robust nonparametric approach for analyzing data with multiple factors or repeated measures. ',
+        '<div>',
+        '<h4> Aligned Rank Transform (ART)</h4>',
+        '<p>A robust nonparametric approach for analyzing data with multiple factors or repeated measures. ',
         'It aligns the data before ranking, allowing for the accurate evaluation of main effects and interactions.</p>',
-        '<ul style=\"margin-top:0px; padding-left:20px;\">',
+        '<ul>',
         '<li><b>Cross-sectional:</b> For independent samples (Factorial Nonparametric ANOVA).</li>',
         '<li><b>Longitudinal / Mixed:</b> For repeated measures, mixed designs, or up to 3 pure within-subject factors (A \u00d7 B \u00d7 C).</li>',
         '</ul>',
-        '<p style=\"margin-bottom:4px; font-size:0.85em; color:#555;\"><i>Powered by the R package <b>ARTool</b> (Wobbrock et al., 2011).</i></p>',
+        '<p><i>Powered by the R package <b>ARTool</b> (Wobbrock et al., 2011).</i></p>',
         '</div>'
       )
       self$results$analysisInfo$setContent(info_html)
     },
     
     .run = function() {
+      private$.update_help()
+      self$results$artPlot$setState(NULL)
+      self$results$artPlot$setSize(self$options$plot_width, self$options$plot_height)
       data <- self$data
       if (is.null(data)) {
         return()
@@ -122,20 +147,20 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       if (mode == "cross_sectional") {
         if (!private$.is_defined(dep_var) || !private$.is_defined(fixed_factors)) {
-          self$results$text$setContent("Error: Cross-sectional analysis requires a Dependent Variable and at least one Fixed Factor.")
+          jmvcore::reject("Error: Cross-sectional analysis requires a Dependent Variable and at least one Fixed Factor.", code = "art_invalid_analysis")
           self$results$text$setVisible(TRUE)
           return()
         }
       } else {
         if (long_format == "wide") {
           if (!private$.is_defined(wave_vars) || length(wave_vars) < 2 || !private$.is_defined(subject_id_var)) {
-            self$results$text$setContent("Error: Wide format requires at least 2 Wave Columns and a Subject ID Variable.")
+            jmvcore::reject("Error: Wide format requires at least 2 Wave Columns and a Subject ID Variable.", code = "art_invalid_analysis")
             self$results$text$setVisible(TRUE)
             return()
           }
         } else if (long_format == "long") {
           if (!private$.is_defined(dep_var) || length(within_vars_opt) == 0 || !private$.is_defined(subject_id_var)) {
-            self$results$text$setContent("Error: Long format requires a Dependent Variable, at least one Within-Subject Factor (or Time Variable), and a Subject ID Variable.")
+            jmvcore::reject("Error: Long format requires a Dependent Variable, at least one Within-Subject Factor (or Time Variable), and a Subject ID Variable.", code = "art_invalid_analysis")
             self$results$text$setVisible(TRUE)
             return()
           }
@@ -143,13 +168,13 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       }
       
       if (!requireNamespace("ARTool", quietly = TRUE)) {
-        self$results$text$setContent("Error: The 'ARTool' package is not installed. Please add it to your DESCRIPTION file.")
+        jmvcore::reject("Error: The 'ARTool' package is not installed. Please add it to your DESCRIPTION file.", code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
       
       if (isTRUE(run_posthoc) && !requireNamespace("emmeans", quietly = TRUE)) {
-        self$results$text$setContent("Error: The 'emmeans' package is required for Post-Hoc tests. Please add it to your DESCRIPTION file.")
+        jmvcore::reject("Error: The 'emmeans' package is required for Post-Hoc tests. Please add it to your DESCRIPTION file.", code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
@@ -161,24 +186,25 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         for (wv in wave_vars) {
           process_data[[wv]] <- private$.to_numeric_vec(process_data[[wv]])
         }
+        reshape_names <- private$.wideNames()
         tryCatch({
           process_data <- stats::reshape(
             process_data,
             varying = wave_vars,
-            v.names = ".dv_internal",
-            timevar = ".time_internal",
+            v.names = reshape_names[1],
+            timevar = reshape_names[2],
             times = wave_vars,
             direction = "long",
             idvar = subject_id_var
           )
-          dep_var <- ".dv_internal"
-          within_vars_opt <- ".time_internal"
+          dep_var <- reshape_names[1]
+          within_vars_opt <- reshape_names[2]
         }, error = function(e) {
           reshape_failed <<- TRUE
         })
         
         if (reshape_failed) {
-          self$results$text$setContent("Error: Reshaping wide data to long format failed. Please check column names and data consistency.")
+          jmvcore::reject("Error: Reshaping wide data to long format failed. Please check column names and data consistency.", code = "art_invalid_analysis")
           self$results$text$setVisible(TRUE)
           return()
         }
@@ -193,7 +219,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       missing_cols <- setdiff(vars_in_model, names(process_data))
       if (length(missing_cols) > 0) {
-        self$results$text$setContent(paste("Error: Missing column(s) in dataset:", paste(missing_cols, collapse = ", ")))
+        jmvcore::reject(paste("Error: Missing column(s) in dataset:", paste(missing_cols, collapse = ", ")), code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
@@ -202,14 +228,14 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       process_data <- stats::na.omit(process_data)
       
       if (nrow(process_data) == 0) {
-        self$results$text$setContent("Error: No complete cases remaining after removing missing values.")
+        jmvcore::reject("Error: No complete cases remaining after removing missing values.", code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
       
       process_data[[dep_var]] <- private$.to_numeric_vec(process_data[[dep_var]])
       if (all(is.na(process_data[[dep_var]]))) {
-        self$results$text$setContent("Error: The Dependent Variable cannot be converted to numeric.")
+        jmvcore::reject("Error: The Dependent Variable cannot be converted to numeric.", code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
@@ -217,19 +243,17 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       for (p in predictors) {
         col_raw <- data[[p]]
         if (is.numeric(col_raw) && length(unique(stats::na.omit(col_raw))) > 10) {
-          self$results$text$setContent(paste0('Notice: Predictor ', p, ' appears to be a continuous numeric variable. Aligned Rank Transform requires discrete categorical factors. Continuous covariates cannot be aligned without distorting interaction tests. Use General Linear Models or Quade non-parametric ANCOVA instead.'))
+          jmvcore::reject(paste0('Notice: Predictor ', p, ' appears to be a continuous numeric variable. Aligned Rank Transform requires discrete categorical factors. Continuous covariates cannot be aligned without distorting interaction tests. Use General Linear Models or Quade non-parametric ANCOVA instead.'), code = "art_invalid_analysis")
           self$results$text$setVisible(TRUE)
           return()
         }
       }
       process_data <- droplevels(process_data)
       
-      safe_name_map <- setNames(make.names(vars_in_model), vars_in_model)
+      safe_name_map <- setNames(make.names(vars_in_model, unique = TRUE), vars_in_model)
       reverse_name_map <- setNames(names(safe_name_map), unname(safe_name_map))
       
-      for (orig_col in names(safe_name_map)) {
-        names(process_data)[names(process_data) == orig_col] <- safe_name_map[[orig_col]]
-      }
+      names(process_data) <- unname(safe_name_map[names(process_data)])
       
       dep_var_safe <- safe_name_map[[dep_var]]
       predictors_safe <- unname(safe_name_map[predictors])
@@ -252,6 +276,9 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       
       formula_str <- paste0(dep_var_safe, " ~ ", main_effects, random_effect)
       art_formula <- as.formula(formula_str)
+      if (!setequal(all.vars(art_formula), c(dep_var_safe, predictors_safe, subject_id_safe))) {
+        jmvcore::reject("ART model variables could not be mapped uniquely to the requested columns.", code = "art_invalid_analysis")
+      }
       
       model_error <- NULL
       model <- tryCatch({
@@ -262,7 +289,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       })
       
       if (is.null(model)) {
-        self$results$text$setContent(paste("ART model failed. Reason:", model_error, "\nFormula attempted:", formula_str))
+        jmvcore::reject(paste("ART model failed. Reason:", model_error, "\nFormula attempted:", formula_str), code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
@@ -276,17 +303,16 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       })
       
       if (is.null(anova_res)) {
-        self$results$text$setContent(paste("Failed to generate ANOVA table from the ART model. Reason:", anova_error))
+        jmvcore::reject(paste("Failed to generate ANOVA table from the ART model. Reason:", anova_error), code = "art_invalid_analysis")
         self$results$text$setVisible(TRUE)
         return()
       }
       
       anova_table <- self$results$anovaTable
-      if (anova_table$rowCount > 0) anova_table$deleteRows()
       
       anova_table$setNote(
         "citation",
-        "Note. Computations powered by ARTool (Wobbrock et al., 2011). Partial \u03b7\u00b2 calculated as (F * df) / (F * df + df.res). Partial \u03c9\u00b2 calculated as df * (F - 1) / (df * (F - 1) + df.res + 1), truncated at 0."
+        "Partial \u03b7\u00b2 calculated as (F * df) / (F * df + residual df). Partial \u03c9\u00b2 is the F/df-based approximation max(0, df * (F - 1) / (df * F + residual df + 1)), following effectsize F_to_omega2. This is an approximate summary on aligned ranks, not an exact design-specific unbiased variance fraction. Kendall's W is not inferred from ART F statistics."
       )
       
       num_rows_anova <- nrow(anova_res)
@@ -305,17 +331,16 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         pes <- NA_real_
         pos <- NA_real_
         eps <- NA_real_
-        w_ken <- NA_real_
         if (!is.na(f_val) && !is.na(df_num) && !is.na(df_res) && df_res > 0) {
           pes <- (f_val * df_num) / ((f_val * df_num) + df_res)
-          val_pos <- (df_num * (f_val - 1)) / (df_num * (f_val - 1) + df_res + 1)
+          val_pos <- (df_num * (f_val - 1)) / (df_num * f_val + df_res + 1)
           pos <- max(0, val_pos)
           val_eps <- (df_num * (f_val - 1)) / ((f_val * df_num) + df_res)
           eps <- max(0, val_eps)
-          w_ken <- (f_val * df_num) / ((f_val * df_num) + df_res)
         }
         
-        anova_table$addRow(rowKey = i, values = list(
+        term_key <- paste(sort(match(strsplit(term_internal, ":", fixed = TRUE)[[1]], predictors_safe)), collapse = "_")
+        anova_table$setRow(rowKey = term_key, values = list(
           factor        = term_display,
           df            = df_num,
           df_res        = df_res,
@@ -323,8 +348,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
           p_value       = p_val,
           part_eta_sq   = pes,
           part_omega_sq = pos,
-          eps_sq        = eps,
-          kendall_w     = w_ken
+          eps_sq        = eps
         ))
       }
       
@@ -334,7 +358,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         
         posthoc_table$setNote(
           "citation",
-          "Note. Pairwise contrast comparisons computed using the ART-C procedure (Elkin et al., 2021) via ARTool, with p-value adjustments powered by emmeans (Lenth, 2024). Nonparametric effect sizes: Vargha & Delaney's A (Vargha & Delaney, 2000) and Kerby's rank-biserial correlation r_rb (Kerby, 2014; r_rb = 2A - 1)."
+          "Pairwise contrasts use ART-C with the selected p-value adjustment. Nonparametric effect sizes: Vargha-Delaney A and rank-biserial correlation (r = 2A - 1)."
         )
         
         es_table <- self$results$effectSizeTable
@@ -342,7 +366,7 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
         
         es_table$setNote(
           "citation",
-          "Note. Pairwise effect sizes: Cohen's d / Hedges' g approximated from t-ratios: d = 2*t/sqrt(df) for unpaired contrasts, and d = t/sqrt(df) for paired/within-subjects contrasts. Vargha-Delaney A represents the probability of stochastic superiority; r_rb is the rank-biserial correlation (Kerby, 2014)."
+          "Pairwise effect sizes: Cohen's d / Hedges' g approximated from t-ratios: d = 2*t/sqrt(df) for unpaired contrasts, and d = t/sqrt(df) for paired/within-subjects contrasts. Vargha-Delaney A represents the probability of stochastic superiority; the rank-biserial correlation is r = 2A - 1."
         )
         
         terms_to_test <- anova_res$Term[1:num_rows_anova]
@@ -494,47 +518,72 @@ artClass <- if (requireNamespace('jmvcore', quietly=TRUE)) R6::R6Class(
       if (isTRUE(show_plot)) {
         image <- self$results$artPlot
         plot_df <- process_data
-        for (cn in names(safe_name_map)) {
-          names(plot_df)[names(plot_df) == safe_name_map[[cn]]] <- cn
-        }
+        names(plot_df) <- unname(reverse_name_map[names(plot_df)])
         image$setState(list(
-          data = plot_df,
+          summary = private$.summarize_art_plot(plot_df, dep_var, predictors),
           dep_var = dep_var,
           predictors = predictors
         ))
       }
     },
     
+    .summarize_art_plot = function(data, dep_var, predictors) {
+      grouping <- head(predictors, 3)
+      if (length(grouping) == 0 || nrow(data) == 0) return(NULL)
+      had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      if (had_seed) previous_seed <- get(".Random.seed", envir = .GlobalEnv)
+      on.exit({
+        if (had_seed) assign(".Random.seed", previous_seed, envir = .GlobalEnv)
+        else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv)
+      })
+      set.seed(1)
+      groups <- split(seq_len(nrow(data)), interaction(data[grouping], drop = TRUE, lex.order = TRUE))
+      summaries <- lapply(groups, function(indices) {
+        values <- data[[dep_var]][indices]
+        values <- values[!is.na(values)]
+        if (length(values) == 0) return(NULL)
+        summary <- data[indices[1], grouping, drop = FALSE]
+        names(summary) <- paste0(".art_factor_", seq_along(grouping))
+        intervals <- ggplot2::mean_cl_boot(values)
+        summary$.art_mean <- intervals$y
+        summary$.art_lower <- intervals$ymin
+        summary$.art_upper <- intervals$ymax
+        summary
+      })
+      do.call(rbind, summaries)
+    },
+
     .renderArtPlot = function(image, ggtheme, ...) {
       state <- image$state
       if (is.null(state)) return(FALSE)
       
-      df <- state$data
+      df <- state$summary
+      if (is.null(df) || nrow(df) == 0) return(FALSE)
       dep_var <- state$dep_var
       predictors <- state$predictors
       
       if (length(predictors) == 0) return(FALSE)
       
-      p1 <- predictors[1]
-      p2 <- if (length(predictors) >= 2) predictors[2] else NULL
-      p3 <- if (length(predictors) >= 3) predictors[3] else NULL
+      p1 <- ".art_factor_1"
+      p2 <- if (length(predictors) >= 2) ".art_factor_2" else NULL
+      p3 <- if (length(predictors) >= 3) ".art_factor_3" else NULL
       
       if (is.null(p2)) {
-        p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[p1]], y = .data[[dep_var]])) +
-          ggplot2::stat_summary(fun = mean, geom = "point", size = 3, color = "#2c3e50") +
-          ggplot2::stat_summary(fun.data = ggplot2::mean_cl_boot, geom = "errorbar", width = 0.2, color = "#2c3e50") +
-          ggplot2::labs(title = paste("Marginal Means of", dep_var, "by", p1)) +
+        p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[p1]], y = .data[[".art_mean"]])) +
+          ggplot2::geom_point(size = 3, color = "#2c3e50") +
+          ggplot2::geom_errorbar(ggplot2::aes(ymin = .data[[".art_lower"]], ymax = .data[[".art_upper"]]), width = 0.2, color = "#2c3e50") +
+          ggplot2::labs(title = paste("Marginal Means of", dep_var, "by", predictors[1]), x = predictors[1], y = dep_var, subtitle = "95% bootstrap CIs (1,000 resamples; seed = 1)") +
           ggtheme
       } else {
-        p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[p1]], y = .data[[dep_var]], color = .data[[p2]], group = .data[[p2]])) +
-          ggplot2::stat_summary(fun = mean, geom = "point", size = 3) +
-          ggplot2::stat_summary(fun = mean, geom = "line", linewidth = 0.8) +
-          ggplot2::stat_summary(fun.data = ggplot2::mean_cl_boot, geom = "errorbar", width = 0.2) +
-          ggplot2::labs(title = paste("Interaction of", p1, "and", p2, "on", dep_var)) +
+        p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[p1]], y = .data[[".art_mean"]], color = .data[[p2]], group = .data[[p2]])) +
+          ggplot2::geom_point(size = 3) +
+          ggplot2::geom_line(linewidth = 0.8) +
+          ggplot2::geom_errorbar(ggplot2::aes(ymin = .data[[".art_lower"]], ymax = .data[[".art_upper"]]), width = 0.2) +
+          ggplot2::labs(title = paste("Interaction of", predictors[1], "and", predictors[2], "on", dep_var), x = predictors[1], y = dep_var, colour = predictors[2], subtitle = "95% bootstrap CIs (1,000 resamples; seed = 1)") +
           ggtheme
         
         if (!is.null(p3)) {
-          p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", p3)))
+          p <- p + ggplot2::facet_wrap(ggplot2::vars(.data[[p3]]))
         }
       }
       

@@ -3,6 +3,9 @@ name: effectSize
 title: Effect Size
 jus: '3.0'
 compilerMode: tame
+events:
+  loaded: ./effectsize::updateReferences
+  updated: ./effectsize::updateReferences
 
 children:
   - type: ModeSelector
@@ -27,6 +30,8 @@ children:
                 children:
                   - type: VariablesListBox
                     name: indep_vars_cs
+                    events:
+                      change: ./effectsize::updateReferences
                     isTarget: true
               - type: TargetLayoutBox
                 label: "Covariate (Optional)"
@@ -45,25 +50,40 @@ children:
                 children:
                   - type: ComboBox
                     name: es_method
-                    label: Effect Size Method
+                    label: "Effect size method"
                   - type: CheckBox
                     name: show_cles
-                    label: Calculate CLES (Common Language Effect Size)
-                  - type: TextBox
-                    name: reference_group
-                    label: "Reference Group (Glass' Delta)"
-                    format: string
-                    enable: (es_method == 'glass_delta')
+                    label: "Common language effect size"
+                  - type: ListBox
+                    name: glass_references
+                    label: Glass reference levels
+                    enable: (es_method:glass_delta && !use_glm)
+                    showColumnHeaders: true
+                    fullRowSelect: true
+                    height: normal
+                    events:
+                      change: ./effectsize::updateReferences
+                    columns:
+                      - name: variable
+                        label: Independent variable
+                        selectable: false
+                        template:
+                          type: VariableLabel
+                      - name: reference
+                        label: Reference level
+                        selectable: false
+                        template:
+                          type: LevelSelector
                   
                   - type: Label
-                    label: "GzLM — Average Marginal Effect (AME)"
+                    label: "GzLM — average marginal effect (AME)"
                     margin: large
                   - type: CheckBox
                     name: use_glm
-                    label: Use GzLM — Average Marginal Effect (AME)
+                    label: "GzLM average marginal effect"
                   - type: ComboBox
                     name: es_glm
-                    label: GzLM Distribution
+                    label: "GzLM distribution"
                     enable: (use_glm)
 
       - type: Content
@@ -76,7 +96,7 @@ children:
                 label: "Compare effect sizes across time points (paired samples)."
               - type: ComboBox
                 name: long_format
-                label: Data Format
+                label: "Data format"
 
           - type: VariableSupplier
             persistentItems: false
@@ -88,21 +108,8 @@ children:
                   - type: VariablesListBox
                     name: dep_vars_long
                     isTarget: true
-                    enable: (long_format == 'long')
+                    enable: (long_format:long)
               
-              - type: TargetLayoutBox
-                label: Independent Variables (optional)
-                children:
-                  - type: VariablesListBox
-                    name: indep_vars_long
-                    isTarget: true
-              - type: TargetLayoutBox
-                label: "Covariate (Optional)"
-                children:
-                  - type: VariablesListBox
-                    name: cov_long
-                    maxItemCount: 1
-                    isTarget: true
               
               - type: TargetLayoutBox
                 label: Subject ID Variable
@@ -119,7 +126,7 @@ children:
                     name: time_var
                     isTarget: true
                     maxItemCount: 1
-                    enable: (long_format == 'long')
+                    enable: (long_format:long)
               
               - type: TargetLayoutBox
                 label: "Wave Columns (for Wide format)"
@@ -127,7 +134,7 @@ children:
                   - type: VariablesListBox
                     name: wave_vars
                     isTarget: true
-                    enable: (long_format == 'wide')
+                    enable: (long_format:wide)
 
           - type: CollapseBox
             label: Longitudinal Effect Size Settings
@@ -139,50 +146,39 @@ children:
                 children:
                   - type: ComboBox
                     name: es_method_long
-                    label: "Effect Size Method (Longitudinal)"
+                    label: "Effect size method (longitudinal)"
                   - type: CheckBox
                     name: show_cles_long
-                    label: Calculate CLES (paired)
+                    label: "Common language effect size (paired)"
                   - type: TextBox
                     name: reference_group_long
-                    label: "Reference Wave (Glass' Delta z)"
+                    label: "Reference wave (empty = first in pair)"
                     format: string
-                    enable: (es_method_long == 'glass_dz')
+                    enable: (es_method_long:glass_dz)
 
-  - type: CollapseBox
-    label: Categorical Effect Sizes (Cramér's V, OR, RR, Cohen's h)
-    collapsed: true
+  - type: VariableSupplier
+    name: categorical_variables
+    persistentItems: false
     stretchFactor: 1
     children:
-      - type: LayoutBox
-        margin: large
+      - type: TargetLayoutBox
+        label: "Categorical Factor 1 (Row / Exposure)"
         children:
-          - type: CheckBox
-            name: show_categorical_es
-            label: Calculate Categorical Effect Sizes (Cramér's V, Odds Ratio, Relative Risk, Cohen's h)
-          - type: VariableSupplier
-            persistentItems: false
-            stretchFactor: 1
-            children:
-              - type: TargetLayoutBox
-                label: "Categorical Factor 1 (Row / Exposure)"
-                children:
-                  - type: VariablesListBox
-                    name: cat_var1
-                    isTarget: true
-                    maxItemCount: 1
-                    enable: (show_categorical_es)
-              - type: TargetLayoutBox
-                label: "Categorical Factor 2 (Column / Outcome)"
-                children:
-                  - type: VariablesListBox
-                    name: cat_var2
-                    isTarget: true
-                    maxItemCount: 1
-                    enable: (show_categorical_es)
+          - type: VariablesListBox
+            name: cat_var1
+            isTarget: true
+            maxItemCount: 1
+      - type: TargetLayoutBox
+        label: "Categorical Factor 2 (Column / Outcome)"
+        children:
+          - type: VariablesListBox
+            name: cat_var2
+            isTarget: true
+            maxItemCount: 1
+
 
   - type: CollapseBox
-    label: Direct Calculator from Test Statistics (t, F, z, χ²)
+    label: "Direct Calculator From Test Statistics (t, F, z, χ²)"
     collapsed: true
     stretchFactor: 1
     children:
@@ -191,31 +187,41 @@ children:
         children:
           - type: CheckBox
             name: calc_from_test_stat
-            label: "Enable Direct Calculator from Test Statistic (No raw data required)"
+            label: "Direct test statistic calculator"
           - type: ComboBox
             name: stat_type
-            label: Test Statistic Type
+            label: "Test statistic type"
             enable: (calc_from_test_stat)
           - type: TextBox
             name: stat_val
-            label: Statistic Value
+            label: "Statistic value"
             format: number
             enable: (calc_from_test_stat)
           - type: TextBox
             name: stat_df1
-            label: Degrees of Freedom 1 (df or df1)
+            label: "Degrees of freedom (numerator for F)"
             format: number
-            enable: (calc_from_test_stat)
+            enable: (calc_from_test_stat && (stat_type:stat_t || stat_type:stat_f))
           - type: TextBox
             name: stat_df2
-            label: Error Degrees of Freedom (df2 - for F)
+            label: "Denominator degrees of freedom (F)"
             format: number
-            enable: (calc_from_test_stat && stat_type == 'stat_f')
+            enable: (calc_from_test_stat && stat_type:stat_f)
+          - type: TextBox
+            name: stat_rows
+            label: "Contingency table rows"
+            format: number
+            enable: (calc_from_test_stat && stat_type:stat_chisq)
+          - type: TextBox
+            name: stat_cols
+            label: "Contingency table columns"
+            format: number
+            enable: (calc_from_test_stat && stat_type:stat_chisq)
           - type: TextBox
             name: stat_n
-            label: Sample Size N (optional)
+            label: "Sample size N (z and chi-square)"
             format: number
-            enable: (calc_from_test_stat)
+            enable: (calc_from_test_stat && (stat_type:stat_z || stat_type:stat_chisq))
 
   - type: CollapseBox
     label: Confidence Intervals
@@ -227,15 +233,15 @@ children:
         children:
           - type: ComboBox
             name: ci_method
-            label: CI Method
+            label: "CI method"
           - type: ComboBox
             name: ci_level
-            label: Confidence Level
+            label: "Confidence level"
           - type: TextBox
             name: n_bootstrap
-            label: Number of Bootstrap Samples
+            label: "Number of bootstrap samples"
             format: number
-            enable: (ci_method == 'bootstrap')
+            enable: (ci_method:bootstrap)
 
   - type: CollapseBox
     label: Conversions, Interpretation & Forest Plot
@@ -247,21 +253,22 @@ children:
         children:
           - type: ComboBox
             name: benchmark_standard
-            label: Interpretation Benchmark
+            label: "Interpretation benchmark"
           - type: CheckBox
             name: show_conversions
-            label: Multi-Metric Effect Size Conversions (d, r, η², OR, AUC)
+            enable: (mode:cross_sectional && es_method:cohens_d && !use_glm && !cov)
+            label: "Effect size conversions (d, r, η², OR, AUC)"
           - type: CheckBox
             name: show_es_plot
-            label: Effect Size Forest Plot
+            label: "Effect size forest plot"
           - type: TextBox
             name: plot_width
-            label: Plot Width
+            label: "Plot width"
             format: number
             enable: (show_es_plot)
           - type: TextBox
             name: plot_height
-            label: Plot Height
+            label: "Plot height"
             format: number
             enable: (show_es_plot)
 
@@ -270,7 +277,8 @@ children:
     children:
       - type: CheckBox
         name: include_interactions
-        label: Calculate interactions between IVs
+        enable: (mode:cross_sectional && (!es_method:glass_delta || use_glm))
+        label: "Interactions between independent variables"
       - type: CheckBox
         name: run_analysis
-        label: "Run Analysis (Compute Results)"
+        label: "Effect size results"

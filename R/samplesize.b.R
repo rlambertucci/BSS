@@ -2,6 +2,45 @@ samplesizeClass <- R6::R6Class(
   "samplesizeClass",
   inherit = samplesizeBase,
   private = list(
+    .animal_parameters = function() {
+      design <- self$options$design_animals
+      if (is.null(design)) return(character())
+      dropout <- !is.null(self$options$dropout_animals) && self$options$dropout_animals > 0
+      sacrifice <- isTRUE(self$options$sacrifice_animals)
+      parameters <- character()
+      if (design == "Design 1 (One-way ANOVA)") {
+        parameters <- c("Design Type", "Number of Groups (k)", "Minimum Sample Size per Group", "Maximum Sample Size per Group", "Minimum Total Sample Size", "Maximum Total Sample Size")
+        if (dropout) parameters <- c(parameters, c("Expected Attrition / Dropout Rate (%)", "Adjusted Minimum n per Group (with Dropout)", "Adjusted Maximum n per Group (with Dropout)", "Adjusted Minimum Total N (with Dropout)", "Adjusted Maximum Total N (with Dropout)"))
+      } else if (design == "Design 2 (Repeated Measures)") {
+        if (!sacrifice) {
+          parameters <- c("Design Type", "Number of Repeated Measures (r)", "Animals Sacrificed", "Minimum Sample Size per Cohort", "Maximum Sample Size per Cohort", "Minimum Total Sample Size", "Maximum Total Sample Size")
+          if (dropout) parameters <- c(parameters, c("Expected Attrition / Dropout Rate (%)", "Adjusted Minimum Cohort Size (with Dropout)", "Adjusted Maximum Cohort Size (with Dropout)"))
+        } else {
+          parameters <- c("Design Type", "Number of Time Points (r)", "Animals Sacrificed", "Minimum Sample Size per Time Point", "Maximum Sample Size per Time Point", "Minimum Total Sample Size", "Maximum Total Sample Size")
+          if (dropout) parameters <- c(parameters, c("Expected Attrition / Dropout Rate (%)", "Adjusted Minimum Animals per Time (with Dropout)", "Adjusted Maximum Animals per Time (with Dropout)", "Adjusted Minimum Total N (with Dropout)", "Adjusted Maximum Total N (with Dropout)"))
+        }
+      } else if (design == "Design 3 (Mixed ANOVA)") {
+        if (!sacrifice) {
+          parameters <- c("Design Type", "Number of Groups (k)", "Number of Repeated Measures (r)", "Animals Sacrificed", "Minimum Sample Size per Group", "Maximum Sample Size per Group", "Minimum Total Sample Size", "Maximum Total Sample Size")
+          if (dropout) parameters <- c(parameters, c("Expected Attrition / Dropout Rate (%)", "Adjusted Minimum n per Group (with Dropout)", "Adjusted Maximum n per Group (with Dropout)", "Adjusted Minimum Total N (with Dropout)", "Adjusted Maximum Total N (with Dropout)"))
+        } else {
+          parameters <- c("Design Type", "Number of Groups (k)", "Number of Time Points (r)", "Animals Sacrificed", "Minimum Animals per Time Point per Group", "Maximum Animals per Time Point per Group", "Minimum Sample Size per Group (all times)", "Maximum Sample Size per Group (all times)", "Minimum Total Sample Size", "Maximum Total Sample Size")
+          if (dropout) parameters <- c(parameters, c("Expected Attrition / Dropout Rate (%)", "Adjusted Animals per Cell (with Dropout)", "Adjusted Minimum Total N (with Dropout)", "Adjusted Maximum Total N (with Dropout)"))
+        }
+      }
+      if (design %in% c("Design 1 (One-way ANOVA)", "Design 3 (Mixed ANOVA)") && isTRUE(self$options$calc_power_anova_animals)) {
+        parameters <- c(parameters, c("Power-ANOVA: Effect Size (f)", "Power-ANOVA: Significance Level (α)", "Power-ANOVA: Target Power (1 - β)", "Power-ANOVA: Recommended n per Group", "Power-ANOVA: Recommended Total N"))
+        if (dropout) parameters <- c(parameters, c("Power-ANOVA: Adjusted n per Group (with Dropout)", "Power-ANOVA: Adjusted Total N (with Dropout)"))
+      }
+      parameters
+    },
+
+    .init = function() {
+      table <- self$results$sampleSizeTable_animals
+      if (table$rowCount > 0) table$deleteRows()
+      for (parameter in private$.animal_parameters()) table$addRow(rowKey = parameter, values = list(parameter = parameter))
+    },
+
     .run = function() {
       mode <- self$options$mode
       if (is.null(mode)) {
@@ -22,6 +61,8 @@ samplesizeClass <- R6::R6Class(
     },
     
     .runFinite = function() {
+      self$results$text_finite$setContent("")
+      self$results$text_finite$setVisible(TRUE)
       method <- self$options$method_finite
       if (is.null(method)) {
         return()
@@ -34,33 +75,33 @@ samplesizeClass <- R6::R6Class(
       
       table <- self$results$sampleSizeTable_finite
       table$setRow(rowNo = 1, values = list())
-      try(table$deleteNote("fpc_note"), silent = TRUE)
-      try(table$deleteNote("slovin_note"), silent = TRUE)
+      table$setNote("fpc_note", NULL)
+      table$setNote("slovin_note", NULL)
       
-      if (is.null(confidence_level_pct) || is.null(margin_error_pct)) {
-        self$results$text_finite$setContent("Please provide Confidence Level (%) and Margin of Error (%).")
+      if (is.null(margin_error_pct) || (method == "Cochran" && is.null(confidence_level_pct))) {
+        jmvcore::reject("Please provide Margin of Error (%) and, for Cochran's method, Confidence Level (%).", code = "invalid_sample_size_parameters")
         return()
       }
       
-      confidence_level <- confidence_level_pct / 100
+      confidence_level <- if (method == "Cochran") confidence_level_pct / 100 else NA_real_
       margin_error <- margin_error_pct / 100
       
-      if (confidence_level <= 0 || confidence_level >= 1) {
-        self$results$text_finite$setContent("Confidence Level must be strictly between 0% and 100%.")
+      if (method == "Cochran" && (confidence_level <= 0 || confidence_level >= 1)) {
+        jmvcore::reject("Confidence Level must be strictly between 0% and 100%.", code = "invalid_sample_size_parameters")
         return()
       }
       if (margin_error <= 0 || margin_error >= 1) {
-        self$results$text_finite$setContent("Margin of Error must be strictly between 0% and 100%.")
+        jmvcore::reject("Margin of Error must be strictly between 0% and 100%.", code = "invalid_sample_size_parameters")
         return()
       }
       if (is.null(N) || N <= 0) {
-        self$results$text_finite$setContent("Population Size (N) must be a positive integer (N > 0).")
+        jmvcore::reject("Population Size (N) must be a positive integer (N > 0).", code = "invalid_sample_size_parameters")
         return()
       }
       
       if (method == "Cochran") {
         if (is.null(p) || p <= 0 || p >= 1) {
-          self$results$text_finite$setContent("Population Proportion (p) must be strictly between 0 and 1 for Cochran's method.")
+          jmvcore::reject("Population Proportion (p) must be strictly between 0 and 1 for Cochran's method.", code = "invalid_sample_size_parameters")
           return()
         }
         
@@ -83,8 +124,9 @@ samplesizeClass <- R6::R6Class(
           sample_size = as.integer(sample_size)
         )
         table$setRow(rowNo = 1, values = results_list)
-        table$setNote("fpc_note", "Note. Finite Population Correction (Cochran, 1977) applied: n = n0 / [1 + (n0 - 1) / N].")
-        self$results$text_finite$setContent(paste0("Cochran sample size calculation complete: required sample size is ", sample_size, " subjects."))
+        table$setNote("fpc_note", "Finite Population Correction applied: n = n0 / [1 + (n0 - 1) / N].")
+        self$results$text_finite$setContent("")
+        self$results$text_finite$setVisible(FALSE)
         
       } else if (method == "Slovin") {
         sample_size_raw <- N / (1 + N * (margin_error^2))
@@ -99,23 +141,28 @@ samplesizeClass <- R6::R6Class(
           sample_size = as.integer(sample_size)
         )
         table$setRow(rowNo = 1, values = results_list)
-        table$setNote("slovin_note", "Note. Slovin's heuristic formula does not incorporate confidence level (empirically assumes ~95%).")
-        self$results$text_finite$setContent(paste0("Slovin sample size calculation complete: required sample size is ", sample_size, " subjects."))
+        table$setNote("slovin_note", "Slovin's heuristic formula does not incorporate confidence level (empirically assumes ~95%).")
+        self$results$text_finite$setContent("")
+        self$results$text_finite$setVisible(FALSE)
       }
     },
     
     .runAnimals = function() {
+      self$results$text_animals$setContent("")
+      self$results$text_animals$setVisible(TRUE)
       design <- self$options$design_animals
       if (is.null(design)) return()
       
       table <- self$results$sampleSizeTable_animals
-      if (table$rowCount > 0) try(table$deleteRows(), silent = TRUE)
-      try(table$deleteNote("resource_note"), silent = TRUE)
+      table$setNote("resource_note", NULL)
       
-      rowIndex <- 1
+      for (parameter in private$.animal_parameters()) table$setRow(rowKey = parameter, values = list(value = NA_integer_, estimate = NA_real_, detail = ""))
       addParameterRow <- function(param, value) {
-        table$addRow(rowKey = rowIndex, values = list(parameter = param, value = as.character(value)))
-        rowIndex <<- rowIndex + 1
+        values <- list(parameter = param)
+        if (is.character(value)) values$detail <- value
+        else if (grepl("^Expected Attrition|^Power-ANOVA: (Effect Size|Significance Level|Target Power)", param)) values$estimate <- as.numeric(value)
+        else values$value <- as.integer(value)
+        table$setRow(rowKey = param, values = values)
       }
       
       dropout <- if (!is.null(self$options$dropout_animals)) max(0, min(50, as.numeric(self$options$dropout_animals))) else 0
@@ -124,7 +171,7 @@ samplesizeClass <- R6::R6Class(
       if (design == "Design 1 (One-way ANOVA)") {
         k <- self$options$nGroups_animals
         if (is.null(k) || k < 2) {
-          self$results$text_animals$setContent("Number of Groups (k) must be an integer >= 2 for Design 1 (One-way ANOVA).")
+          jmvcore::reject("Number of Groups (k) must be an integer >= 2 for Design 1 (One-way ANOVA).", code = "invalid_sample_size_parameters")
           return()
         }
         min_n <- ceiling(10 / k + 1)
@@ -141,7 +188,7 @@ samplesizeClass <- R6::R6Class(
         if (dropout > 0) {
           adj_min_n <- ceiling(min_n / loss_factor)
           adj_max_n <- ceiling(max_n / loss_factor)
-          addParameterRow("Expected Attrition / Dropout Rate (%)", paste0(dropout, "%"))
+          addParameterRow("Expected Attrition / Dropout Rate (%)", dropout)
           addParameterRow("Adjusted Minimum n per Group (with Dropout)", adj_min_n)
           addParameterRow("Adjusted Maximum n per Group (with Dropout)", adj_max_n)
           addParameterRow("Adjusted Minimum Total N (with Dropout)", adj_min_n * k)
@@ -153,8 +200,8 @@ samplesizeClass <- R6::R6Class(
           p_power <- self$options$power_target_animals
           if (!is.null(p_f) && p_f > 0 && !is.null(p_alpha) && !is.null(p_power)) {
             p_res <- tryCatch({
-              stats::power.anova.test(groups = k, between.var = p_f^2, within.var = 1, sig.level = p_alpha, power = p_power)
-            }, error = function(e) NULL)
+              stats::power.anova.test(groups = k, between.var = p_f^2 * k / (k - 1), within.var = 1, sig.level = p_alpha, power = p_power)
+            }, error = function(e) jmvcore::reject(conditionMessage(e), code = "sample_size_calculation_failed"))
             if (!is.null(p_res)) {
               p_n_grp <- ceiling(p_res$n)
               addParameterRow("Power-ANOVA: Effect Size (f)", p_f)
@@ -170,14 +217,15 @@ samplesizeClass <- R6::R6Class(
             }
           }
         }
-        table$setNote("resource_note", "Note. Target degrees of freedom for error term: 10 <= E <= 20 (Charan & Kantharia, 2013; Festing & Altman, 2002). Attrition compensation: N_adj = ceiling(N / (1 - d)). Power ANOVA: Cohen (1988).")
-        self$results$text_animals$setContent("Sample size calculation complete for Design 1 (One-way ANOVA).")
+        table$setNote("resource_note", "Target degrees of freedom for error term: 10 <= E <= 20. Attrition compensation: N_adj = ceiling(N / (1 - d)).")
+        self$results$text_animals$setContent("")
+        self$results$text_animals$setVisible(FALSE)
       } else if (design == "Design 2 (Repeated Measures)") {
         r <- self$options$nMeasures_animals
         sacrifice <- isTRUE(self$options$sacrifice_animals)
         sacrifice_text <- if (sacrifice) "Yes" else "No"
         if (is.null(r) || r < 2) {
-          self$results$text_animals$setContent("Number of Repeated Measures (r) must be an integer >= 2 for Design 2.")
+          jmvcore::reject("Number of Repeated Measures (r) must be an integer >= 2 for Design 2.", code = "invalid_sample_size_parameters")
           return()
         }
         if (!sacrifice) {
@@ -196,7 +244,7 @@ samplesizeClass <- R6::R6Class(
           if (dropout > 0) {
             adj_min_n <- ceiling(min_n / loss_factor)
             adj_max_n <- ceiling(max_n / loss_factor)
-            addParameterRow("Expected Attrition / Dropout Rate (%)", paste0(dropout, "%"))
+            addParameterRow("Expected Attrition / Dropout Rate (%)", dropout)
             addParameterRow("Adjusted Minimum Cohort Size (with Dropout)", adj_min_n)
             addParameterRow("Adjusted Maximum Cohort Size (with Dropout)", adj_max_n)
           }
@@ -216,22 +264,23 @@ samplesizeClass <- R6::R6Class(
           if (dropout > 0) {
             adj_min_cohort <- ceiling(min_n_cohort / loss_factor)
             adj_max_cohort <- ceiling(max_n_cohort / loss_factor)
-            addParameterRow("Expected Attrition / Dropout Rate (%)", paste0(dropout, "%"))
+            addParameterRow("Expected Attrition / Dropout Rate (%)", dropout)
             addParameterRow("Adjusted Minimum Animals per Time (with Dropout)", adj_min_cohort)
             addParameterRow("Adjusted Maximum Animals per Time (with Dropout)", adj_max_cohort)
             addParameterRow("Adjusted Minimum Total N (with Dropout)", adj_min_cohort * r)
             addParameterRow("Adjusted Maximum Total N (with Dropout)", adj_max_cohort * r)
           }
         }
-        table$setNote("resource_note", "Note. Target degrees of freedom for error term: 10 <= E <= 20 (Arifin & Wan Mohammad, 2017; Festing & Altman, 2002). Attrition compensation: N_adj = ceiling(N / (1 - d)).")
-        self$results$text_animals$setContent("Sample size calculation complete for Design 2 (Repeated Measures).")
+        table$setNote("resource_note", "Target degrees of freedom for error term: 10 <= E <= 20. Attrition compensation: N_adj = ceiling(N / (1 - d)).")
+        self$results$text_animals$setContent("")
+        self$results$text_animals$setVisible(FALSE)
       } else if (design == "Design 3 (Mixed ANOVA)") {
         k <- self$options$nGroups_animals
         r <- self$options$nMeasures_animals
         sacrifice <- isTRUE(self$options$sacrifice_animals)
         sacrifice_text <- if (sacrifice) "Yes" else "No"
         if (is.null(k) || k < 2 || is.null(r) || r < 2) {
-          self$results$text_animals$setContent("Number of Groups (k) and Number of Repeated Measures (r) must both be integers >= 2 for Design 3.")
+          jmvcore::reject("Number of Groups (k) and Number of Repeated Measures (r) must both be integers >= 2 for Design 3.", code = "invalid_sample_size_parameters")
           return()
         }
         if (!sacrifice) {
@@ -251,7 +300,7 @@ samplesizeClass <- R6::R6Class(
           if (dropout > 0) {
             adj_min_n <- ceiling(min_n / loss_factor)
             adj_max_n <- ceiling(max_n / loss_factor)
-            addParameterRow("Expected Attrition / Dropout Rate (%)", paste0(dropout, "%"))
+            addParameterRow("Expected Attrition / Dropout Rate (%)", dropout)
             addParameterRow("Adjusted Minimum n per Group (with Dropout)", adj_min_n)
             addParameterRow("Adjusted Maximum n per Group (with Dropout)", adj_max_n)
             addParameterRow("Adjusted Minimum Total N (with Dropout)", adj_min_n * k)
@@ -278,7 +327,7 @@ samplesizeClass <- R6::R6Class(
           if (dropout > 0) {
             adj_min_cell <- ceiling(min_n_cell / loss_factor)
             adj_max_cell <- ceiling(max_n_cell / loss_factor)
-            addParameterRow("Expected Attrition / Dropout Rate (%)", paste0(dropout, "%"))
+            addParameterRow("Expected Attrition / Dropout Rate (%)", dropout)
             addParameterRow("Adjusted Animals per Cell (with Dropout)", adj_min_cell)
             addParameterRow("Adjusted Minimum Total N (with Dropout)", adj_min_cell * k * r)
             addParameterRow("Adjusted Maximum Total N (with Dropout)", adj_max_cell * k * r)
@@ -290,8 +339,8 @@ samplesizeClass <- R6::R6Class(
           p_power <- self$options$power_target_animals
           if (!is.null(p_f) && p_f > 0 && !is.null(p_alpha) && !is.null(p_power)) {
             p_res <- tryCatch({
-              stats::power.anova.test(groups = k, between.var = p_f^2, within.var = 1, sig.level = p_alpha, power = p_power)
-            }, error = function(e) NULL)
+              stats::power.anova.test(groups = k, between.var = p_f^2 * k / (k - 1), within.var = 1, sig.level = p_alpha, power = p_power)
+            }, error = function(e) jmvcore::reject(conditionMessage(e), code = "sample_size_calculation_failed"))
             if (!is.null(p_res)) {
               p_n_grp <- ceiling(p_res$n)
               addParameterRow("Power-ANOVA: Effect Size (f)", p_f)
@@ -307,11 +356,14 @@ samplesizeClass <- R6::R6Class(
             }
           }
         }
-        table$setNote("resource_note", "Note. Target degrees of freedom for error term: 10 <= E <= 20 (Arifin & Wan Mohammad, 2017; Festing & Altman, 2002). Attrition compensation: N_adj = ceiling(N / (1 - d)). Power ANOVA: Cohen (1988).")
-        self$results$text_animals$setContent("Sample size calculation complete for Design 3 (Mixed ANOVA).")
+        table$setNote("resource_note", "Target degrees of freedom for error term: 10 <= E <= 20. Attrition compensation: N_adj = ceiling(N / (1 - d)).")
+        self$results$text_animals$setContent("")
+        self$results$text_animals$setVisible(FALSE)
       }
     },
     .runPowerT = function() {
+      self$results$text_power_t$setContent("")
+      self$results$text_power_t$setVisible(TRUE)
       t_type  <- self$options$t_test_type
       d       <- self$options$t_effect_size
       alpha   <- self$options$t_alpha
@@ -324,15 +376,15 @@ samplesizeClass <- R6::R6Class(
       table$setRow(rowNo = 1, values = list())
       
       if (is.null(d) || d <= 0) {
-        self$results$text_power_t$setContent("Effect size (Cohen's d) must be positive (d > 0).")
+        jmvcore::reject("Effect size (Cohen's d) must be positive (d > 0).", code = "invalid_sample_size_parameters")
         return()
       }
       if (is.null(alpha) || alpha <= 0 || alpha >= 1) {
-        self$results$text_power_t$setContent("Significance level (Î±) must be between 0 and 1.")
+        jmvcore::reject("Significance level (\u03b1) must be between 0 and 1.", code = "invalid_sample_size_parameters")
         return()
       }
       if (is.null(power) || power <= 0 || power >= 1) {
-        self$results$text_power_t$setContent("Target power (1 - Î²) must be between 0 and 1.")
+        jmvcore::reject("Target power (1 - \u03b2) must be between 0 and 1.", code = "invalid_sample_size_parameters")
         return()
       }
       
@@ -354,10 +406,10 @@ samplesizeClass <- R6::R6Class(
       
       pwr_res <- tryCatch({
         stats::power.t.test(delta = abs(d), sd = 1, sig.level = alpha, power = power, type = type_arg, alternative = alt_arg)
-      }, error = function(e) NULL)
+      }, error = function(e) jmvcore::reject(conditionMessage(e), code = "sample_size_calculation_failed"))
       
       if (is.null(pwr_res)) {
-        self$results$text_power_t$setContent("Error computing sample size. Check parameters.")
+        jmvcore::reject("Error computing sample size. Check parameters.", code = "invalid_sample_size_parameters")
         return()
       }
       
@@ -373,11 +425,8 @@ samplesizeClass <- R6::R6Class(
         total_n     = as.integer(total_n)
       ))
       
-      self$results$text_power_t$setContent(paste0(
-        "Power Analysis for t-test complete: Required sample size is ",
-        n_per_group, if (t_type == "two_sample") " subjects per group (Total N = " else " subjects (Total N = ",
-        total_n, ") for ", round(power * 100, 1), "% power at Î± = ", alpha, "."
-      ))
+      self$results$text_power_t$setContent("")
+      self$results$text_power_t$setVisible(FALSE)
       
       if (show_cv) {
         n_seq <- seq(4, n_max, by = 1)
@@ -423,7 +472,7 @@ samplesizeClass <- R6::R6Class(
         ggplot2::labs(
           title = "Power Sensitivity Curve (t-test)",
           x = "Sample Size per Group (n)",
-          y = "Statistical Power (1 - Î²)",
+          y = "Statistical Power (1 - \u03b2)",
           color = "Effect Size"
         ) +
         ggtheme +
@@ -437,6 +486,8 @@ samplesizeClass <- R6::R6Class(
     },
     
     .runTOST = function() {
+      self$results$text_tost$setContent("")
+      self$results$text_tost$setVisible(TRUE)
       eq_bound   <- abs(self$options$tost_eq_bound)
       true_diff  <- if (!is.null(self$options$tost_true_diff)) self$options$tost_true_diff else 0.0
       alpha      <- self$options$tost_alpha
@@ -446,32 +497,46 @@ samplesizeClass <- R6::R6Class(
       table <- self$results$sampleSizeTable_tost
       table$setRow(rowNo = 1, values = list())
       
-      if (is.null(eq_bound) || eq_bound <= 0) {
-        self$results$text_tost$setContent("Equivalence Bound (Î”) must be strictly positive (Î” > 0).")
+      if (length(eq_bound) != 1 || !is.finite(eq_bound) || eq_bound <= 0) {
+        jmvcore::reject("Equivalence Bound (\u0394) must be strictly positive (\u0394 > 0).", code = "invalid_sample_size_parameters")
         return()
       }
-      if (abs(true_diff) >= eq_bound) {
-        self$results$text_tost$setContent("True difference (|Î´|) must be strictly smaller than equivalence bound (Î”).")
+      if (length(true_diff) != 1 || !is.finite(true_diff) || abs(true_diff) >= eq_bound) {
+        jmvcore::reject("True difference (|\u03b4|) must be strictly smaller than equivalence bound (\u0394).", code = "invalid_sample_size_parameters")
         return()
       }
-      if (is.null(alpha) || alpha <= 0 || alpha >= 0.5) {
-        self$results$text_tost$setContent("Significance level (Î±) must be between 0 and 0.5.")
+      if (length(alpha) != 1 || !is.finite(alpha) || alpha <= 0 || alpha >= 0.5) {
+        jmvcore::reject("Significance level (\u03b1) must be between 0 and 0.5.", code = "invalid_sample_size_parameters")
         return()
       }
-      if (is.null(power) || power <= 0 || power >= 1) {
-        self$results$text_tost$setContent("Target power must be between 0 and 1.")
+      if (length(power) != 1 || !is.finite(power) || power <= 0 || power >= 1) {
+        jmvcore::reject("Target power must be between 0 and 1.", code = "invalid_sample_size_parameters")
         return()
       }
       
       z_alpha <- stats::qnorm(1 - alpha)
-      z_beta  <- stats::qnorm(1 - (1 - power) / 2)
-      denom   <- (eq_bound - abs(true_diff))
-      
       is_paired <- (tost_type == "paired")
-      factor_k  <- if (is_paired) 1 else 2
-      
-      n_raw <- factor_k * ((z_alpha + z_beta) / denom)^2
-      n_req <- max(3, ceiling(n_raw))
+      factor_k <- if (is_paired) 1 else 2
+      achieved_power <- function(sample_size) {
+        se <- sqrt(factor_k / sample_size)
+        lower <- (-eq_bound - true_diff) / se + z_alpha
+        upper <- (eq_bound - true_diff) / se - z_alpha
+        max(0, stats::pnorm(upper) - stats::pnorm(lower))
+      }
+      lower_n <- 3
+      upper_n <- 3
+      maximum_n <- floor(.Machine$integer.max / if (is_paired) 1 else 2)
+      while (achieved_power(upper_n) < power && upper_n < maximum_n) upper_n <- min(upper_n * 2, maximum_n)
+      if (achieved_power(upper_n) < power) {
+        jmvcore::reject("Required sample size exceeds the supported range; review the equivalence bounds and target power.", code = "invalid_sample_size_parameters")
+        return()
+      }
+      while (lower_n < upper_n) {
+        midpoint <- floor((lower_n + upper_n) / 2)
+        if (achieved_power(midpoint) >= power) upper_n <- midpoint else lower_n <- midpoint + 1
+      }
+      n_req <- lower_n
+      table$setNote("method", "Normal-theory TOST planning approximation with standardized bounds: power is the probability of simultaneously rejecting both one-sided tests at the specified true difference. Paired effects use the standard deviation of paired differences; independent groups assume equal sizes and a common standard deviation. This is not an exact unknown-variance t-based power calculation.")
       total_n <- if (is_paired) n_req else n_req * 2
       
       design_label <- if (is_paired) "Paired-Samples Equivalence (TOST)" else "Two Independent Groups Equivalence (TOST)"
@@ -486,15 +551,13 @@ samplesizeClass <- R6::R6Class(
         total_n     = as.integer(total_n)
       ))
       
-      self$results$text_tost$setContent(paste0(
-        "TOST Equivalence Sample Size: Required sample size is ",
-        n_req, if (!is_paired) " subjects per group (Total N = " else " pairs (Total N = ",
-        total_n, ") to establish equivalence within [ -", eq_bound, ", +", eq_bound,
-        " ] with ", round(power * 100, 1), "% power at nominal Î± = ", alpha, " (Lakens, 2013; Schuirmann, 1987)."
-      ))
+      self$results$text_tost$setContent("")
+      self$results$text_tost$setVisible(FALSE)
     },
     
     .runProportions = function() {
+      self$results$text_proportions$setContent("")
+      self$results$text_proportions$setVisible(TRUE)
       prop_type <- self$options$prop_test_type
       p1        <- self$options$prop_p1
       p2        <- self$options$prop_p2
@@ -509,7 +572,7 @@ samplesizeClass <- R6::R6Class(
       table$setRow(rowNo = 1, values = list())
       
       if (is.null(alpha) || alpha <= 0 || alpha >= 1 || is.null(power) || power <= 0 || power >= 1) {
-        self$results$text_proportions$setContent("Î± and target power must be strictly between 0 and 1.")
+        jmvcore::reject("\u03b1 and target power must be strictly between 0 and 1.", code = "invalid_sample_size_parameters")
         return()
       }
       
@@ -518,13 +581,13 @@ samplesizeClass <- R6::R6Class(
       
       if (prop_type == "two_prop") {
         if (is.null(p1) || is.null(p2) || p1 <= 0 || p1 >= 1 || p2 <= 0 || p2 >= 1 || p1 == p2) {
-          self$results$text_proportions$setContent("Proportions pâ‚ and pâ‚‚ must be between 0 and 1, and pâ‚ â‰  pâ‚‚.")
+          jmvcore::reject("Proportions p\u2081 and p\u2082 must be between 0 and 1, and p\u2081 \u2260 p\u2082.", code = "invalid_sample_size_parameters")
           return()
         }
         alt_arg <- switch(alt, two_sided = "two.sided", one_sided = "one.sided", "two.sided")
         pwr_res <- tryCatch({
           stats::power.prop.test(p1 = p1, p2 = p2, sig.level = alpha, power = power, alternative = alt_arg)
-        }, error = function(e) NULL)
+        }, error = function(e) jmvcore::reject(conditionMessage(e), code = "sample_size_calculation_failed"))
         
         if (is.null(pwr_res)) {
           p_bar <- (p1 + p2) / 2
@@ -544,15 +607,12 @@ samplesizeClass <- R6::R6Class(
           n_per_group = as.integer(n_per_group),
           total_n     = as.integer(total_n)
         ))
-        self$results$text_proportions$setContent(paste0(
-          "Two-proportion test complete: Required sample size is ", n_per_group,
-          " subjects per group (Total N = ", total_n, ") for ", round(power * 100, 1),
-          "% power at Î± = ", alpha, " (Fleiss et al., 2003)."
-        ))
+        self$results$text_proportions$setContent("")
+        self$results$text_proportions$setVisible(FALSE)
         
       } else if (prop_type == "one_prop") {
         if (is.null(p1) || is.null(p0) || p1 <= 0 || p1 >= 1 || p0 <= 0 || p0 >= 1 || p1 == p0) {
-          self$results$text_proportions$setContent("Proportions pâ‚ and null value pâ‚€ must be between 0 and 1, and pâ‚ â‰  pâ‚€.")
+          jmvcore::reject("Proportions p\u2081 and null value p\u2080 must be between 0 and 1, and p\u2081 \u2260 p\u2080.", code = "invalid_sample_size_parameters")
           return()
         }
         n_raw <- ((z_alpha * sqrt(p0 * (1 - p0)) + z_beta * sqrt(p1 * (1 - p1))) / (p1 - p0))^2
@@ -567,19 +627,17 @@ samplesizeClass <- R6::R6Class(
           n_per_group = as.integer(n_req),
           total_n     = as.integer(n_req)
         ))
-        self$results$text_proportions$setContent(paste0(
-          "One-sample proportion test complete: Required sample size is ", n_req,
-          " subjects for ", round(power * 100, 1), "% power at Î± = ", alpha, "."
-        ))
+        self$results$text_proportions$setContent("")
+        self$results$text_proportions$setVisible(FALSE)
         
       } else if (prop_type == "mcnemar") {
         if (is.null(p12) || is.null(p21) || p12 <= 0 || p21 <= 0 || (p12 + p21) >= 1 || p12 == p21) {
-          self$results$text_proportions$setContent("Discordant proportions pâ‚â‚‚ and pâ‚‚â‚ must be positive with (pâ‚â‚‚ + pâ‚‚â‚) < 1, and pâ‚â‚‚ â‰  pâ‚‚â‚.")
+          jmvcore::reject("Discordant proportions p\u2081\u2082 and p\u2082\u2081 must be positive with (p\u2081\u2082 + p\u2082\u2081) < 1, and p\u2081\u2082 \u2260 p\u2082\u2081.", code = "invalid_sample_size_parameters")
           return()
         }
         p_disc <- p12 + p21
         diff   <- p12 - p21
-        n_raw  <- ((z_alpha * p_disc + z_beta * sqrt(p_disc - diff^2))^2) / (diff^2 * p_disc)
+        n_raw  <- (z_alpha * sqrt(p_disc) + z_beta * sqrt(p_disc - diff^2))^2 / diff^2
         n_pairs <- max(5, ceiling(n_raw))
         
         table$setRow(rowNo = 1, values = list(
@@ -591,11 +649,8 @@ samplesizeClass <- R6::R6Class(
           n_per_group = as.integer(n_pairs),
           total_n     = as.integer(n_pairs)
         ))
-        self$results$text_proportions$setContent(paste0(
-          "McNemar paired proportions test complete: Required sample size is ", n_pairs,
-          " matched pairs for ", round(power * 100, 1), "% power at Î± = ", alpha,
-          " (McNemar, 1947; Connor, 1987)."
-        ))
+        self$results$text_proportions$setContent("")
+        self$results$text_proportions$setVisible(FALSE)
       }
     }
   )

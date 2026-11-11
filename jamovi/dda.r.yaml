@@ -9,7 +9,7 @@ items:
       visible: True
 
     - name: prop
-      title: Proportion of trace
+      title: "Proportion of Trace"
       type: Table
       visible: (prop)
       rows: 1
@@ -23,7 +23,7 @@ items:
           content: Proportion(%)
 
     - name: coef
-      title: Coefficients of linear discriminants
+      title: "Coefficients of Linear Discriminants"
       type: Table
       refs: MASS
       visible: (coef)
@@ -77,11 +77,9 @@ items:
         - name: stat
           title: "Box's M"
           type: number
-          format: dp:3
         - name: chi
           title: "Chi-Square"
           type: number
-          format: dp:3
         - name: df
           title: "df"
           type: integer
@@ -114,16 +112,13 @@ items:
         - name: pctCorrect
           title: Correct (%)
           type: number
-          format: dp:1
 
     - name: plot
       title: Descriptive Discriminant Analysis Plot
       type: Image
-      requiresData: true
+      requiresData: false
       visible: (plot)
       renderFun: .plot
-      refs:
-        - ggplot2
       clearWith:
         - covs
         - dep
@@ -131,6 +126,15 @@ items:
         - height
         - showEllipse
         - ellipseLevel
+
+    - name: discScoresOutput
+      title: Discriminant Scores
+      type: Output
+      initInRun: true
+      clearWith:
+        - data
+        - dep
+        - covs
 
     - name: discScoresTable
       title: Discriminant Scores
@@ -143,9 +147,8 @@ items:
         - dep
       columns:
         - name: obs
-          title: Observation
-          type: text
-          content: ($key)
+          title: Original Row
+          type: integer
 
     - name: pairwiseESTable
       title: Pairwise Effect Sizes

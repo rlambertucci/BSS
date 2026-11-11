@@ -9,15 +9,15 @@ jas: '1.2'
 options:
     - name: data
       type: Data
-      title: Input Data
+      title: "Input data"
 
     - name: mode
-      title: Analysis Mode
+      title: "Analysis mode"
       type: List
       options:
-        - title: Cross-sectional (Independent)
+        - title: "Cross-sectional (independent)"
           name: cross_sectional
-        - title: Longitudinal (Repeated/Mixed)
+        - title: "Longitudinal (repeated/mixed)"
           name: longitudinal
       default: cross_sectional
 
@@ -43,7 +43,7 @@ options:
       default: null
 
     - name: long_format
-      title: Data Format
+      title: "Data format"
       type: List
       options:
         - title: Wide format (one column per wave)
@@ -118,15 +118,15 @@ options:
       default: null
 
     - name: run_posthoc
-      title: Run Pairwise Post-Hoc Tests (art.con)
+      title: "Pairwise post-hoc tests"
       type: Bool
       default: false
 
     - name: posthoc_correction
-      title: P-value Correction (Post-Hoc)
+      title: "P-value correction (post-hoc)"
       type: List
       options:
-        - title: Holm (Sequential Bonferroni)
+        - title: "Holm (sequential Bonferroni)"
           name: holm
         - title: Bonferroni
           name: bonferroni
@@ -139,12 +139,12 @@ options:
       default: holm
 
     - name: calc_es
-      title: Calculate Pairwise Effect Size
+      title: "Pairwise effect size table"
       type: Bool
       default: false
 
     - name: es_method
-      title: Effect Size Method
+      title: "Effect size method"
       type: List
       options:
         - title: Cohen's d (from z/t-ratios)
@@ -153,33 +153,33 @@ options:
           name: hedges_g
         - title: Vargha & Delaney's A
           name: vargha_delaney_a
-        - title: Rank-Biserial Correlation (r_rb)
+        - title: "Rank-biserial correlation"
           name: rank_biserial
-        - title: All Effect Sizes (d, g, A, r_rb)
+        - title: "All effect sizes"
           name: all
       default: cohens_d
 
     - name: calc_nonparametric_es
-      title: Integrated Nonparametric Effect Sizes (A & r_rb in Pairwise Table)
+      title: "Nonparametric pairwise effect sizes"
       type: Bool
       default: false
 
     - name: show_plot
-      title: Interaction / Marginal Means Plot
+      title: "Interaction / marginal means plot"
       type: Bool
       default: false
 
     - name: plot_width
-      title: Plot Width
+      title: "Plot width"
       type: Integer
       default: 600
 
     - name: plot_height
-      title: Plot Height
+      title: "Plot height"
       type: Integer
       default: 450
 
     - name: run_analysis
-      title: Run ART Analysis
+      title: "ART results"
       type: Bool
       default: false

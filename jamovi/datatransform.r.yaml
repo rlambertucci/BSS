@@ -3,6 +3,15 @@ title: Data Transformation
 jrs: '1.1'
 
 items:
+    - name: transformStatus
+      title: Transformation Availability
+      type: Preformatted
+      visible: true
+      clearWith:
+        - vars
+        - method
+        - bounded_scale
+
     - name: transformInfo
       title: About Data Transformation
       type: Html
@@ -15,12 +24,14 @@ items:
       refs:
         - bestNormalize
         - SuppDists
+        - SmithsonVerkuilen2006
         - Bartlett1937
         - Blom1958
         - VanDerWaerden1952
       clearWith:
         - vars
         - method
+        - bounded_scale
         - auto_shift
         - int_formula
       columns:
@@ -37,14 +48,12 @@ items:
         - name: value
           title: Value
           type: number
-          format: dp:4
         - name: shift_applied
           title: Shift Applied
           type: text
         - name: shift_value
           title: Shift Value
           type: number
-          format: dp:4
 
     - name: normalityTable
       title: Normality Test (Before & After)
@@ -57,6 +66,7 @@ items:
       clearWith:
         - vars
         - method
+        - bounded_scale
         - auto_shift
         - int_formula
         - normality_test
@@ -72,13 +82,12 @@ items:
         - name: W
           title: Statistic
           type: number
-          format: dp:4
         - name: p
           title: p-value
           type: number
-          format: dp:4
+          format: zto,pvalue
         - name: result
-          title: Normality
+          title: "Decision"
           type: text
 
     - name: recommendationTable
@@ -88,6 +97,7 @@ items:
       refs:
         - Blom1958
         - VanDerWaerden1952
+        - SmithsonVerkuilen2006
         - bestNormalize
       clearWith:
         - vars
@@ -108,15 +118,12 @@ items:
         - name: skewness
           title: Skewness
           type: number
-          format: dp:4
         - name: kurtosis
           title: Excess Kurtosis
           type: number
-          format: dp:4
         - name: score
           title: Criterion (|Skew| + 0.5×|Kurt|)
           type: number
-          format: dp:4
         - name: normality_p
           title: Normality p (SW)
           type: number
@@ -125,68 +132,27 @@ items:
           title: Recommendation
           type: text
 
-    - name: qqPlots
-      title: Q-Q Plot
+    - name: distributionPlots
+      title: Distribution Diagnostics (Before & After)
       type: Array
       items: (vars)
-      visible: (show_qq_plot)
-      refs:
-        - ggplot2
-        - gridExtra
+      visible: (show_qq_plot || show_hist_plot || show_density_plot)
       clearWith:
         - vars
         - method
+        - bounded_scale
         - auto_shift
         - int_formula
+        - show_qq_plot
+        - show_hist_plot
+        - show_density_plot
       template:
         title: $key
         type: Image
         width: 650
         height: 400
-        renderFun: .qqPlot
-        requiresData: true
-
-    - name: histPlots
-      title: Histogram
-      type: Array
-      items: (vars)
-      visible: (show_hist_plot)
-      refs:
-        - ggplot2
-        - gridExtra
-      clearWith:
-        - vars
-        - method
-        - auto_shift
-        - int_formula
-      template:
-        title: $key
-        type: Image
-        width: 650
-        height: 400
-        renderFun: .histPlot
-        requiresData: true
-
-    - name: densityPlots
-      title: Density Plot (Before & After)
-      type: Array
-      items: (vars)
-      visible: (show_density_plot)
-      refs:
-        - ggplot2
-        - gridExtra
-      clearWith:
-        - vars
-        - method
-        - auto_shift
-        - int_formula
-      template:
-        title: $key
-        type: Image
-        width: 650
-        height: 400
-        renderFun: .densityPlot
-        requiresData: true
+        renderFun: .distributionPlot
+        requiresData: false
 
     - name: transformedVarsOutput
       type: Output
@@ -196,6 +162,7 @@ items:
         - data
         - vars
         - method
+        - bounded_scale
         - auto_shift
         - int_formula
         - suffix

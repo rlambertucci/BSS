@@ -15,6 +15,12 @@ items:
       title: Dixon's Q Test Results
       type: Table
       visible: (mode == 'dixon')
+      clearWith:
+        - mode
+        - var_dixon
+        - group_dixon
+        - alpha_dixon
+        - treatment_dixon
       columns:
           - name: variable
             title: Variable
@@ -55,6 +61,12 @@ items:
       title: Identified Outliers (Dixon's Q Test)
       type: Table
       visible: (mode == 'dixon')
+      clearWith:
+        - mode
+        - var_dixon
+        - group_dixon
+        - alpha_dixon
+        - treatment_dixon
       columns:
           - name: variable
             title: Variable
@@ -85,8 +97,6 @@ items:
       height: 400
       renderFun: .plot
       visible: (mode == 'dixon' && dispBox_dixon)
-      refs:
-        - ggplot2
 
     - name: treatedData_dixon
       title: Treated Variable (Dixon)
@@ -107,9 +117,17 @@ items:
         - Iglewicz1993
         - Leys2013
         - Wilcox2017
+        - IBMModelerAlgorithms
       title: Modified Z-Score Outliers Summary
       type: Table
       visible: (mode == 'modz')
+      clearWith:
+        - mode
+        - vars_modz
+        - group_modz
+        - threshold_modz
+        - treatment_modz
+        - trimPercent_modz
       columns:
           - name: variable
             title: Variable
@@ -140,6 +158,13 @@ items:
       title: Identified Outliers (Modified Z-Score)
       type: Table
       visible: (mode == 'modz')
+      clearWith:
+        - mode
+        - vars_modz
+        - group_modz
+        - threshold_modz
+        - treatment_modz
+        - trimPercent_modz
       columns:
           - name: variable
             title: Variable
@@ -158,14 +183,15 @@ items:
 
     - name: modzPlot
       title: Modified Z-Score Boxplot
-      type: Image
-      width: 500
-      height: 400
-      renderFun: .plot
+      type: Array
       visible: (mode == 'modz' && dispBox_modz)
-      refs:
-        - ggplot2
-        - gridExtra
+      items: (vars_modz)
+      template:
+        title: $key
+        type: Image
+        width: 500
+        height: 400
+        renderFun: .plot
 
     - name: treatedData_modz
       title: Treated Variables (Modified Z)
@@ -190,6 +216,14 @@ items:
       title: IQR Outliers Summary
       type: Table
       visible: (mode == 'iqr')
+      clearWith:
+        - mode
+        - vars_iqr
+        - group_iqr
+        - iqrMultiplier_iqr
+        - adj_box_iqr
+        - treatment_iqr
+        - trimPercent_iqr
       columns:
           - name: variable
             title: Variable
@@ -218,14 +252,15 @@ items:
 
     - name: iqrPlot
       title: IQR Method Boxplot
-      type: Image
-      width: 500
-      height: 400
-      renderFun: .plot
+      type: Array
       visible: (mode == 'iqr' && dispBox_iqr)
-      refs:
-        - ggplot2
-        - gridExtra
+      items: (vars_iqr)
+      template:
+        title: $key
+        type: Image
+        width: 500
+        height: 400
+        renderFun: .plot
 
     - name: treatedData_iqr
       title: Treated Variables (IQR)
@@ -270,14 +305,12 @@ items:
           - name: critCutoff
             title: "Critical χ²"
             type: number
-            format: dp:3
           - name: numOutliers
             title: Outliers Detected
             type: integer
           - name: pctOutliers
             title: "% Outliers"
             type: number
-            format: dp:2
 
     - name: mahOutlierList
       title: Identified Multivariate Outliers
@@ -294,7 +327,6 @@ items:
           - name: d_squared
             title: "Mahalanobis D²"
             type: number
-            format: dp:3
           - name: p_value
             title: "p-value (χ²)"
             type: number
@@ -307,8 +339,6 @@ items:
       height: 400
       renderFun: .plotMahalanobis
       visible: (mode == 'mahalanobis' && dispPlot_mah)
-      refs:
-        - ggplot2
       clearWith:
         - vars_mah
         - method_mah

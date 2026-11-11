@@ -88,6 +88,8 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "height",
                 height,
                 default=500)
+            private$..discScoresOutput <- jmvcore::OptionOutput$new(
+                "discScoresOutput")
             private$..discScores <- jmvcore::OptionBool$new(
                 "discScores",
                 discScores,
@@ -110,6 +112,7 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..ellipseLevel)
             self$.addOption(private$..width)
             self$.addOption(private$..height)
+            self$.addOption(private$..discScoresOutput)
             self$.addOption(private$..discScores)
             self$.addOption(private$..pairwiseES)
         }),
@@ -127,6 +130,7 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ellipseLevel = function() private$..ellipseLevel$value,
         width = function() private$..width$value,
         height = function() private$..height$value,
+        discScoresOutput = function() private$..discScoresOutput$value,
         discScores = function() private$..discScores$value,
         pairwiseES = function() private$..pairwiseES$value),
     private = list(
@@ -143,6 +147,7 @@ DDAOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..ellipseLevel = NA,
         ..width = NA,
         ..height = NA,
+        ..discScoresOutput = NA,
         ..discScores = NA,
         ..pairwiseES = NA)
 )
@@ -159,6 +164,7 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         boxMTable = function() private$.items[["boxMTable"]],
         classTable = function() private$.items[["classTable"]],
         plot = function() private$.items[["plot"]],
+        discScoresOutput = function() private$.items[["discScoresOutput"]],
         discScoresTable = function() private$.items[["discScoresTable"]],
         pairwiseESTable = function() private$.items[["pairwiseESTable"]]),
     private = list(),
@@ -176,7 +182,7 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$add(jmvcore::Table$new(
                 options=options,
                 name="prop",
-                title="Proportion of trace",
+                title="Proportion of Trace",
                 visible="(prop)",
                 rows=1,
                 clearWith=list(
@@ -184,14 +190,14 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="name", 
-                        `title`="", 
-                        `type`="text", 
+                        `name`="name",
+                        `title`="",
+                        `type`="text",
                         `content`="Proportion(%)"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="coef",
-                title="Coefficients of linear discriminants",
+                title="Coefficients of Linear Discriminants",
                 refs="MASS",
                 visible="(coef)",
                 clearWith=list(
@@ -199,9 +205,9 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="name", 
-                        `title`="", 
-                        `type`="text", 
+                        `name`="name",
+                        `title`="",
+                        `type`="text",
                         `content`="($key)"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -215,8 +221,8 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="varName", 
-                        `title`="", 
+                        `name`="varName",
+                        `title`="",
                         `type`="text"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -229,9 +235,9 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="name", 
-                        `title`="Groups", 
-                        `type`="text", 
+                        `name`="name",
+                        `title`="Groups",
+                        `type`="text",
                         `content`="($key)"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -245,23 +251,21 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="stat", 
-                        `title`="Box's M", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="stat",
+                        `title`="Box's M",
+                        `type`="number"),
                     list(
-                        `name`="chi", 
-                        `title`="Chi-Square", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="chi",
+                        `title`="Chi-Square",
+                        `type`="number"),
                     list(
-                        `name`="df", 
-                        `title`="df", 
+                        `name`="df",
+                        `title`="df",
                         `type`="integer"),
                     list(
-                        `name`="p", 
-                        `title`="p", 
-                        `type`="number", 
+                        `name`="p",
+                        `title`="p",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -276,32 +280,29 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="method", 
-                        `title`="Method", 
-                        `type`="text", 
+                        `name`="method",
+                        `title`="Method",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="actualGroup", 
-                        `title`="Actual Group", 
+                        `name`="actualGroup",
+                        `title`="Actual Group",
                         `type`="text"),
                     list(
-                        `name`="total", 
-                        `title`="Total (N)", 
+                        `name`="total",
+                        `title`="Total (N)",
                         `type`="integer"),
                     list(
-                        `name`="pctCorrect", 
-                        `title`="Correct (%)", 
-                        `type`="number", 
-                        `format`="dp:1"))))
+                        `name`="pctCorrect",
+                        `title`="Correct (%)",
+                        `type`="number"))))
             self$add(jmvcore::Image$new(
                 options=options,
                 name="plot",
                 title="Descriptive Discriminant Analysis Plot",
-                requiresData=TRUE,
+                requiresData=FALSE,
                 visible="(plot)",
                 renderFun=".plot",
-                refs=list(
-                    "ggplot2"),
                 clearWith=list(
                     "covs",
                     "dep",
@@ -309,6 +310,15 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "height",
                     "showEllipse",
                     "ellipseLevel")))
+            self$add(jmvcore::Output$new(
+                options=options,
+                name="discScoresOutput",
+                title="Discriminant Scores",
+                initInRun=TRUE,
+                clearWith=list(
+                    "data",
+                    "dep",
+                    "covs")))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="discScoresTable",
@@ -321,10 +331,9 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="obs", 
-                        `title`="Observation", 
-                        `type`="text", 
-                        `content`="($key)"))))
+                        `name`="obs",
+                        `title`="Original Row",
+                        `type`="integer"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="pairwiseESTable",
@@ -337,22 +346,22 @@ DDAResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep"),
                 columns=list(
                     list(
-                        `name`="group1", 
-                        `title`="Group 1", 
+                        `name`="group1",
+                        `title`="Group 1",
                         `type`="text"),
                     list(
-                        `name`="group2", 
-                        `title`="Group 2", 
+                        `name`="group2",
+                        `title`="Group 2",
                         `type`="text"),
                     list(
-                        `name`="cohenD", 
-                        `title`="Cohen's d", 
-                        `type`="number", 
+                        `name`="cohenD",
+                        `title`="Cohen's d",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="hedgesG", 
-                        `title`="Hedges' g", 
-                        `type`="number", 
+                        `name`="hedgesG",
+                        `title`="Hedges' g",
+                        `type`="number",
                         `format`="zto"))))}))
 
 DDABase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
@@ -373,12 +382,12 @@ DDABase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 pause = NULL,
                 completeWhenFilled = FALSE,
                 requiresMissings = FALSE,
-                weightsSupport = 'auto')
+                weightsSupport = 'none')
         }))
 
-#' Post hoc analysis for MANOVA (DDA)
+#' Post Hoc Analysis for MANOVA (DDA)
 #'
-#' 
+#'
 #' @param data .
 #' @param dep .
 #' @param covs .
@@ -405,6 +414,7 @@ DDABase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$boxMTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$classTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$plot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$discScoresOutput} \tab \tab \tab \tab \tab an output \cr
 #'   \code{results$discScoresTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$pairwiseESTable} \tab \tab \tab \tab \tab a table \cr
 #' }

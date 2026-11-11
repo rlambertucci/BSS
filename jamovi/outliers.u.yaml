@@ -1,6 +1,6 @@
 ---
 name: outliers
-title: Outliers detection and treatment
+title: "Outlier Detection and Treatment"
 jus: '3.0'
 compilerMode: tame
 children:
@@ -41,10 +41,10 @@ children:
                 children:
                   - type: ComboBox
                     name: alpha_dixon
-                    label: Significance Level
+                    label: "Significance level"
                   - type: CheckBox
                     name: dispBox_dixon
-                    label: Display Boxplot
+                    label: "Boxplot"
 
           - type: CollapseBox
             label: Treatment
@@ -57,7 +57,7 @@ children:
                 children:
                   - type: ComboBox
                     name: treatment_dixon
-                    label: Treatment Method
+                    label: "Treatment method"
 
           - type: CollapseBox
             label: Save
@@ -105,7 +105,7 @@ children:
                     label: Threshold
                   - type: CheckBox
                     name: dispBox_modz
-                    label: Display Boxplot
+                    label: "Boxplot"
 
           - type: CollapseBox
             label: Treatment Options
@@ -118,12 +118,12 @@ children:
                 children:
                   - type: ComboBox
                     name: treatment_modz
-                    label: Treatment Method
+                    label: "Treatment method"
                   - type: TextBox
                     name: trimPercent_modz
-                    label: Symmetric Trimming Percentage (%)
+                    label: "Symmetric trimming percentage (%)"
                     format: number
-                    enable: (treatment_modz == 'trim_sym')
+                    enable: (treatment_modz:trim_sym)
 
           - type: CollapseBox
             label: Save
@@ -168,13 +168,13 @@ children:
                 children:
                   - type: ComboBox
                     name: iqrMultiplier_iqr
-                    label: IQR Multiplier Range
+                    label: "IQR multiplier range"
                   - type: CheckBox
                     name: adj_box_iqr
-                    label: Adjusted Boxplot (Hubert & Vandervieren, 2008)
+                    label: "Adjusted boxplot (Hubert & Vandervieren, 2008)"
                   - type: CheckBox
                     name: dispBox_iqr
-                    label: Display Boxplot
+                    label: "Boxplot"
 
           - type: CollapseBox
             label: Treatment Options
@@ -187,12 +187,12 @@ children:
                 children:
                   - type: ComboBox
                     name: treatment_iqr
-                    label: Treatment Method
+                    label: "Treatment method"
                   - type: TextBox
                     name: trimPercent_iqr
-                    label: Symmetric Trimming Percentage (%)
+                    label: "Symmetric trimming percentage (%)"
                     format: number
-                    enable: (treatment_iqr == 'trim_sym')
+                    enable: (treatment_iqr:trim_sym)
 
           - type: CollapseBox
             label: Save
@@ -231,13 +231,13 @@ children:
                 children:
                   - type: ComboBox
                     name: method_mah
-                    label: Estimation Method
+                    label: "Estimation method"
                   - type: ComboBox
                     name: alpha_mah
-                    label: Significance Level (Cutoff)
+                    label: "Significance level (cutoff)"
                   - type: CheckBox
                     name: dispPlot_mah
-                    label: Display Chi-Square QQ-Plot
+                    label: "Chi-square Q-Q plot"
 
           - type: CollapseBox
             label: Save Output

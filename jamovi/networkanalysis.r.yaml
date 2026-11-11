@@ -3,6 +3,11 @@ title: Network Analysis
 jrs: '1.1'
 
 items:
+  - name: mixedLimitations
+    title: Mixed Network Limitations
+    type: Preformatted
+    visible: (mode == 'mixed')
+
   - name: instructions_net
     title: ' '
     type: Preformatted
@@ -117,7 +122,7 @@ items:
       - estimator_net
       - corMethod_net
       - groupVar_net
-      - nodeGroupVar_net
+      - nodeCommunities_net
       - communityAlgorithm_net
     columns:
       - name: group
@@ -145,7 +150,7 @@ items:
         type: number
 
   - name: communities_net
-    title: Community Detection Membership
+    title: Community Membership
     type: Table
     visible: (mode == 'continuous' && tableCommunities_net)
     refs:
@@ -157,6 +162,7 @@ items:
       - corMethod_net
       - groupVar_net
       - communityAlgorithm_net
+      - nodeCommunities_net
     columns:
       - name: group
         title: 'Group'
@@ -167,7 +173,7 @@ items:
         type: text
         format: string
       - name: community
-        title: 'Detected Community'
+        title: 'Community'
         type: text
 
   - name: weights_net
@@ -180,6 +186,10 @@ items:
       - corMethod_net
       - groupVar_net
     columns:
+      - name: group
+        title: Group
+        type: text
+        visible: (groupVar_net)
       - name: node
         title: ''
         type: text
@@ -188,42 +198,40 @@ items:
   - name: centralityPlot_net
     title: Centrality Plot
     type: Image
-    requiresData: true
+    requiresData: false
     visible: (mode == 'continuous' && plotCentrality_net)
     renderFun: .plotCentrality_net
     refs:
       - bootnet
       - qgraph
-      - ggplot2
     clearWith:
       - vars_net
       - estimator_net
       - corMethod_net
       - groupVar_net
-      - nodeGroupVar_net
+      - nodeCommunities_net
 
   - name: clusteringPlot_net
     title: Clustering Plot
     type: Image
-    requiresData: true
+    requiresData: false
     visible: (mode == 'continuous' && plotClustering_net)
     renderFun: .plotClustering_net
     refs:
       - bootnet
       - qgraph
-      - ggplot2
       - igraph
     clearWith:
       - vars_net
       - estimator_net
       - corMethod_net
       - groupVar_net
-      - nodeGroupVar_net
+      - nodeCommunities_net
 
   - name: networkPlot_net
     title: Network Plot
     type: Image
-    requiresData: true
+    requiresData: false
     visible: (mode == 'continuous' && plotNetwork_net)
     renderFun: .plotNetwork_net
     refs:
@@ -240,44 +248,45 @@ items:
       - layoutSeed_net
       - communityAlgorithm_net
       - groupVar_net
-      - nodeGroupVar_net
+      - nodeCommunities_net
   - name: edgeStability_net
     title: Edge Weight Bootstrap Stability (95% CI)
     type: Table
     visible: (mode == 'continuous' && bootStability_net && bootEdgeCI_net)
     refs:
       - bootnet
-      - Epskamp2018
     clearWith:
+      - mode
+      - bootStability_net
+      - bootSeed_net
+      - bootEdgeCI_net
       - vars_net
       - estimator_net
       - corMethod_net
       - groupVar_net
       - bootN_net
     columns:
+      - name: group
+        title: Group
+        type: text
       - name: edge
         title: Edge
         type: text
       - name: weight
         title: Sample Weight
         type: number
-        format: dp:3
       - name: boot_mean
         title: Boot Mean
         type: number
-        format: dp:3
       - name: boot_se
         title: Boot SE
         type: number
-        format: dp:3
       - name: ci_lower
         title: 95% CI Lower
         type: number
-        format: dp:3
       - name: ci_upper
         title: 95% CI Upper
         type: number
-        format: dp:3
 
   - name: csStability_net
     title: Centrality Stability Coefficients (CS-coefficient)
@@ -285,21 +294,26 @@ items:
     visible: (mode == 'continuous' && bootStability_net && bootCS_net)
     refs:
       - bootnet
-      - Epskamp2018
     clearWith:
+      - mode
+      - bootStability_net
+      - bootSeed_net
+      - bootCS_net
       - vars_net
       - estimator_net
       - corMethod_net
       - groupVar_net
       - bootN_net
     columns:
+      - name: group
+        title: Group
+        type: text
       - name: measure
         title: Centrality Measure
         type: text
       - name: cs_coefficient
         title: CS (cor=0.7)
         type: number
-        format: dp:3
       - name: interpretation
         title: Stability (Epskamp et al., 2018)
         type: text
@@ -311,6 +325,9 @@ items:
     refs:
       - vanBorkulo2022
     clearWith:
+      - mode
+      - nctSeed_net
+      - nctTest_net
       - vars_net
       - estimator_net
       - corMethod_net
@@ -323,7 +340,6 @@ items:
       - name: statistic
         title: Observed Difference
         type: number
-        format: dp:4
       - name: p_value
         title: Permutation p
         type: number
@@ -336,6 +352,9 @@ items:
     refs:
       - vanBorkulo2022
     clearWith:
+      - mode
+      - nctSeed_net
+      - nctTest_net
       - vars_net
       - estimator_net
       - corMethod_net
@@ -348,68 +367,62 @@ items:
       - name: weight_g1
         title: Group 1 Weight
         type: number
-        format: dp:3
       - name: weight_g2
         title: Group 2 Weight
         type: number
-        format: dp:3
       - name: diff
         title: Abs Difference
         type: number
-        format: dp:3
       - name: p_value
         title: Permutation p
         type: number
         format: zto,pvalue
 
-  - name: dagTable_net
-    title: 'Directed Acyclic Graph (DAG): Causal Paths'
+  - name: resamplingDiagnostics_net
+    title: Network Resampling Diagnostics
     type: Table
-    visible: (mode == 'continuous' && dagAnalysis_net)
+    visible: (mode == 'continuous' && (bootStability_net || nctTest_net))
     refs:
-      - Spirtes2000
-      - igraph
+      - bootnet
     clearWith:
+      - mode
       - vars_net
-      - dagAlgorithm_net
+      - groupVar_net
+      - estimator_net
+      - corMethod_net
+      - bootStability_net
+      - bootEdgeCI_net
+      - bootCS_net
+      - bootN_net
+      - bootSeed_net
+      - nctTest_net
+      - nctPermutations_net
+      - nctSeed_net
     columns:
-      - name: from
-        title: From
+      - name: group
+        title: Group
         type: text
-      - name: to
-        title: To
+      - name: procedure
+        title: Procedure
         type: text
-      - name: direction
-        title: Direction
+      - name: requested
+        title: Requested
+        type: integer
+      - name: completed
+        title: Completed
+        type: integer
+      - name: failed
+        title: Failed
+        type: integer
+      - name: unattempted
+        title: Not Attempted
+        type: integer
+      - name: regularized
+        title: PD Adjustments
+        type: integer
+      - name: status
+        title: Status
         type: text
-      - name: estimate
-        title: Path Coeff (β)
-        type: number
-        format: dp:3
-      - name: std_error
-        title: SE
-        type: number
-        format: dp:3
-      - name: p_value
-        title: p
-        type: number
-        format: zto,pvalue
-
-  - name: dagPlot_net
-    title: DAG Plot
-    type: Image
-    requiresData: true
-    visible: (mode == 'continuous' && plotDAG_net)
-    renderFun: .plotDAG_net
-    refs:
-      - Spirtes2000
-      - qgraph
-      - igraph
-    clearWith:
-      - vars_net
-      - dagAlgorithm_net
-      - layoutAlgorithm_net
-      - layoutSeed_net
 
   - name: instructions_mixed
     title: ' '
@@ -427,7 +440,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -460,7 +473,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -500,7 +513,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -540,7 +553,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -572,7 +585,7 @@ items:
         type: number
 
   - name: communities_mixed
-    title: Community Detection Membership
+    title: Community Membership
     type: Table
     visible: (mode == 'mixed' && tableCommunities_mixed)
     refs:
@@ -583,7 +596,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -599,7 +612,7 @@ items:
         type: text
         format: string
       - name: community
-        title: 'Detected Community'
+        title: 'Community'
         type: text
 
   - name: weights_mixed
@@ -613,7 +626,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -631,22 +644,18 @@ items:
   - name: centralityPlot_mixed
     title: Centrality Plot
     type: Image
-    requiresData: true
+    requiresData: false
     visible: (mode == 'mixed' && plotCentrality_mixed)
     renderFun: .plotCentrality_mixed
     refs:
       - mgm
       - qgraph
-      - ggplot2
-      - reshape2
-      - gtools
-      - dplyr
     clearWith:
       - varsCont_mixed
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -655,23 +664,19 @@ items:
   - name: clusteringPlot_mixed
     title: Clustering Plot
     type: Image
-    requiresData: true
+    requiresData: false
     visible: (mode == 'mixed' && plotClustering_mixed)
     renderFun: .plotClustering_mixed
     refs:
       - mgm
       - qgraph
       - igraph
-      - ggplot2
-      - reshape2
-      - gtools
-      - dplyr
     clearWith:
       - varsCont_mixed
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed
@@ -680,7 +685,7 @@ items:
   - name: networkPlot_mixed
     title: Network Plot
     type: Image
-    requiresData: true
+    requiresData: false
     visible: (mode == 'mixed' && plotNetwork_mixed)
     renderFun: .plotNetwork_mixed
     refs:
@@ -691,7 +696,7 @@ items:
       - varsCat_mixed
       - varsCount_mixed
       - groupVar_mixed
-      - nodeGroupVar_mixed
+      - nodeCommunities_mixed
       - lambdaSelMethod_mixed
       - kFolds_mixed
       - lambdaGam_mixed

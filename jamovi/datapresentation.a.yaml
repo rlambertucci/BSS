@@ -9,15 +9,15 @@ jas: '1.2'
 options:
     - name: data
       type: Data
-      title: Input Data
+      title: "Input data"
     - name: analysisType
-      title: Analysis Design
+      title: "Analysis design"
       type: List
       options:
         - name: cross_sectional
-          title: Independent Groups
+          title: "Independent groups"
         - name: longitudinal
-          title: Repeated Measures
+          title: "Repeated measures"
       default: cross_sectional
     - name: deps
       title: Dependent Variables
@@ -68,78 +68,79 @@ options:
       permitted:
         - numeric
     - name: plotType
-      title: Plot Type
+      title: "Plot type"
       type: List
       options:
         - name: bar
-          title: Bar Chart
+          title: "Bar chart"
         - name: boxplot
-          title: Box Plot
+          title: "Box plot"
         - name: meandp
-          title: Mean & Dispersion
+          title: "Mean & dispersion"
         - name: density
-          title: Density Distribution (Empirical & Theoretical)
+          title: "Density distribution (empirical)"
       default: bar
 
     - name: theo_dist
-      title: Theoretical Distribution Curve
+      title: "Theoretical distribution curve"
       type: List
+      hidden: true
       options:
         - name: none
-          title: None (Empirical Only)
+          title: "None (empirical only)"
         - name: normal
-          title: Normal Distribution
+          title: "Normal distribution"
         - name: gamma
-          title: Gamma Distribution (> 0)
+          title: "Gamma distribution (> 0)"
         - name: inv_gaussian
-          title: Inverse Gaussian Distribution (> 0)
+          title: "Inverse Gaussian distribution (> 0)"
       default: none
 
     - name: intStyle
-      title: Interaction Style
+      title: "Interaction style"
       type: List
       options:
         - name: legend
-          title: 1st on X-axis, 2nd as Legend
+          title: "1St on x-axis, 2nd as legend"
         - name: x_axis
-          title: Combined Labels on X-axis
+          title: "Combined labels on x-axis"
       default: legend
 
     - name: showLines
-      title: Connect Means with Line (Longitudinal)
+      title: "Connect means with line (longitudinal)"
       type: Bool
       default: true
 
     - name: errorType
-      title: Dispersion Measure
+      title: "Dispersion measure"
       type: List
       options:
         - name: sd
-          title: Standard Deviation (SD)
+          title: "Standard deviation (SD)"
         - name: se
-          title: Standard Error (SE)
+          title: "Standard error (SE)"
         - name: ci
-          title: Confidence Interval (CI)
+          title: "Confidence interval (CI)"
       default: sd
 
     - name: ciWidth
-      title: Confidence Interval Width (%)
+      title: "Confidence interval width (%)"
       type: Number
       min: 50
       max: 99.9
       default: 95
 
     - name: showPoints
-      title: Show Individual Data Points
+      title: "Individual data points"
       type: Bool
       default: false
     - name: showTable
-      title: Show Descriptive Table
+      title: "Descriptive table"
       type: Bool
       default: true
 
     - name: tableFormat
-      title: Table Format
+      title: "Table format"
       type: List
       options:
         - name: apa
@@ -152,32 +153,8 @@ options:
           title: Chicago
       default: apa
 
-    - name: tableTitle
-      title: Table Title
-      type: String
-      default: 'Table 1. Descriptive statistics by group'
-
-    - name: tableNote
-      title: Table Note (footer)
-      type: String
-      default: 'Note. M = mean; SD = standard deviation; SE = standard error; CI = confidence interval; N = sample size.'
-    - name: themePlot
-      title: Plot Theme
-      type: List
-      options:
-        - name: classic
-          title: Classic
-        - name: minimal
-          title: Minimal
-        - name: bw
-          title: Black & White
-        - name: gray
-          title: Gray
-        - name: light
-          title: Light
-      default: classic
     - name: colorPalette
-      title: Color Palette
+      title: "Color palette"
       type: List
       options:
         - name: set1
@@ -205,7 +182,7 @@ options:
       type: List
       options: &colorOptions
         - name: none
-          title: None (Use Palette)
+          title: "None (use palette)"
         - name: '#E41A1C'
           title: Red
         - name: '#377EB8'
@@ -231,19 +208,19 @@ options:
         - name: '#1B9E77'
           title: Teal
         - name: '#D95F02'
-          title: Dark Orange
+          title: "Dark orange"
         - name: '#7570B3'
-          title: Slate Blue
+          title: "Slate blue"
         - name: '#E7298A'
           title: Magenta
         - name: '#66A61E'
-          title: Lime Green
+          title: "Lime green"
         - name: '#E6AB02'
           title: Gold
         - name: '#A6761D'
           title: Bronze
         - name: '#666666'
-          title: Dark Gray
+          title: "Dark gray"
       default: none
 
     - name: color2
@@ -288,33 +265,33 @@ options:
       options: *colorOptions
       default: none
     - name: titleText
-      title: Plot Title
+      title: "Plot title"
       type: String
       default: ''
 
     - name: subtitleText
-      title: Plot Subtitle
+      title: "Plot subtitle"
       type: String
       default: ''
 
     - name: xLabel
-      title: X Axis Label
+      title: "X axis label"
       type: String
       default: ''
 
     - name: yLabel
-      title: Y Axis Label
+      title: "Y axis label"
       type: String
       default: ''
     - name: xAngle
-      title: X Axis Label Angle
+      title: "X axis label angle"
       type: Number
       min: 0
       max: 90
       default: 0
 
     - name: legendPosition
-      title: Legend Position
+      title: "Legend position"
       type: List
       options:
         - name: right
@@ -330,123 +307,118 @@ options:
       default: right
 
     - name: removeGap
-      title: Remove Y-Axis Bottom Gap
+      title: "Remove y-axis bottom gap"
       type: Bool
       default: false
 
     - name: customYAxis
-      title: Custom Y-Axis Scale
+      title: "Custom y-axis scale"
       type: Bool
       default: false
 
     - name: yMin
-      title: Y Minimum
+      title: "Y minimum"
       type: Number
       default: 0
 
     - name: yMax
-      title: Y Maximum
+      title: "Y maximum"
       type: Number
       default: 100
 
     - name: yStep
-      title: Y Step (Breaks)
+      title: "Y step (breaks)"
       type: Number
       default: 10
     - name: fontSizeTitle
-      title: Title Font Size
+      title: "Title font size"
       type: Number
       min: 6
       max: 32
       default: 14
 
     - name: fontSizeSubtitle
-      title: Subtitle Font Size
+      title: "Subtitle font size"
       type: Number
       min: 6
       max: 32
       default: 12
 
     - name: fontSizeAxis
-      title: Axis Text Font Size
+      title: "Axis text font size"
       type: Number
       min: 6
       max: 32
       default: 11
 
     - name: fontSizeAxisTitle
-      title: Axis Title Font Size
+      title: "Axis title font size"
       type: Number
       min: 6
       max: 32
       default: 12
 
     - name: fontSizeLegend
-      title: Legend Font Size
+      title: "Legend font size"
       type: Number
       min: 6
       max: 32
       default: 10
     - name: lineWidth
-      title: Border Width
+      title: "Border width"
       type: Number
       min: 0
       max: 5
       default: 0.8
 
     - name: errorLineWidth
-      title: Error Bar Width
+      title: "Error bar width"
       type: Number
       min: 0
       max: 5
       default: 0.8
 
     - name: axisLineWidth
-      title: Axis Line Width
+      title: "Axis line width"
       type: Number
       min: 0
       max: 5
       default: 0.8
     - name: barWidth
-      title: Bar Width
+      title: "Bar width"
       type: Number
       min: 0.1
       max: 1.0
       default: 0.7
 
     - name: barAlpha
-      title: Bar Transparency
+      title: "Bar transparency"
       type: Number
       min: 0
       max: 1
       default: 1.0
 
     - name: pointSize
-      title: Point Size
+      title: "Point size"
       type: Number
       min: 0.5
       max: 10
       default: 2.0
 
     - name: pointAlpha
-      title: Point Transparency
+      title: "Point transparency"
       type: Number
       min: 0
       max: 1
       default: 0.5
 
-    - name: showFormattedTable
-      title: APA 7th Formatted HTML Table (Ready for Copy / Export)
-      type: Bool
-      default: false
-
     - name: showCorrMatrix
-      title: Correlation Matrix with Significance Stars
+      title: "Correlation matrix with significance stars"
       type: Bool
       default: false
 
     - name: corrMethod
-      title: Correlation Method
+      title: "Correlation method"
       type: List
       options:
         - name: pearson
@@ -456,50 +428,23 @@ options:
       default: pearson
 
     - name: showCorrHeatmap
-      title: Correlation Heatmap
+      title: "Correlation heatmap"
       type: Bool
       default: false
 
     - name: corrCluster
-      title: Hierarchical Clustering in Heatmap
+      title: "Hierarchical clustering in heatmap"
       type: Bool
       default: false
 
-    - name: exportPlots
-      title: Export Vector Figures (.svg / .pdf)
-      type: Bool
-      default: false
-
-    - name: exportFormat
-      title: Vector Figure Format
+    - name: summary_distribution
+      title: "Distribution"
       type: List
       options:
-        - name: pdf
-          title: PDF (.pdf)
-        - name: svg
-          title: SVG (.svg)
-        - name: both
-          title: Both (.pdf & .svg)
-      default: pdf
-
-    - name: exportDpi
-      title: Figure Resolution (DPI)
-      type: Number
-      min: 300
-      max: 1200
-      default: 300
-
-    - name: exportDir
-      title: Export Directory Path
-      type: String
-      default: ''
-
-    - name: exportWidth
-      title: Export Figure Width (inches)
-      type: Number
-      default: 7.0
-
-    - name: exportHeight
-      title: Export Figure Height (inches)
-      type: Number
-      default: 5.0
+        - name: normal
+          title: "Normal"
+        - name: gamma
+          title: "Gamma (> 0)"
+        - name: inv_gaussian
+          title: "Inverse Gaussian (> 0)"
+      default: normal

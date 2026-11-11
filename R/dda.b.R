@@ -5,28 +5,34 @@ DDAClass <- if (requireNamespace('jmvcore'))
     private = list(
       
       .getColumnNames = function(table) {
-        tryCatch(sapply(table$columns, function(col) col$name), error = function(e) character(0))
+        vapply(table$columns, function(column) column$name, character(1))
       },
       
+      .update_help = function() {
+        configured <- length(self$options$dep) > 0 && length(self$options$covs) > 0
+        if (!is.null(self$results$ddaInfo)) self$results$ddaInfo$setVisible(!configured)
+      },
+
       .init = function() {
+        private$.update_help()
         info_html <- paste0(
-          '<div style=\"font-size: 0.9em; line-height: 1.5;\">',
+          '<div>',
           '<ul>',
-          '<li><b>Descriptive Discriminant Analysis (DDA)</b> &rarr; A multivariate technique that identifies ',
+          '<li><b>Descriptive Discriminant Analysis (DDA)</b> \u2192 A multivariate technique that identifies ',
           'linear combinations of continuous variables (discriminant functions) that best separate ',
           'two or more groups. Used descriptively to understand group separation after a significant ',
           'MANOVA. <i>Huberty, C. J. & Olejnik, S. (2006).</i></li>',
-          '<li><b>Structure Coefficients</b> &rarr; Correlations between each covariate and the discriminant ',
-          'function scores. Preferred over standardized coefficients for interpreting the contribution ',
+          '<li><b>Structure Coefficients</b> \u2192 Correlations between each covariate and the discriminant ',
+          'function scores across the total analysis sample after missing-data exclusion, not pooled within-group correlations. Preferred over standardized coefficients for interpreting the contribution ',
           'of each variable to group separation. <i>Courville, T. & Thompson, B. (2001).</i></li>',
-          '<li><b>Pairwise Effect Sizes</b> &rarr; Cohen\'s d and Hedges\' g computed on LD1 scores for each ',
+          '<li><b>Pairwise Effect Sizes</b> \u2192 Cohen\'s d and Hedges\' g computed on LD1 scores for each ',
           'pair of groups, quantifying the magnitude of group separation along the first discriminant ',
           'function. <i>Cohen, J. (1988).</i></li>',
-          '<li><b>Classification & LOOCV</b> &rarr; Cross-validated reclassification matrix (leave-one-out cross-validation) ',
-          'evaluating predictive accuracy and Cohen\'s Kappa beyond chance. <i>Fisher, R. A. (1936).</i></li>',
-          '<li><b>Box\'s M Test</b> &rarr; Formal multivariate test for the homogeneity of group covariance matrices. <i>Box, G. E. P. (1949).</i></li>',
+          '<li><b>Classification & LOOCV</b> \u2192 Apparent and leave-one-out cross-validated classification accuracy are reported separately. ',
+          'Cohen\'s kappa is based on apparent classifications, not LOOCV. <i>Fisher, R. A. (1936).</i></li>',
+          '<li><b>Box\'s M Test</b> \u2192 Formal multivariate test for the homogeneity of group covariance matrices. <i>Box, G. E. P. (1949).</i></li>',
           '</ul>',
-          '<p style=\"font-style: italic; padding-top: 10px;\">',
+          '<p>',
           'Note: DDA assumes multivariate normality and homogeneity of covariance matrices across groups. ',
           'At least two groups and one covariate are required.',
           '</p>',
@@ -41,38 +47,40 @@ DDAClass <- if (requireNamespace('jmvcore'))
         }
         
         structCoefTable <- self$results$structCoefTable
+        structCoefTable$setNote("definition", "Structure coefficients are correlations between the variables and discriminant scores across the total analysis sample after missing-data exclusion, not pooled within-group correlations.")
         if (!"varName" %in% private$.getColumnNames(structCoefTable)) {
-          try(structCoefTable$addColumn(name = "varName", title = "", type = 'text'), silent = TRUE)
+          structCoefTable$addColumn(name = "varName", title = "", type = 'text')
         }
         
         propTable <- self$results$prop
         if (!"name" %in% private$.getColumnNames(propTable)) {
-          try(propTable$addColumn(name = "name", title = "", type = 'text', content="Proportion(%)"), silent = TRUE)
-          if (propTable$rowCount == 0) { try(propTable$addRow(rowKey=1, values=list()), silent = TRUE) }
+          propTable$addColumn(name = "name", title = "", type = 'text', content="Proportion(%)")
+          if (propTable$rowCount == 0) { propTable$addRow(rowKey=1, values=list()) }
         }
         
         gcTable <- self$results$gc
         if (!"name" %in% private$.getColumnNames(gcTable)) {
-          try(gcTable$addColumn(name = "name", title = "Groups", type = 'text'), silent = TRUE)
+          gcTable$addColumn(name = "name", title = "Groups", type = 'text')
         }
         
         discScoresTable <- self$results$discScoresTable
         if (!"obs" %in% private$.getColumnNames(discScoresTable)) {
-          try(discScoresTable$addColumn(name = "obs", title = "Observation", type = 'text'), silent = TRUE)
+          discScoresTable$addColumn(name = "obs", title = "Original Row", type = 'integer')
         }
         
         pairwiseESTable <- self$results$pairwiseESTable
         required_cols <- c("group1", "group2", "cohenD", "hedgesG")
         current_cols_pairwise <- private$.getColumnNames(pairwiseESTable)
         if (!all(required_cols %in% current_cols_pairwise)) {
-          try(pairwiseESTable$addColumn(name="group1", title="Group 1", type='text'), silent=TRUE)
-          try(pairwiseESTable$addColumn(name="group2", title="Group 2", type='text'), silent=TRUE)
-          try(pairwiseESTable$addColumn(name="cohenD", title="Cohen's d", type='number', format='zto'), silent=TRUE)
-          try(pairwiseESTable$addColumn(name="hedgesG", title="Hedges' g", type='number', format='zto'), silent=TRUE)
+          pairwiseESTable$addColumn(name="group1", title="Group 1", type='text')
+          pairwiseESTable$addColumn(name="group2", title="Group 2", type='text')
+          pairwiseESTable$addColumn(name="cohenD", title="Cohen's d", type='number', format='zto')
+          pairwiseESTable$addColumn(name="hedgesG", title="Hedges' g", type='number', format='zto')
         }
       },
       
       .run = function() {
+        private$.update_help()
         
         if (is.null(self$options$dep) || length(self$options$covs) < 1) {
           return()
@@ -151,16 +159,17 @@ DDAClass <- if (requireNamespace('jmvcore'))
             
             current_table_cols <- private$.getColumnNames(table)
             cols_to_remove <- setdiff(current_table_cols, c("name", dims))
-            for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
+            for(col_name in cols_to_remove) { table$getColumn(col_name)$setVisible(FALSE) }
             existing_cols <- private$.getColumnNames(table)
             for (dim_name in dims) {
+              if (dim_name %in% existing_cols) table$getColumn(dim_name)$setVisible(TRUE)
               if (!dim_name %in% existing_cols) {
-                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+                table$addColumn(name = dim_name, title = dim_name, type = 'number')
               }
             }
             
-            try(table$setState(NULL), silent = TRUE)
-            try(table$deleteRows(), silent = TRUE)
+            table$setState(NULL)
+            table$deleteRows()
             if (length(variable_names) > 0) {
               for (var_name in variable_names) {
                 row_values <- list()
@@ -171,14 +180,14 @@ DDAClass <- if (requireNamespace('jmvcore'))
                     row_values[[dim_name]] <- NA
                   }
                 }
-                try(table$addRow(rowKey = var_name, values = row_values), silent = TRUE)
+                table$addRow(rowKey = var_name, values = row_values)
               }
             }
           }, error = function(e) {
             jmvcore::reject(paste("Error populating Coef table:", e$message), code="coef_table_error")
-            try(table$setState(NULL), silent=TRUE)
+            table$setState(NULL)
           })
-        } else { try(self$results$coef$setState(NULL), silent=TRUE) }
+        } else { self$results$coef$setState(NULL) }
         
         if (isTRUE(self$options$prop)) {
           table <- self$results$prop
@@ -188,23 +197,24 @@ DDAClass <- if (requireNamespace('jmvcore'))
             
             current_cols <- private$.getColumnNames(table)
             cols_to_remove <- setdiff(current_cols, c("name", dims))
-            for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
+            for(col_name in cols_to_remove) { table$getColumn(col_name)$setVisible(FALSE) }
             existing_cols <- private$.getColumnNames(table)
             for (dim_name in dims) {
+              if (dim_name %in% existing_cols) table$getColumn(dim_name)$setVisible(TRUE)
               if (!dim_name %in% existing_cols) {
-                try(table$addColumn(name = dim_name, title=dim_name, type = 'number', format="pc"), silent=TRUE)
+                table$addColumn(name = dim_name, title=dim_name, type = 'number', format="pc")
               }
             }
             
             row_values <- list(name = "Proportion(%)")
             for (i in seq_along(prop.lda)) { row_values[[dims[i]]] <- prop.lda[i] }
-            if (table$rowCount == 0) { try(table$addRow(rowKey=1, values=list()), silent = TRUE) }
-            try(table$setRow(rowNo = 1, values = row_values), silent=TRUE)
+            if (table$rowCount == 0) { table$addRow(rowKey=1, values=list()) }
+            table$setRow(rowNo = 1, values = row_values)
           }, error = function(e) {
             jmvcore::reject(paste("Error populating Proportion table:", e$message), code="prop_table_error")
-            try(table$setRow(rowNo=1, values=list(name="Proportion(%)")), silent=TRUE)
+            table$setRow(rowNo=1, values=list(name="Proportion(%)"))
           })
-        } else { try(self$results$prop$setRow(rowNo=1, values=list(name="Proportion(%)")), silent=TRUE) }
+        } else { self$results$prop$setRow(rowNo=1, values=list(name="Proportion(%)")) }
         
         if (isTRUE(self$options$gc)) {
           table <- self$results$gc
@@ -214,17 +224,18 @@ DDAClass <- if (requireNamespace('jmvcore'))
             
             current_table_cols <- private$.getColumnNames(table)
             cols_to_remove <- setdiff(current_table_cols, c("name", dims))
-            for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
+            for(col_name in cols_to_remove) { table$getColumn(col_name)$setVisible(FALSE) }
             existing_cols <- private$.getColumnNames(table)
-            if (!"name" %in% existing_cols) { try(table$addColumn(name = "name", title = "Groups", type = 'text'), silent = TRUE) }
+            if (!"name" %in% existing_cols) { table$addColumn(name = "name", title = "Groups", type = 'text') }
             for (dim_name in dims) {
+              if (dim_name %in% existing_cols) table$getColumn(dim_name)$setVisible(TRUE)
               if (!dim_name %in% existing_cols) {
-                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+                table$addColumn(name = dim_name, title = dim_name, type = 'number')
               }
             }
             
-            try(table$setState(NULL), silent = TRUE)
-            try(table$deleteRows(), silent = TRUE)
+            table$setState(NULL)
+            table$deleteRows()
             if (nrow(centroids) > 0) {
               for (i in 1:nrow(centroids)) {
                 group_name <- group_names[i]
@@ -237,19 +248,19 @@ DDAClass <- if (requireNamespace('jmvcore'))
                     row_values[[dim_name]] <- NA
                   }
                 }
-                try(table$addRow(rowKey = group_name, values = row_values), silent = TRUE)
+                table$addRow(rowKey = group_name, values = row_values)
               }
             }
           }, error = function(e) {
             jmvcore::reject(paste("Error populating GC table:", e$message), code="gc_table_error")
-            try(table$setState(NULL), silent=TRUE)
+            table$setState(NULL)
           })
-        } else { try(self$results$gc$setState(NULL), silent=TRUE) }
+        } else { self$results$gc$setState(NULL) }
         
         if (isTRUE(self$options$boxM)) {
           tableBox <- self$results$boxMTable
           tryCatch({
-            tableBox$clear()
+            tableBox$deleteRows()
             p <- length(covs)
             k <- n_groups
             N <- nrow(data)
@@ -258,7 +269,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
             if (any(group_counts <= p)) {
               tableBox$setNote(
                 "sample_size_warn",
-                paste0("Note. Box's M test requires group sample sizes strictly greater than the number of covariates (n > ", p, " for all groups).")
+                paste0("Box's M test requires group sample sizes strictly greater than the number of covariates (n > ", p, " for all groups).")
               )
             } else {
               cov_list <- list()
@@ -302,13 +313,13 @@ DDAClass <- if (requireNamespace('jmvcore'))
                   ))
                   tableBox$setNote(
                     "citation",
-                    "Note. Box's M test evaluates the null hypothesis of equality of group covariance matrices (Box, 1949). A non-significant result (p > .05) supports homogeneity of covariance matrices."
+                    "Box's M test evaluates the null hypothesis of equality of group covariance matrices. A non-significant result (p > .05) supports homogeneity of covariance matrices."
                   )
                 } else {
-                  tableBox$setNote("singular_warn", "Note. Pooled covariance matrix is singular; Box's M test cannot be computed.")
+                  tableBox$setNote("singular_warn", "Pooled covariance matrix is singular; Box's M test cannot be computed.")
                 }
               } else {
-                tableBox$setNote("singular_warn", "Note. At least one group covariance matrix is singular (determinant <= 0); Box's M test cannot be computed.")
+                tableBox$setNote("singular_warn", "At least one group covariance matrix is singular (determinant <= 0); Box's M test cannot be computed.")
               }
             }
           }, error = function(e) {
@@ -319,13 +330,13 @@ DDAClass <- if (requireNamespace('jmvcore'))
         if (isTRUE(self$options$classTable)) {
           tableClass <- self$results$classTable
           tryCatch({
-            tableClass$clear()
+            tableClass$deleteRows()
             
             current_cols <- private$.getColumnNames(tableClass)
             for (g in group_levels) {
               col_id <- paste0("pred_", g)
               if (!col_id %in% current_cols) {
-                try(tableClass$addColumn(name = col_id, title = as.character(g), type = 'integer'), silent = TRUE)
+                tableClass$addColumn(name = col_id, title = as.character(g), type = 'integer')
               }
             }
             
@@ -377,7 +388,7 @@ DDAClass <- if (requireNamespace('jmvcore'))
             acc_cv_str <- if (!is.null(tab_cv)) paste0(round((sum(diag(tab_cv)) / total_cases) * 100, 1), "%") else "N/A"
             tableClass$setNote(
               "summary",
-              paste0("Overall classification accuracy: Apparent = ", round(acc_app, 1), "%, LOOCV = ", acc_cv_str, " (Cohen's Kappa = ", round(kappa_app, 3), "). In cross-validation, each case is classified by the functions derived from all cases other than that case (Lachenbruch's holdout method).")
+              paste0("Classification accuracy: apparent = ", round(acc_app, 1), "%; LOOCV = ", acc_cv_str, ". Apparent Cohen's kappa = ", round(kappa_app, 3), " (not cross-validated). In cross-validation, each case is classified by the functions derived from all cases other than that case (Lachenbruch's holdout method).")
             )
           }, error = function(e) {
             tableClass$setNote("err", paste("Classification table error:", e$message))
@@ -408,12 +419,13 @@ DDAClass <- if (requireNamespace('jmvcore'))
             
             current_table_cols <- private$.getColumnNames(table)
             cols_to_remove <- setdiff(current_table_cols, c("varName", dims))
-            for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
+            for(col_name in cols_to_remove) { table$getColumn(col_name)$setVisible(FALSE) }
             existing_cols <- private$.getColumnNames(table)
-            if (!"varName" %in% existing_cols) { try(table$addColumn(name = "varName", title = "", type = 'text'), silent = TRUE) }
+            if (!"varName" %in% existing_cols) { table$addColumn(name = "varName", title = "", type = 'text') }
             for (dim_name in dims) {
+              if (dim_name %in% existing_cols) table$getColumn(dim_name)$setVisible(TRUE)
               if (!dim_name %in% existing_cols) {
-                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+                table$addColumn(name = dim_name, title = dim_name, type = 'number')
               }
             }
             
@@ -429,8 +441,8 @@ DDAClass <- if (requireNamespace('jmvcore'))
               jmvcore::reject(paste("Error calculating struct coef cor:", e$message), code="structcoef_cor_error")
             })
             
-            try(table$setState(NULL), silent = TRUE)
-            try(table$deleteRows(), silent = TRUE)
+            table$setState(NULL)
+            table$deleteRows()
             if (!is.null(cormat_df) && length(variable_names) > 0) {
               for (var_name in variable_names) {
                 row_values <- list()
@@ -442,14 +454,21 @@ DDAClass <- if (requireNamespace('jmvcore'))
                     row_values[[dim_name]] <- NA
                   }
                 }
-                try(table$addRow(rowKey = var_name, values = row_values), silent = TRUE)
+                table$addRow(rowKey = var_name, values = row_values)
               }
             }
           }, error = function(e) {
             jmvcore::reject(paste("Error populating StructCoef table:", e$message), code="structcoef_prep_error")
-            try(table$setState(NULL), silent=TRUE)
+            table$setState(NULL)
           })
-        } else { try(self$results$structCoefTable$setState(NULL), silent=TRUE) }
+        } else { self$results$structCoefTable$setState(NULL) }
+
+        if (self$results$discScoresOutput$isNotFilled()) {
+          output <- self$results$discScoresOutput
+          output$set(keys = colnames(scores), titles = paste(colnames(scores), "score"), descriptions = rep("Discriminant function score", ncol(scores)), measureTypes = rep("continuous", ncol(scores)))
+          output$setRowNums(rownames(data))
+          for (dimension in colnames(scores)) output$setValues(key = dimension, values = as.numeric(scores[, dimension]))
+        }
         
         if (isTRUE(self$options$discScores)) {
           table <- self$results$discScoresTable
@@ -459,35 +478,35 @@ DDAClass <- if (requireNamespace('jmvcore'))
             
             current_table_cols <- private$.getColumnNames(table)
             cols_to_remove <- setdiff(current_table_cols, c("obs", dims))
-            for(col_name in cols_to_remove) { try(table$deleteColumn(name = col_name), silent=TRUE) }
+            for(col_name in cols_to_remove) { table$getColumn(col_name)$setVisible(FALSE) }
             existing_cols <- private$.getColumnNames(table)
-            if (!"obs" %in% existing_cols) { try(table$addColumn(name = "obs", title = "Observation", type = 'text'), silent = TRUE) }
+            if (!"obs" %in% existing_cols) { table$addColumn(name = "obs", title = "Original Row", type = 'integer') }
             for (dim_name in dims) {
+              if (dim_name %in% existing_cols) table$getColumn(dim_name)$setVisible(TRUE)
               if (!dim_name %in% existing_cols) {
-                try(table$addColumn(name = dim_name, title = dim_name, type = 'number'), silent=TRUE)
+                table$addColumn(name = dim_name, title = dim_name, type = 'number')
               }
             }
             
-            try(table$setState(NULL), silent = TRUE)
-            try(table$deleteRows(), silent = TRUE)
+            table$setState(NULL)
+            table$deleteRows()
             if (n_obs > 0) {
               for (i in 1:n_obs) {
-                row_values <- list(obs = i)
+                row_values <- list(obs = as.integer(rownames(data)[i]))
                 for (j in seq_along(dims)) {
                   row_values[[dims[j]]] <- scores[i, j]
                 }
-                try(table$addRow(rowKey = i, values = row_values), silent = TRUE)
+                table$addRow(rowKey = i, values = row_values)
               }
             }
           }, error = function(e) {
             jmvcore::reject(paste("Error populating DiscScores table:", e$message), code="discscores_prep_error")
-            try(table$setState(NULL), silent=TRUE)
+            table$setState(NULL)
           })
-        } else { try(self$results$discScoresTable$setState(NULL), silent=TRUE) }
+        } else { self$results$discScoresTable$setState(NULL) }
         
         if (isTRUE(self$options$pairwiseES)) {
           tableES <- self$results$pairwiseESTable
-          try(tableES$clearFootnotes(), silent = TRUE)
           
           rows_to_add <- list()
           footnotes <- list()
@@ -528,30 +547,28 @@ DDAClass <- if (requireNamespace('jmvcore'))
           }
           
           tryCatch({
-            try(tableES$setState(NULL), silent = TRUE)
-            try(tableES$deleteRows(), silent = TRUE)
+            tableES$setState(NULL)
+            tableES$deleteRows()
             final_table_cols <- private$.getColumnNames(tableES)
             if (length(rows_to_add) > 0) {
               for (key in names(rows_to_add)) {
                 row_values <- rows_to_add[[key]]
                 values_to_add <- row_values[names(row_values) %in% final_table_cols]
-                try(tableES$addRow(rowKey = key, values = values_to_add), silent = TRUE)
+                tableES$addRow(rowKey = key, values = values_to_add)
               }
             }
             if (length(footnotes) > 0) {
               for (key in names(footnotes)) {
                 fn <- footnotes[[key]]
-                try(tableES$addFootnote(rowKey = key, col = fn$col, message = fn$message), silent = TRUE)
+                tableES$addFootnote(rowKey = key, col = fn$col, note = fn$message)
               }
             }
           }, error = function(e) {
             jmvcore::reject(paste("Error populating Pairwise table:", e$message), code="pairwise_populate_error")
-            try(tableES$setState(NULL), silent=TRUE)
-            try(tableES$clearFootnotes(), silent = TRUE)
-          })
+            tableES$setState(NULL)
+            })
         } else {
-          try(self$results$pairwiseESTable$setState(NULL), silent=TRUE)
-          try(self$results$pairwiseESTable$clearFootnotes(), silent = TRUE)
+          self$results$pairwiseESTable$setState(NULL)
         }
       },
       

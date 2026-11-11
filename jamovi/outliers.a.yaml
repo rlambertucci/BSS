@@ -1,6 +1,6 @@
 ---
 name: outliers
-title: Outliers detection and treatment
+title: "Outlier Detection and Treatment"
 menuGroup: BSS
 menuSubgroup: Data Preparation & Screening
 menuSubtitle: Multi-method outlier detection and treatment (Dixon’s Q Test, IQR, modified Z-score, Mahalanobis & MCD)
@@ -12,16 +12,16 @@ options:
       type: Data
 
     - name: mode
-      title: Outlier Detection Method
+      title: "Outlier detection method"
       type: List
       options:
-        - title: Dixon's Q Test
+        - title: "Dixon's Q test"
           name: dixon
-        - title: Modified Z-Score
+        - title: "Modified z-score"
           name: modz
-        - title: IQR (Interquartile Range)
+        - title: "IQR (interquartile range)"
           name: iqr
-        - title: Multivariate (Mahalanobis & Robust MCD)
+        - title: "Multivariate (mahalanobis & robust MCD)"
           name: mahalanobis
       default: iqr
 
@@ -43,7 +43,7 @@ options:
         - factor
 
     - name: alpha_dixon
-      title: Significance Level
+      title: "Significance level"
       type: List
       options:
         - name: alpha10
@@ -55,19 +55,19 @@ options:
       default: alpha05
 
     - name: treatment_dixon
-      title: Treatment Method
+      title: "Treatment method"
       type: List
       options:
         - name: none
-          title: None (Detection Only)
+          title: "None (detection only)"
         - name: trim_asym
-          title: Asymmetric Trimming (Identified Outlier)
+          title: "Asymmetric trimming (identified outlier)"
         - name: win_valid
-          title: Winsorize (To max/min valid value)
+          title: "Winsorize (to max/min valid value)"
       default: none
 
     - name: dispBox_dixon
-      title: Display Boxplot
+      title: "Boxplot"
       type: Bool
       default: false
 
@@ -107,30 +107,30 @@ options:
       default: t35
 
     - name: treatment_modz
-      title: Treatment Method
+      title: "Treatment method"
       type: List
       options:
         - name: none
-          title: None (Detection Only)
+          title: "None (detection only)"
         - name: trim_asym
-          title: Asymmetric Trimming (Identified Outliers)
+          title: "Asymmetric trimming (identified outliers)"
         - name: trim_sym
-          title: Symmetric Trimming (%)
+          title: "Symmetric trimming (%)"
         - name: win_valid
-          title: Winsorize (To max/min valid value)
+          title: "Winsorize (to max/min valid value)"
         - name: win_fence
-          title: Winsorize (To threshold limits)
+          title: "Winsorize (to threshold limits)"
       default: none
 
     - name: trimPercent_modz
-      title: Symmetric Trimming Percentage (%)
+      title: "Symmetric trimming percentage (%)"
       type: Number
       default: 5
       min: 1
       max: 49
 
     - name: dispBox_modz
-      title: Display Boxplot
+      title: "Boxplot"
       type: Bool
       default: false
 
@@ -156,47 +156,47 @@ options:
         - factor
 
     - name: iqrMultiplier_iqr
-      title: IQR Multiplier Range
+      title: "IQR multiplier range"
       type: List
       options:
         - name: iqr15
-          title: '1.5 x IQR (Classic)'
+          title: "1.5 X IQR (classic)"
         - name: iqr22
-          title: '2.2 x IQR'
+          title: "2.2 X IQR"
         - name: iqr30
-          title: '3.0 x IQR (Extreme)'
+          title: "3.0 X IQR (extreme)"
       default: iqr15
 
     - name: adj_box_iqr
-      title: Adjusted Boxplot for Skewed Distributions (Hubert & Vandervieren, 2008)
+      title: "Adjusted boxplot for skewed distributions (Hubert & Vandervieren, 2008)"
       type: Bool
       default: false
 
     - name: treatment_iqr
-      title: Treatment Method
+      title: "Treatment method"
       type: List
       options:
         - name: none
-          title: None (Detection Only)
+          title: "None (detection only)"
         - name: trim_asym
-          title: Asymmetric Trimming (Identified Outliers)
+          title: "Asymmetric trimming (identified outliers)"
         - name: trim_sym
-          title: Symmetric Trimming (%)
+          title: "Symmetric trimming (%)"
         - name: win_valid
-          title: Winsorize (To max/min valid value)
+          title: "Winsorize (to max/min valid value)"
         - name: win_fence
-          title: Winsorize (To fence limits)
+          title: "Winsorize (to fence limits)"
       default: none
 
     - name: trimPercent_iqr
-      title: Symmetric Trimming Percentage (%)
+      title: "Symmetric trimming percentage (%)"
       type: Number
       default: 5
       min: 1
       max: 49
 
     - name: dispBox_iqr
-      title: Display Boxplot
+      title: "Boxplot"
       type: Bool
       default: true
 
@@ -214,32 +214,32 @@ options:
         - numeric
 
     - name: method_mah
-      title: Estimation Method
+      title: "Estimation method"
       type: List
       options:
         - name: classic
-          title: Classical Mahalanobis Distance
+          title: "Classical mahalanobis distance"
         - name: robust_mcd
-          title: Robust Minimum Covariance Determinant (MCD)
+          title: "Robust minimum covariance determinant (MCD)"
       default: classic
 
     - name: alpha_mah
-      title: Significance Level (Cutoff)
+      title: "Significance level (cutoff)"
       type: List
       options:
         - name: p001
-          title: p < .001 (Conservative / Recommended)
+          title: "P < .001 (conservative / recommended)"
         - name: p01
-          title: p < .01
+          title: "P < .01"
         - name: p05
-          title: p < .05
+          title: "P < .05"
       default: p001
 
     - name: dispPlot_mah
-      title: Display Chi-Square QQ-Plot
+      title: "Chi-square Q-Q plot"
       type: Bool
       default: true
 
     - name: treatedData_mah
-      title: Save Mahalanobis outlier flag / distance to dataset
+      title: "Save Mahalanobis outlier flag to dataset"
       type: Output

@@ -13,6 +13,8 @@ items:
       visible: (run_analysis)
       refs:
         - ARTool
+        - Wobbrock2011
+        - effectsize
       clearWith:
         - mode
         - dep_var_cs
@@ -32,15 +34,12 @@ items:
         - name: df
           title: df
           type: number
-          format: dp:0
         - name: df_res
-          title: df.res
+          title: "Residual df"
           type: number
-          format: dp:2
         - name: f_value
           title: F
           type: number
-          format: dp:3
         - name: p_value
           title: p
           type: number
@@ -48,26 +47,20 @@ items:
         - name: part_eta_sq
           title: Partial η²
           type: number
-          format: dp:3
         - name: part_omega_sq
-          title: Partial ω²
+          title: Partial ω² (F-based approx.)
           type: number
-          format: dp:3
         - name: eps_sq
           title: Partial ε²
           type: number
-          format: dp:3
-        - name: kendall_w
-          title: Kendall's W
-          type: number
-          format: dp:3
 
     - name: posthocTable
-      title: Pairwise Post-Hoc Tests (art.con)
+      title: "Pairwise Post-Hoc Tests"
       type: Table
       visible: (run_analysis && run_posthoc)
       refs:
         - ARTool
+        - Elkin2021
         - emmeans
         - Benjamini1995
         - VarghaDelaney2000
@@ -98,19 +91,15 @@ items:
         - name: estimate
           title: Estimate
           type: number
-          format: dp:3
         - name: se
           title: SE
           type: number
-          format: dp:3
         - name: df
           title: df
           type: number
-          format: dp:2
         - name: t_ratio
           title: t
           type: number
-          format: dp:3
         - name: p_value
           title: p
           type: number
@@ -118,12 +107,10 @@ items:
         - name: vd_a
           title: A (Vargha-Delaney)
           type: number
-          format: dp:3
           visible: (calc_nonparametric_es)
         - name: r_rb
-          title: r_rb (Rank-biserial)
+          title: "Rank-biserial correlation"
           type: number
-          format: dp:3
           visible: (calc_nonparametric_es)
 
     - name: effectSizeTable
@@ -164,7 +151,6 @@ items:
         - name: es_value
           title: Effect Size
           type: number
-          format: dp:3
 
     - name: artPlot
       title: Interaction & Marginal Means Plot
@@ -173,9 +159,7 @@ items:
       height: 450
       renderFun: .renderArtPlot
       visible: (run_analysis && show_plot)
-      requiresData: true
-      refs:
-        - ggplot2
+      requiresData: false
       clearWith:
         - mode
         - dep_var_cs

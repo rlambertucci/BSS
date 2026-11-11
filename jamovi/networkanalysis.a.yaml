@@ -1,5 +1,5 @@
 name:  networkanalysis
-title: Network analysis
+title: "Network Analysis"
 menuGroup: BSS
 menuSubgroup: Associations & Networks
 menuSubtitle: Network analysis for continuous (GGM) and mixed (MGM) data
@@ -11,7 +11,7 @@ options:
       type: Data
 
     - name: mode
-      title: Analysis Mode
+      title: "Analysis mode"
       type: List
       options:
         - title: For continuous data
@@ -39,15 +39,24 @@ options:
         - factor
       default: null
 
-    - name: nodeGroupVar_net
-      title: Node Groups Variable
-      type: Variable
-      suggested:
-        - nominal
-      permitted:
-        - factor
-        - id
-      default: null
+    - name: nodeCommunities_net
+      title: Node communities
+      type: Array
+      default: []
+      template:
+        type: Group
+        elements:
+          - name: label
+            title: Community
+            type: String
+            default: ""
+          - name: variables
+            title: Variables
+            type: Variables
+            permitted:
+              - numeric
+              - factor
+            default: []
 
     - name: estimator_net
       title: Estimator
@@ -58,47 +67,47 @@ options:
         - name: correlation
           title: Correlation
         - name: partial_correlation
-          title: Partial Correlation
+          title: "Partial correlation"
       default: EBICglasso
 
     - name: corMethod_net
-      title: Correlation Method
+      title: "Correlation method"
       type: List
       options:
         - name: auto
           title: Auto
         - name: cor
-          title: Correlation Matrix
+          title: "Correlation matrix"
         - name: cov
-          title: Covariance Matrix
+          title: "Covariance matrix"
       default: auto
 
     - name: tableCentrality_net
-      title: Centrality Table
+      title: "Centrality table"
       type: Bool
       default: TRUE
 
     - name: tableBridge_net
-      title: Bridge Centrality Table
+      title: "Bridge centrality table"
       type: Bool
       default: FALSE
 
     - name: tableClustering_net
-      title: Clustering Table
+      title: "Clustering table"
       type: Bool
       default: FALSE
 
     - name: tableCommunities_net
-      title: Community Detection Table
+      title: "Community detection table"
       type: Bool
       default: FALSE
 
     - name: communityAlgorithm_net
-      title: Community Detection Algorithm
+      title: "Community detection algorithm"
       type: List
       options:
         - name: none
-          title: None (Use Node Groups Variable)
+          title: "None (use assigned node communities)"
         - name: walktrap
           title: Walktrap (Pons & Latapy, 2005)
         - name: louvain
@@ -106,27 +115,27 @@ options:
       default: none
 
     - name: tableWeights_net
-      title: Weights (Adjacency) Table
+      title: "Weights (adjacency) table"
       type: Bool
       default: FALSE
 
     - name: plotCentrality_net
-      title: Centrality Plot
+      title: "Centrality plot"
       type: Bool
       default: FALSE
 
     - name: plotClustering_net
-      title: Clustering Plot
+      title: "Clustering plot"
       type: Bool
       default: FALSE
 
     - name: plotNetwork_net
-      title: Network Plot
+      title: "Network plot"
       type: Bool
       default: FALSE
 
     - name: layoutAlgorithm_net
-      title: Layout Algorithm
+      title: "Layout algorithm"
       type: List
       options:
         - name: spring
@@ -136,81 +145,72 @@ options:
       default: spring
 
     - name: layoutSeed_net
-      title: Layout Random Seed
+      title: "Layout random seed"
       type: Integer
       default: 100
 
     - name: showLabels_net
-      title: Show Labels
+      title: "Labels"
       type: Bool
       default: TRUE
 
     - name: plotWidth_net
-      title: Network Plot Width
+      title: "Network plot width"
       type: Integer
       default: 500
 
     - name: plotHeight_net
-      title: Network Plot Height
+      title: "Network plot height"
       type: Integer
       default: 500
 
     - name: bootStability_net
-      title: Network Stability (bootnet)
+      title: "Network stability"
       type: Bool
       default: FALSE
 
+    - name: bootSeed_net
+      title: "Bootstrap random seed"
+      type: Integer
+      default: 100
+      min: 0
+      max: 2147483647
+
     - name: bootN_net
-      title: Bootstrap Samples
+      title: "Bootstrap samples"
       type: Integer
       default: 100
       min: 10
       max: 2000
 
     - name: bootEdgeCI_net
-      title: Edge Weight Confidence Intervals
+      title: "Edge weight confidence intervals"
       type: Bool
       default: TRUE
 
     - name: bootCS_net
-      title: Centrality Stability Coefficient (CS-coefficient)
+      title: "Centrality stability coefficient (CS-coefficient)"
       type: Bool
       default: TRUE
 
     - name: nctTest_net
-      title: Network Comparison Test (NCT)
+      title: "Network comparison test (NCT)"
       type: Bool
       default: FALSE
 
+    - name: nctSeed_net
+      title: "NCT permutation seed"
+      type: Integer
+      default: 100
+      min: 0
+      max: 2147483647
+
     - name: nctPermutations_net
-      title: NCT Permutations
+      title: "NCT permutations"
       type: Integer
       default: 100
       min: 20
       max: 2000
-
-    - name: dagAnalysis_net
-      title: Directed Acyclic Graph (DAG) Estimation
-      type: Bool
-      default: FALSE
-
-    - name: dagAlgorithm_net
-      title: DAG Algorithm
-      type: List
-      options:
-        - name: pc
-          title: Constraint-based (PC Algorithm)
-        - name: hc
-          title: Score-based (Hill-Climbing)
-        - name: temporal
-          title: Temporal (Lag-1 VAR)
-      default: pc
-
-    - name: plotDAG_net
-      title: DAG Plot
-      type: Bool
-      default: FALSE
-
 
     - name: varsCont_mixed
       title: Continuous Variables (Gaussian)
@@ -250,28 +250,37 @@ options:
         - factor
       default: null
 
-    - name: nodeGroupVar_mixed
-      title: Node Groups Variable
-      type: Variable
-      suggested:
-        - nominal
-      permitted:
-        - factor
-        - id
-      default: null
+    - name: nodeCommunities_mixed
+      title: Node communities
+      type: Array
+      default: []
+      template:
+        type: Group
+        elements:
+          - name: label
+            title: Community
+            type: String
+            default: ""
+          - name: variables
+            title: Variables
+            type: Variables
+            permitted:
+              - numeric
+              - factor
+            default: []
 
     - name: lambdaSelMethod_mixed
-      title: Lambda Selection Method
+      title: "Lambda selection method"
       type: List
       options:
         - name: EBIC
           title: Extended BIC (EBIC)
         - name: CV
-          title: Cross-Validation (CV)
+          title: "Cross-validation (CV)"
       default: EBIC
 
     - name: kFolds_mixed
-      title: Number of Folds (if CV selected)
+      title: "Number of folds (if CV selected)"
       type: Integer
       default: 3
       min: 2
@@ -284,7 +293,7 @@ options:
       max: 1
 
     - name: ruleReg_mixed
-      title: Parameter Combination Rule
+      title: "Parameter combination rule"
       type: List
       options:
         - name: AND
@@ -294,31 +303,31 @@ options:
       default: AND
 
     - name: tableCentrality_mixed
-      title: Centrality Table
+      title: "Centrality table"
       type: Bool
       default: TRUE
 
     - name: tableBridge_mixed
-      title: Bridge Centrality Table
+      title: "Bridge centrality table"
       type: Bool
       default: FALSE
 
     - name: tableClustering_mixed
-      title: Clustering Table
+      title: "Clustering table"
       type: Bool
       default: FALSE
 
     - name: tableCommunities_mixed
-      title: Community Detection Table
+      title: "Community detection table"
       type: Bool
       default: FALSE
 
     - name: communityAlgorithm_mixed
-      title: Community Detection Algorithm
+      title: "Community detection algorithm"
       type: List
       options:
         - name: none
-          title: None (Use Node Groups Variable)
+          title: "None (use assigned node communities)"
         - name: walktrap
           title: Walktrap (Pons & Latapy, 2005)
         - name: louvain
@@ -326,27 +335,27 @@ options:
       default: none
 
     - name: tableWeights_mixed
-      title: Weights (Adjacency) Table
+      title: "Weights (adjacency) table"
       type: Bool
       default: FALSE
 
     - name: plotCentrality_mixed
-      title: Centrality Plot
+      title: "Centrality plot"
       type: Bool
       default: FALSE
 
     - name: plotClustering_mixed
-      title: Clustering Plot
+      title: "Clustering plot"
       type: Bool
       default: FALSE
 
     - name: plotNetwork_mixed
-      title: Network Plot
+      title: "Network plot"
       type: Bool
       default: TRUE
 
     - name: layoutAlgorithm_mixed
-      title: Layout Algorithm
+      title: "Layout algorithm"
       type: List
       options:
         - name: spring
@@ -356,21 +365,21 @@ options:
       default: spring
 
     - name: layoutSeed_mixed
-      title: Layout Random Seed
+      title: "Layout random seed"
       type: Integer
       default: 100
 
     - name: showLabels_mixed
-      title: Show Labels
+      title: "Labels"
       type: Bool
       default: TRUE
 
     - name: plotWidth_mixed
-      title: Network Plot Width
+      title: "Network plot width"
       type: Integer
       default: 500
 
     - name: plotHeight_mixed
-      title: Network Plot Height
+      title: "Network plot height"
       type: Integer
       default: 500

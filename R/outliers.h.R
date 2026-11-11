@@ -335,83 +335,95 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "Rorabacher1991"),
                 title="Dixon's Q Test Results",
                 visible="(mode == 'dixon')",
+                clearWith=list(
+                    "mode",
+                    "var_dixon",
+                    "group_dixon",
+                    "alpha_dixon",
+                    "treatment_dixon"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
+                        `name`="variable",
+                        `title`="Variable",
                         `type`="text"),
                     list(
-                        `name`="group_level", 
-                        `title`="Group", 
+                        `name`="group_level",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="n", 
-                        `title`="N", 
+                        `name`="n",
+                        `title`="N",
                         `type`="integer"),
                     list(
-                        `name`="outlier_value", 
-                        `title`="Outlier Value", 
+                        `name`="outlier_value",
+                        `title`="Outlier Value",
                         `type`="number"),
                     list(
-                        `name`="outlier_side", 
-                        `title`="Side", 
+                        `name`="outlier_side",
+                        `title`="Side",
                         `type`="text"),
                     list(
-                        `name`="q_statistic", 
-                        `title`="Q Statistic", 
-                        `type`="number", 
+                        `name`="q_statistic",
+                        `title`="Q Statistic",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="q_critical", 
-                        `title`="Q Critical", 
-                        `type`="number", 
+                        `name`="q_critical",
+                        `title`="Q Critical",
+                        `type`="number",
                         `format`="zto"),
                     list(
-                        `name`="significant", 
-                        `title`="Outlier Detected", 
+                        `name`="significant",
+                        `title`="Outlier Detected",
                         `type`="text"),
                     list(
-                        `name`="treatmentApplied", 
-                        `title`="Treatment Applied", 
-                        `type`="text", 
+                        `name`="treatmentApplied",
+                        `title`="Treatment Applied",
+                        `type`="text",
                         `visible`="(treatment_dixon != 'none')"),
                     list(
-                        `name`="modifiedN", 
-                        `title`="Valid N (After Treatment)", 
-                        `type`="integer", 
+                        `name`="modifiedN",
+                        `title`="Valid N (After Treatment)",
+                        `type`="integer",
                         `visible`="(treatment_dixon != 'none')"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="dixonOutlierList",
                 title="Identified Outliers (Dixon's Q Test)",
                 visible="(mode == 'dixon')",
+                clearWith=list(
+                    "mode",
+                    "var_dixon",
+                    "group_dixon",
+                    "alpha_dixon",
+                    "treatment_dixon"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="group_level", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group_level",
+                        `title`="Group",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="rowNumber", 
-                        `title`="Row", 
+                        `name`="rowNumber",
+                        `title`="Row",
                         `type`="integer"),
                     list(
-                        `name`="outlier_value", 
-                        `title`="Value", 
+                        `name`="outlier_value",
+                        `title`="Value",
                         `type`="number"),
                     list(
-                        `name`="outlier_side", 
-                        `title`="Side", 
+                        `name`="outlier_side",
+                        `title`="Side",
                         `type`="text"),
                     list(
-                        `name`="q_statistic", 
-                        `title`="Q Statistic", 
-                        `type`="number", 
+                        `name`="q_statistic",
+                        `title`="Q Statistic",
+                        `type`="number",
                         `format`="zto"))))
             self$add(jmvcore::Image$new(
                 options=options,
@@ -420,9 +432,7 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 width=500,
                 height=400,
                 renderFun=".plot",
-                visible="(mode == 'dixon' && dispBox_dixon)",
-                refs=list(
-                    "ggplot2")))
+                visible="(mode == 'dixon' && dispBox_dixon)"))
             self$add(jmvcore::Output$new(
                 options=options,
                 name="treatedData_dixon",
@@ -444,76 +454,92 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 refs=list(
                     "Iglewicz1993",
                     "Leys2013",
-                    "Wilcox2017"),
+                    "Wilcox2017",
+                    "IBMModelerAlgorithms"),
                 title="Modified Z-Score Outliers Summary",
                 visible="(mode == 'modz')",
+                clearWith=list(
+                    "mode",
+                    "vars_modz",
+                    "group_modz",
+                    "threshold_modz",
+                    "treatment_modz",
+                    "trimPercent_modz"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `content`="($key)"),
                     list(
-                        `name`="group_level", 
-                        `title`="Group", 
+                        `name`="group_level",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="lowerThreshold", 
-                        `title`="Lower Threshold", 
+                        `name`="lowerThreshold",
+                        `title`="Lower Threshold",
                         `type`="number"),
                     list(
-                        `name`="upperThreshold", 
-                        `title`="Upper Threshold", 
+                        `name`="upperThreshold",
+                        `title`="Upper Threshold",
                         `type`="number"),
                     list(
-                        `name`="numOutliers", 
-                        `title`="Outliers Detected", 
+                        `name`="numOutliers",
+                        `title`="Outliers Detected",
                         `type`="integer"),
                     list(
-                        `name`="treatmentApplied", 
-                        `title`="Treatment Applied", 
-                        `type`="text", 
+                        `name`="treatmentApplied",
+                        `title`="Treatment Applied",
+                        `type`="text",
                         `visible`="(treatment_modz != 'none')"),
                     list(
-                        `name`="modifiedN", 
-                        `title`="Valid N (After Treatment)", 
-                        `type`="integer", 
+                        `name`="modifiedN",
+                        `title`="Valid N (After Treatment)",
+                        `type`="integer",
                         `visible`="(treatment_modz != 'none')"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="modzOutlierList",
                 title="Identified Outliers (Modified Z-Score)",
                 visible="(mode == 'modz')",
+                clearWith=list(
+                    "mode",
+                    "vars_modz",
+                    "group_modz",
+                    "threshold_modz",
+                    "treatment_modz",
+                    "trimPercent_modz"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="group_level", 
-                        `title`="Group", 
-                        `type`="text", 
+                        `name`="group_level",
+                        `title`="Group",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="rowNumber", 
-                        `title`="Row", 
+                        `name`="rowNumber",
+                        `title`="Row",
                         `type`="integer"),
                     list(
-                        `name`="modifiedZ", 
-                        `title`="Modified Z-Score", 
+                        `name`="modifiedZ",
+                        `title`="Modified Z-Score",
                         `type`="number"))))
-            self$add(jmvcore::Image$new(
+            self$add(jmvcore::Array$new(
                 options=options,
                 name="modzPlot",
                 title="Modified Z-Score Boxplot",
-                width=500,
-                height=400,
-                renderFun=".plot",
                 visible="(mode == 'modz' && dispBox_modz)",
-                refs=list(
-                    "ggplot2",
-                    "gridExtra")))
+                items="(vars_modz)",
+                template=jmvcore::Image$new(
+                    options=options,
+                    title="$key",
+                    width=500,
+                    height=400,
+                    renderFun=".plot")))
             self$add(jmvcore::Output$new(
                 options=options,
                 name="treatedData_modz",
@@ -539,49 +565,58 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "Hubert2008"),
                 title="IQR Outliers Summary",
                 visible="(mode == 'iqr')",
+                clearWith=list(
+                    "mode",
+                    "vars_iqr",
+                    "group_iqr",
+                    "iqrMultiplier_iqr",
+                    "adj_box_iqr",
+                    "treatment_iqr",
+                    "trimPercent_iqr"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `content`="($key)"),
                     list(
-                        `name`="group_level", 
-                        `title`="Group", 
+                        `name`="group_level",
+                        `title`="Group",
                         `type`="text"),
                     list(
-                        `name`="lowerFence", 
-                        `title`="Lower Fence", 
+                        `name`="lowerFence",
+                        `title`="Lower Fence",
                         `type`="number"),
                     list(
-                        `name`="upperFence", 
-                        `title`="Upper Fence", 
+                        `name`="upperFence",
+                        `title`="Upper Fence",
                         `type`="number"),
                     list(
-                        `name`="numOutliers", 
-                        `title`="Outliers Detected", 
+                        `name`="numOutliers",
+                        `title`="Outliers Detected",
                         `type`="integer"),
                     list(
-                        `name`="treatmentApplied", 
-                        `title`="Treatment Applied", 
-                        `type`="text", 
+                        `name`="treatmentApplied",
+                        `title`="Treatment Applied",
+                        `type`="text",
                         `visible`="(treatment_iqr != 'none')"),
                     list(
-                        `name`="modifiedN", 
-                        `title`="Valid N (After Treatment)", 
-                        `type`="integer", 
+                        `name`="modifiedN",
+                        `title`="Valid N (After Treatment)",
+                        `type`="integer",
                         `visible`="(treatment_iqr != 'none')"))))
-            self$add(jmvcore::Image$new(
+            self$add(jmvcore::Array$new(
                 options=options,
                 name="iqrPlot",
                 title="IQR Method Boxplot",
-                width=500,
-                height=400,
-                renderFun=".plot",
                 visible="(mode == 'iqr' && dispBox_iqr)",
-                refs=list(
-                    "ggplot2",
-                    "gridExtra")))
+                items="(vars_iqr)",
+                template=jmvcore::Image$new(
+                    options=options,
+                    title="$key",
+                    width=500,
+                    height=400,
+                    renderFun=".plot")))
             self$add(jmvcore::Output$new(
                 options=options,
                 name="treatedData_iqr",
@@ -614,31 +649,29 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "alpha_mah"),
                 columns=list(
                     list(
-                        `name`="method", 
-                        `title`="Method", 
+                        `name`="method",
+                        `title`="Method",
                         `type`="text"),
                     list(
-                        `name`="numVars", 
-                        `title`="Variables (p)", 
+                        `name`="numVars",
+                        `title`="Variables (p)",
                         `type`="integer"),
                     list(
-                        `name`="n_analyzed", 
-                        `title`="Analyzed N", 
+                        `name`="n_analyzed",
+                        `title`="Analyzed N",
                         `type`="integer"),
                     list(
-                        `name`="critCutoff", 
-                        `title`="Critical \u03C7\u00B2", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="critCutoff",
+                        `title`="Critical \u03C7\u00B2",
+                        `type`="number"),
                     list(
-                        `name`="numOutliers", 
-                        `title`="Outliers Detected", 
+                        `name`="numOutliers",
+                        `title`="Outliers Detected",
                         `type`="integer"),
                     list(
-                        `name`="pctOutliers", 
-                        `title`="% Outliers", 
-                        `type`="number", 
-                        `format`="dp:2"))))
+                        `name`="pctOutliers",
+                        `title`="% Outliers",
+                        `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="mahOutlierList",
@@ -650,18 +683,17 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "alpha_mah"),
                 columns=list(
                     list(
-                        `name`="rowNumber", 
-                        `title`="Row", 
+                        `name`="rowNumber",
+                        `title`="Row",
                         `type`="integer"),
                     list(
-                        `name`="d_squared", 
-                        `title`="Mahalanobis D\u00B2", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="d_squared",
+                        `title`="Mahalanobis D\u00B2",
+                        `type`="number"),
                     list(
-                        `name`="p_value", 
-                        `title`="p-value (\u03C7\u00B2)", 
-                        `type`="number", 
+                        `name`="p_value",
+                        `title`="p-value (\u03C7\u00B2)",
+                        `type`="number",
                         `format`="zto,pvalue"))))
             self$add(jmvcore::Image$new(
                 options=options,
@@ -671,8 +703,6 @@ outliersResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 height=400,
                 renderFun=".plotMahalanobis",
                 visible="(mode == 'mahalanobis' && dispPlot_mah)",
-                refs=list(
-                    "ggplot2"),
                 clearWith=list(
                     "vars_mah",
                     "method_mah",
@@ -709,9 +739,9 @@ outliersBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 weightsSupport = 'none')
         }))
 
-#' Outliers detection and treatment
+#' Outlier Detection and Treatment
 #'
-#' 
+#'
 #' @param data .
 #' @param mode .
 #' @param var_dixon .
@@ -746,11 +776,11 @@ outliersBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #'   \code{results$modzInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$modzTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$modzOutlierList} \tab \tab \tab \tab \tab a table \cr
-#'   \code{results$modzPlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$modzPlot} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$treatedData_modz} \tab \tab \tab \tab \tab an output \cr
 #'   \code{results$iqrInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$iqrTable} \tab \tab \tab \tab \tab a table \cr
-#'   \code{results$iqrPlot} \tab \tab \tab \tab \tab an image \cr
+#'   \code{results$iqrPlot} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$treatedData_iqr} \tab \tab \tab \tab \tab an output \cr
 #'   \code{results$mahInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$mahTable} \tab \tab \tab \tab \tab a table \cr

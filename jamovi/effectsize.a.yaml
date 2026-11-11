@@ -9,10 +9,10 @@ jas: '1.2'
 options:
     - name: data
       type: Data
-      title: Input Data
+      title: "Input data"
 
     - name: mode
-      title: Analysis Mode
+      title: "Analysis mode"
       type: List
       options:
         - title: Cross-sectional
@@ -59,26 +59,6 @@ options:
         - numeric
       default: null
 
-    - name: indep_vars_long
-      title: Independent Variables (IVs - optional)
-      type: Variables
-      suggested:
-        - nominal
-        - ordinal
-      permitted:
-        - numeric
-        - factor
-      default: null
-
-    - name: cov_long
-      title: Covariate
-      type: Variable
-      suggested:
-        - continuous
-      permitted:
-        - numeric
-      default: null
-
     - name: subject_id_var
       title: Subject ID Variable
       type: Variable
@@ -114,7 +94,7 @@ options:
       default: null
 
     - name: long_format
-      title: Data Format
+      title: "Data format"
       type: List
       options:
         - title: Wide format (one column per wave)
@@ -124,45 +104,58 @@ options:
       default: wide
 
     - name: include_interactions
-      title: Calculate interactions between IVs
+      title: "Interactions between independent variables"
       type: Bool
       default: false
 
     - name: run_analysis
-      title: Run Analysis
+      title: "Effect size results"
       type: Bool
       default: false
 
     - name: es_method
-      title: Effect Size Method
+      title: "Effect size method"
       type: List
       options:
         - title: Cohen's d
           name: cohens_d
         - title: Hedges' g
           name: hedges_g
-        - title: Glass' Delta
+        - title: "Glass' delta"
           name: glass_delta
-        - title: Rank Biserial Correlation
+        - title: "Rank biserial correlation"
           name: rank_biserial
-        - title: Algina-Keselman-Penfield Robust d (Trimmed & Winsorized)
+        - title: "Algina-Keselman-Penfield robust d (trimmed & winsorized)"
           name: algina_keselman_d
-        - title: Akritas-Arnold Relative Effect (δ̂)
+        - title: "Akritas-Arnold relative effect (δ̂)"
           name: akritas_arnold_delta
       default: cohens_d
       
     - name: show_cles
-      title: Calculate CLES (Common Language Effect Size)
+      title: "Common language effect size"
       type: Bool
       default: false
 
     - name: reference_group
-      title: Reference Group (Glass' Delta)
+      hidden: true
+      title: "Reference group (Glass' delta)"
       type: String
       default: ''
 
+    - name: glass_references
+      title: Glass reference levels
+      type: Array
+      default: []
+      template:
+        type: Group
+        elements:
+          - name: variable
+            type: Variable
+          - name: reference
+            type: Level
+
     - name: es_method_long
-      title: Effect Size Method (Longitudinal)
+      title: "Effect size method (longitudinal)"
       type: List
       options:
         - title: Cohen's dz
@@ -173,29 +166,29 @@ options:
           name: cohens_drm
         - title: Hedges' gz
           name: hedges_gz
-        - title: Glass' Delta z
+        - title: "Glass' delta z"
           name: glass_dz
-        - title: Rank Biserial Correlation (paired)
+        - title: "Rank biserial correlation (paired)"
           name: rank_biserial_paired
       default: cohens_dz
       
     - name: show_cles_long
-      title: Calculate CLES (paired)
+      title: "Common language effect size (paired)"
       type: Bool
       default: false
 
     - name: reference_group_long
-      title: Reference Wave (Glass' Delta z)
+      title: "Reference wave (Glass' delta z)"
       type: String
       default: ''
 
     - name: use_glm
-      title: Use GzLM — Average Marginal Effect (AME)
+      title: "GzLM average marginal effect"
       type: Bool
       default: false
 
     - name: es_glm
-      title: GzLM Distribution
+      title: "GzLM distribution"
       type: List
       options:
         - title: Gaussian distribution
@@ -207,7 +200,7 @@ options:
       default: glm_gaussian
 
     - name: ci_method
-      title: Confidence Interval Method
+      title: "Confidence interval method"
       type: List
       options:
         - title: Analytical (formula-based)
@@ -217,14 +210,14 @@ options:
       default: analytical
 
     - name: n_bootstrap
-      title: Number of Bootstrap Samples
+      title: "Number of bootstrap samples"
       type: Integer
       default: 1000
       min: 100
       max: 10000
 
     - name: ci_level
-      title: Confidence Level
+      title: "Confidence level"
       type: List
       options:
         - title: 95%
@@ -236,39 +229,34 @@ options:
       default: ci_95
 
     - name: show_conversions
-      title: 'Show Effect Size Conversions (d, r, η², OR, AUC)'
+      title: "Effect size conversions (d, r, η², OR, AUC)"
       type: Bool
       default: false
 
     - name: benchmark_standard
-      title: 'Benchmark for Qualitative Interpretation'
+      title: "Benchmark for qualitative interpretation"
       type: List
       options:
-        - title: "Cohen (1988) — Small: .2, Med: .5, Large: .8"
+        - title: "Cohen (1988) — small: .2, med: .5, large: .8"
           name: cohen
-        - title: "Sawilowsky (2009) — Very Small: .01, Small: .2, Med: .5, Large: .8, Very Large: 1.2, Huge: 2.0"
+        - title: "Sawilowsky (2009) — very small: .01, small: .2, med: .5, large: .8, very large: 1.2, huge: 2.0"
           name: sawilowsky
       default: cohen
 
     - name: show_es_plot
-      title: 'Effect Size Forest Plot'
+      title: "Effect size forest plot"
       type: Bool
       default: false
 
     - name: plot_width
-      title: 'Plot Width'
+      title: "Plot width"
       type: Integer
       default: 650
 
     - name: plot_height
-      title: 'Plot Height'
+      title: "Plot height"
       type: Integer
       default: 450
-
-    - name: show_categorical_es
-      title: Categorical Effect Sizes (Cramér's V, Odds Ratio, Relative Risk, Cohen's h)
-      type: Bool
-      default: false
 
     - name: cat_var1
       title: Categorical Factor 1 (Row / Exposure)
@@ -293,12 +281,12 @@ options:
       default: null
 
     - name: calc_from_test_stat
-      title: Direct Test Statistic Calculator (t, F, z, χ²)
+      title: "Direct test statistic calculator"
       type: Bool
       default: false
 
     - name: stat_type
-      title: Test Statistic Type
+      title: "Test statistic type"
       type: List
       options:
         - title: "t-statistic (t, df)"
@@ -307,26 +295,38 @@ options:
           name: stat_f
         - title: "z-statistic (z, N)"
           name: stat_z
-        - title: "Chi-Square (χ², df, N)"
+        - title: "Chi-square (statistic, table dimensions, N)"
           name: stat_chisq
       default: stat_t
 
     - name: stat_val
-      title: Statistic Value
+      title: "Statistic value"
       type: Number
       default: 2.5
 
     - name: stat_df1
-      title: Degrees of Freedom 1 (df or df1)
+      title: "Degrees of freedom (numerator for F)"
       type: Number
       default: 30
 
     - name: stat_df2
-      title: Degrees of Freedom 2 (df2 - for F)
+      title: "Denominator degrees of freedom (F)"
       type: Number
       default: 60
 
+    - name: stat_rows
+      title: "Contingency table rows"
+      type: Integer
+      default: 2
+      min: 2
+
+    - name: stat_cols
+      title: "Contingency table columns"
+      type: Integer
+      default: 2
+      min: 2
+
     - name: stat_n
-      title: Sample Size N (optional)
+      title: "Sample size N (z and chi-square)"
       type: Integer
       default: 60

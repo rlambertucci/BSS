@@ -11,8 +11,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             indep_vars_cs = NULL,
             cov = NULL,
             dep_vars_long = NULL,
-            indep_vars_long = NULL,
-            cov_long = NULL,
             subject_id_var = NULL,
             time_var = NULL,
             wave_vars = NULL,
@@ -22,6 +20,7 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             es_method = "cohens_d",
             show_cles = FALSE,
             reference_group = "",
+            glass_references = list(),
             es_method_long = "cohens_dz",
             show_cles_long = FALSE,
             reference_group_long = "",
@@ -35,7 +34,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             show_es_plot = FALSE,
             plot_width = 650,
             plot_height = 450,
-            show_categorical_es = FALSE,
             cat_var1 = NULL,
             cat_var2 = NULL,
             calc_from_test_stat = FALSE,
@@ -43,6 +41,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             stat_val = 2.5,
             stat_df1 = 30,
             stat_df2 = 60,
+            stat_rows = 2,
+            stat_cols = 2,
             stat_n = 60, ...) {
 
             super$initialize(
@@ -87,24 +87,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             private$..dep_vars_long <- jmvcore::OptionVariables$new(
                 "dep_vars_long",
                 dep_vars_long,
-                suggested=list(
-                    "continuous"),
-                permitted=list(
-                    "numeric"),
-                default=NULL)
-            private$..indep_vars_long <- jmvcore::OptionVariables$new(
-                "indep_vars_long",
-                indep_vars_long,
-                suggested=list(
-                    "nominal",
-                    "ordinal"),
-                permitted=list(
-                    "numeric",
-                    "factor"),
-                default=NULL)
-            private$..cov_long <- jmvcore::OptionVariable$new(
-                "cov_long",
-                cov_long,
                 suggested=list(
                     "continuous"),
                 permitted=list(
@@ -174,7 +156,22 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             private$..reference_group <- jmvcore::OptionString$new(
                 "reference_group",
                 reference_group,
+                hidden=TRUE,
                 default="")
+            private$..glass_references <- jmvcore::OptionArray$new(
+                "glass_references",
+                glass_references,
+                default=list(),
+                template=jmvcore::OptionGroup$new(
+                    "glass_references",
+                    NULL,
+                    elements=list(
+                        jmvcore::OptionVariable$new(
+                            "variable",
+                            NULL),
+                        jmvcore::OptionLevel$new(
+                            "reference",
+                            NULL))))
             private$..es_method_long <- jmvcore::OptionList$new(
                 "es_method_long",
                 es_method_long,
@@ -250,10 +247,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "plot_height",
                 plot_height,
                 default=450)
-            private$..show_categorical_es <- jmvcore::OptionBool$new(
-                "show_categorical_es",
-                show_categorical_es,
-                default=FALSE)
             private$..cat_var1 <- jmvcore::OptionVariable$new(
                 "cat_var1",
                 cat_var1,
@@ -299,6 +292,16 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 "stat_df2",
                 stat_df2,
                 default=60)
+            private$..stat_rows <- jmvcore::OptionInteger$new(
+                "stat_rows",
+                stat_rows,
+                default=2,
+                min=2)
+            private$..stat_cols <- jmvcore::OptionInteger$new(
+                "stat_cols",
+                stat_cols,
+                default=2,
+                min=2)
             private$..stat_n <- jmvcore::OptionInteger$new(
                 "stat_n",
                 stat_n,
@@ -309,8 +312,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..indep_vars_cs)
             self$.addOption(private$..cov)
             self$.addOption(private$..dep_vars_long)
-            self$.addOption(private$..indep_vars_long)
-            self$.addOption(private$..cov_long)
             self$.addOption(private$..subject_id_var)
             self$.addOption(private$..time_var)
             self$.addOption(private$..wave_vars)
@@ -320,6 +321,7 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..es_method)
             self$.addOption(private$..show_cles)
             self$.addOption(private$..reference_group)
+            self$.addOption(private$..glass_references)
             self$.addOption(private$..es_method_long)
             self$.addOption(private$..show_cles_long)
             self$.addOption(private$..reference_group_long)
@@ -333,7 +335,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..show_es_plot)
             self$.addOption(private$..plot_width)
             self$.addOption(private$..plot_height)
-            self$.addOption(private$..show_categorical_es)
             self$.addOption(private$..cat_var1)
             self$.addOption(private$..cat_var2)
             self$.addOption(private$..calc_from_test_stat)
@@ -341,6 +342,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
             self$.addOption(private$..stat_val)
             self$.addOption(private$..stat_df1)
             self$.addOption(private$..stat_df2)
+            self$.addOption(private$..stat_rows)
+            self$.addOption(private$..stat_cols)
             self$.addOption(private$..stat_n)
         }),
     active = list(
@@ -349,8 +352,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         indep_vars_cs = function() private$..indep_vars_cs$value,
         cov = function() private$..cov$value,
         dep_vars_long = function() private$..dep_vars_long$value,
-        indep_vars_long = function() private$..indep_vars_long$value,
-        cov_long = function() private$..cov_long$value,
         subject_id_var = function() private$..subject_id_var$value,
         time_var = function() private$..time_var$value,
         wave_vars = function() private$..wave_vars$value,
@@ -360,6 +361,7 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         es_method = function() private$..es_method$value,
         show_cles = function() private$..show_cles$value,
         reference_group = function() private$..reference_group$value,
+        glass_references = function() private$..glass_references$value,
         es_method_long = function() private$..es_method_long$value,
         show_cles_long = function() private$..show_cles_long$value,
         reference_group_long = function() private$..reference_group_long$value,
@@ -373,7 +375,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         show_es_plot = function() private$..show_es_plot$value,
         plot_width = function() private$..plot_width$value,
         plot_height = function() private$..plot_height$value,
-        show_categorical_es = function() private$..show_categorical_es$value,
         cat_var1 = function() private$..cat_var1$value,
         cat_var2 = function() private$..cat_var2$value,
         calc_from_test_stat = function() private$..calc_from_test_stat$value,
@@ -381,6 +382,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         stat_val = function() private$..stat_val$value,
         stat_df1 = function() private$..stat_df1$value,
         stat_df2 = function() private$..stat_df2$value,
+        stat_rows = function() private$..stat_rows$value,
+        stat_cols = function() private$..stat_cols$value,
         stat_n = function() private$..stat_n$value),
     private = list(
         ..mode = NA,
@@ -388,8 +391,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..indep_vars_cs = NA,
         ..cov = NA,
         ..dep_vars_long = NA,
-        ..indep_vars_long = NA,
-        ..cov_long = NA,
         ..subject_id_var = NA,
         ..time_var = NA,
         ..wave_vars = NA,
@@ -399,6 +400,7 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..es_method = NA,
         ..show_cles = NA,
         ..reference_group = NA,
+        ..glass_references = NA,
         ..es_method_long = NA,
         ..show_cles_long = NA,
         ..reference_group_long = NA,
@@ -412,7 +414,6 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..show_es_plot = NA,
         ..plot_width = NA,
         ..plot_height = NA,
-        ..show_categorical_es = NA,
         ..cat_var1 = NA,
         ..cat_var2 = NA,
         ..calc_from_test_stat = NA,
@@ -420,6 +421,8 @@ effectSizeOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
         ..stat_val = NA,
         ..stat_df1 = NA,
         ..stat_df2 = NA,
+        ..stat_rows = NA,
+        ..stat_cols = NA,
         ..stat_n = NA)
 )
 
@@ -428,9 +431,7 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
     inherit = jmvcore::Group,
     active = list(
         analysisInfo = function() private$.items[["analysisInfo"]],
-        ameBenchmark = function() private$.items[["ameBenchmark"]],
         effectSizeTable = function() private$.items[["effectSizeTable"]],
-        effectSizeTableLongBetween = function() private$.items[["effectSizeTableLongBetween"]],
         clesTable = function() private$.items[["clesTable"]],
         clesLongTable = function() private$.items[["clesLongTable"]],
         conversionTable = function() private$.items[["conversionTable"]],
@@ -450,11 +451,6 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 name="analysisInfo",
                 title="About Effect Size Analysis",
                 visible=TRUE))
-            self$add(jmvcore::Html$new(
-                options=options,
-                name="ameBenchmark",
-                title="AME Interpretation Benchmark",
-                visible="(use_glm)"))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="effectSizeTable",
@@ -471,10 +467,10 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep_vars_cs",
                     "indep_vars_cs",
                     "dep_vars_long",
-                    "indep_vars_long",
                     "include_interactions",
                     "es_method",
                     "reference_group",
+                    "glass_references",
                     "use_glm",
                     "es_glm",
                     "ci_method",
@@ -487,117 +483,45 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "subject_id_var",
                     "es_method_long",
                     "reference_group_long",
-                    "cov",
-                    "cov_long"),
+                    "cov"),
                 columns=list(
                     list(
-                        `name`="dv", 
-                        `title`="DV", 
-                        `type`="text", 
+                        `name`="dv",
+                        `title`="DV",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="iv", 
-                        `title`="IV", 
-                        `type`="text", 
+                        `name`="iv",
+                        `title`="IV",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="comparison", 
-                        `title`="Comparison", 
+                        `name`="comparison",
+                        `title`="Comparison",
                         `type`="text"),
                     list(
-                        `name`="method", 
-                        `title`="Method", 
+                        `name`="method",
+                        `title`="Method",
                         `type`="text"),
                     list(
-                        `name`="es_value", 
-                        `title`="Effect Size", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="es_value",
+                        `title`="Effect Size",
+                        `type`="number"),
                     list(
-                        `name`="ci_lower", 
-                        `title`="CI Lower", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="ci_lower",
+                        `title`="CI Lower",
+                        `type`="number"),
                     list(
-                        `name`="ci_upper", 
-                        `title`="CI Upper", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="ci_upper",
+                        `title`="CI Upper",
+                        `type`="number"),
                     list(
-                        `name`="interpretation", 
-                        `title`="Interpretation", 
+                        `name`="interpretation",
+                        `title`="Interpretation",
                         `type`="text"),
                     list(
-                        `name`="n_obs", 
-                        `title`="N", 
-                        `type`="integer"))))
-            self$add(jmvcore::Table$new(
-                options=options,
-                name="effectSizeTableLongBetween",
-                title="Between-Subjects Effect Sizes (Group Differences)",
-                visible="(run_analysis && mode == 'longitudinal')",
-                refs=list(
-                    "effectsize",
-                    "emmeans",
-                    "Cohen1988",
-                    "AlginaKeselmanPenfield2005",
-                    "AkritasArnold1994"),
-                clearWith=list(
-                    "mode",
-                    "dep_vars_long",
-                    "indep_vars_long",
-                    "include_interactions",
-                    "es_method",
-                    "ci_method",
-                    "n_bootstrap",
-                    "ci_level",
-                    "run_analysis",
-                    "long_format",
-                    "wave_vars",
-                    "time_var",
-                    "cov",
-                    "cov_long"),
-                columns=list(
-                    list(
-                        `name`="dv", 
-                        `title`="Time Point", 
-                        `type`="text", 
-                        `combineBelow`=TRUE),
-                    list(
-                        `name`="iv", 
-                        `title`="Grouping Variable", 
-                        `type`="text", 
-                        `combineBelow`=TRUE),
-                    list(
-                        `name`="comparison", 
-                        `title`="Comparison", 
-                        `type`="text"),
-                    list(
-                        `name`="method", 
-                        `title`="Method", 
-                        `type`="text"),
-                    list(
-                        `name`="es_value", 
-                        `title`="Effect Size", 
-                        `type`="number", 
-                        `format`="dp:3"),
-                    list(
-                        `name`="ci_lower", 
-                        `title`="CI Lower", 
-                        `type`="number", 
-                        `format`="dp:3"),
-                    list(
-                        `name`="ci_upper", 
-                        `title`="CI Upper", 
-                        `type`="number", 
-                        `format`="dp:3"),
-                    list(
-                        `name`="interpretation", 
-                        `title`="Interpretation", 
-                        `type`="text"),
-                    list(
-                        `name`="n_obs", 
-                        `title`="N", 
+                        `name`="n_obs",
+                        `title`="N",
                         `type`="integer"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -615,6 +539,7 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "include_interactions",
                     "es_method",
                     "reference_group",
+                    "glass_references",
                     "use_glm",
                     "es_glm",
                     "ci_method",
@@ -622,28 +547,26 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "ci_level",
                     "run_analysis",
                     "show_cles",
-                    "cov",
-                    "cov_long"),
+                    "cov"),
                 columns=list(
                     list(
-                        `name`="dv", 
-                        `title`="DV", 
-                        `type`="text", 
+                        `name`="dv",
+                        `title`="DV",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="iv", 
-                        `title`="IV", 
-                        `type`="text", 
+                        `name`="iv",
+                        `title`="IV",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="comparison", 
-                        `title`="Comparison", 
+                        `name`="comparison",
+                        `title`="Comparison",
                         `type`="text"),
                     list(
-                        `name`="cles", 
-                        `title`="CLES", 
-                        `type`="number", 
-                        `format`="dp:3"))))
+                        `name`="cles",
+                        `title`="CLES",
+                        `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="clesLongTable",
@@ -657,7 +580,6 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "mode",
                     "run_analysis",
                     "dep_vars_long",
-                    "indep_vars_long",
                     "long_format",
                     "time_var",
                     "wave_vars",
@@ -665,27 +587,25 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "es_method_long",
                     "reference_group_long",
                     "show_cles_long",
-                    "cov",
-                    "cov_long"),
+                    "cov"),
                 columns=list(
                     list(
-                        `name`="dv", 
-                        `title`="DV", 
-                        `type`="text", 
+                        `name`="dv",
+                        `title`="DV",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="comparison", 
-                        `title`="Comparison", 
+                        `name`="comparison",
+                        `title`="Comparison",
                         `type`="text"),
                     list(
-                        `name`="cles", 
-                        `title`="CLES (paired)", 
-                        `type`="number", 
-                        `format`="dp:3"))))
+                        `name`="cles",
+                        `title`="CLES (paired)",
+                        `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="conversionTable",
-                title="Multi-Metric Effect Size Conversions",
+                title="Independent Cohen's d Conversions",
                 visible="(run_analysis && show_conversions)",
                 refs=list(
                     "Borenstein2009",
@@ -695,8 +615,9 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep_vars_cs",
                     "indep_vars_cs",
                     "dep_vars_long",
-                    "indep_vars_long",
                     "include_interactions",
+                    "cov",
+                    "use_glm",
                     "es_method",
                     "es_method_long",
                     "long_format",
@@ -707,89 +628,81 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "show_conversions"),
                 columns=list(
                     list(
-                        `name`="dv", 
-                        `title`="DV / Wave", 
-                        `type`="text", 
+                        `name`="dv",
+                        `title`="DV / Wave",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="comparison", 
-                        `title`="Comparison", 
+                        `name`="comparison",
+                        `title`="Comparison",
                         `type`="text"),
                     list(
-                        `name`="cohen_d", 
-                        `title`="Cohen's d", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="cohen_d",
+                        `title`="Cohen's d",
+                        `type`="number"),
                     list(
-                        `name`="correlation_r", 
-                        `title`="Point-Biserial r", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="correlation_r",
+                        `title`="Point-Biserial r (pooled t)",
+                        `type`="number"),
                     list(
-                        `name`="eta_squared", 
-                        `title`="Eta-squared (\u03B7\u00B2)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="eta_squared",
+                        `title`="Eta-squared (\u03B7\u00B2)",
+                        `type`="number"),
                     list(
-                        `name`="odds_ratio", 
-                        `title`="Odds Ratio (OR)", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="odds_ratio",
+                        `title`="Approx. Odds Ratio (OR)",
+                        `type`="number"),
                     list(
-                        `name`="auc", 
-                        `title`="AUC / Prob. Superiority", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="auc",
+                        `title`="Normal-model AUC",
+                        `type`="number"),
                     list(
-                        `name`="interpretation", 
-                        `title`="Interpretation", 
+                        `name`="interpretation",
+                        `title`="Interpretation",
                         `type`="text"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="categoricalTable",
                 title="Categorical Effect Sizes (Association & Risk)",
-                visible="(show_categorical_es)",
+                visible="(!is.null(cat_var1) && !is.null(cat_var2))",
                 refs=list(
                     "Cramer1946",
-                    "Cohen1988"),
+                    "Cohen1988",
+                    "effectsize"),
                 clearWith=list(
                     "cat_var1",
                     "cat_var2",
                     "ci_method",
                     "ci_level",
-                    "n_bootstrap",
-                    "show_categorical_es"),
+                    "n_bootstrap"),
                 columns=list(
                     list(
-                        `name`="pair", 
-                        `title`="Variable Pair", 
+                        `name`="pair",
+                        `title`="Variable Pair",
                         `type`="text"),
                     list(
-                        `name`="metric", 
-                        `title`="Metric", 
+                        `name`="metric",
+                        `title`="Metric",
                         `type`="text"),
                     list(
-                        `name`="value", 
-                        `title`="Estimate", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="value",
+                        `title`="Estimate",
+                        `type`="number"),
                     list(
-                        `name`="ci_lower", 
-                        `title`="CI Lower", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="ci_lower",
+                        `title`="CI Lower",
+                        `type`="number"),
                     list(
-                        `name`="ci_upper", 
-                        `title`="CI Upper", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="ci_upper",
+                        `title`="CI Upper",
+                        `type`="number"),
                     list(
-                        `name`="interpretation", 
-                        `title`="Interpretation", 
+                        `name`="interpretation",
+                        `title`="Interpretation",
                         `type`="text"),
                     list(
-                        `name`="n_obs", 
-                        `title`="N", 
+                        `name`="n_obs",
+                        `title`="N",
                         `type`="integer"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -804,29 +717,30 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "stat_val",
                     "stat_df1",
                     "stat_df2",
+                    "stat_rows",
+                    "stat_cols",
                     "stat_n",
                     "calc_from_test_stat"),
                 columns=list(
                     list(
-                        `name`="input_stat", 
-                        `title`="Input Statistic", 
+                        `name`="input_stat",
+                        `title`="Input Statistic",
                         `type`="text"),
                     list(
-                        `name`="metric", 
-                        `title`="Effect Size Metric", 
+                        `name`="metric",
+                        `title`="Effect Size Metric",
                         `type`="text"),
                     list(
-                        `name`="value", 
-                        `title`="Value", 
-                        `type`="number", 
-                        `format`="dp:3"),
+                        `name`="value",
+                        `title`="Value",
+                        `type`="number"),
                     list(
-                        `name`="interpretation", 
-                        `title`="Benchmark Interpretation", 
+                        `name`="interpretation",
+                        `title`="Benchmark Interpretation",
                         `type`="text"),
                     list(
-                        `name`="formula_ref", 
-                        `title`="Primary Formula", 
+                        `name`="formula_ref",
+                        `title`="Primary Formula",
                         `type`="text"))))
             self$add(jmvcore::Image$new(
                 options=options,
@@ -836,15 +750,24 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                 height=450,
                 renderFun=".renderESPlot",
                 visible="(run_analysis && show_es_plot)",
-                requiresData=TRUE,
-                refs=list(
-                    "ggplot2"),
+                requiresData=FALSE,
                 clearWith=list(
+                    "cov",
+                    "reference_group",
+                    "glass_references",
+                    "reference_group_long",
+                    "use_glm",
+                    "es_glm",
+                    "ci_method",
+                    "n_bootstrap",
+                    "ci_level",
+                    "benchmark_standard",
+                    "show_cles",
+                    "show_cles_long",
                     "mode",
                     "dep_vars_cs",
                     "indep_vars_cs",
                     "dep_vars_long",
-                    "indep_vars_long",
                     "include_interactions",
                     "es_method",
                     "es_method_long",
@@ -866,10 +789,10 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "dep_vars_cs",
                     "indep_vars_cs",
                     "dep_vars_long",
-                    "indep_vars_long",
                     "include_interactions",
                     "es_method",
                     "reference_group",
+                    "glass_references",
                     "use_glm",
                     "es_glm",
                     "ci_method",
@@ -882,7 +805,6 @@ effectSizeResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
                     "subject_id_var",
                     "es_method_long",
                     "reference_group_long",
-                    "show_categorical_es",
                     "cat_var1",
                     "cat_var2",
                     "calc_from_test_stat")))}))
@@ -910,15 +832,13 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 
 #' Effect Size Calculation
 #'
-#' 
+#'
 #' @param data .
 #' @param mode .
 #' @param dep_vars_cs .
 #' @param indep_vars_cs .
 #' @param cov .
 #' @param dep_vars_long .
-#' @param indep_vars_long .
-#' @param cov_long .
 #' @param subject_id_var .
 #' @param time_var .
 #' @param wave_vars .
@@ -928,6 +848,7 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param es_method .
 #' @param show_cles .
 #' @param reference_group .
+#' @param glass_references .
 #' @param es_method_long .
 #' @param show_cles_long .
 #' @param reference_group_long .
@@ -941,7 +862,6 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param show_es_plot .
 #' @param plot_width .
 #' @param plot_height .
-#' @param show_categorical_es .
 #' @param cat_var1 .
 #' @param cat_var2 .
 #' @param calc_from_test_stat .
@@ -949,13 +869,13 @@ effectSizeBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param stat_val .
 #' @param stat_df1 .
 #' @param stat_df2 .
+#' @param stat_rows .
+#' @param stat_cols .
 #' @param stat_n .
 #' @return A results object containing:
 #' \tabular{llllll}{
 #'   \code{results$analysisInfo} \tab \tab \tab \tab \tab a html \cr
-#'   \code{results$ameBenchmark} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$effectSizeTable} \tab \tab \tab \tab \tab a table \cr
-#'   \code{results$effectSizeTableLongBetween} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clesTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$clesLongTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$conversionTable} \tab \tab \tab \tab \tab a table \cr
@@ -979,8 +899,6 @@ effectSize <- function(
     indep_vars_cs = NULL,
     cov = NULL,
     dep_vars_long = NULL,
-    indep_vars_long = NULL,
-    cov_long = NULL,
     subject_id_var = NULL,
     time_var = NULL,
     wave_vars = NULL,
@@ -990,6 +908,7 @@ effectSize <- function(
     es_method = "cohens_d",
     show_cles = FALSE,
     reference_group = "",
+    glass_references = list(),
     es_method_long = "cohens_dz",
     show_cles_long = FALSE,
     reference_group_long = "",
@@ -1003,7 +922,6 @@ effectSize <- function(
     show_es_plot = FALSE,
     plot_width = 650,
     plot_height = 450,
-    show_categorical_es = FALSE,
     cat_var1 = NULL,
     cat_var2 = NULL,
     calc_from_test_stat = FALSE,
@@ -1011,6 +929,8 @@ effectSize <- function(
     stat_val = 2.5,
     stat_df1 = 30,
     stat_df2 = 60,
+    stat_rows = 2,
+    stat_cols = 2,
     stat_n = 60) {
 
     if ( ! requireNamespace("jmvcore", quietly=TRUE))
@@ -1020,8 +940,6 @@ effectSize <- function(
     if ( ! missing(indep_vars_cs)) indep_vars_cs <- jmvcore::resolveQuo(jmvcore::enquo(indep_vars_cs))
     if ( ! missing(cov)) cov <- jmvcore::resolveQuo(jmvcore::enquo(cov))
     if ( ! missing(dep_vars_long)) dep_vars_long <- jmvcore::resolveQuo(jmvcore::enquo(dep_vars_long))
-    if ( ! missing(indep_vars_long)) indep_vars_long <- jmvcore::resolveQuo(jmvcore::enquo(indep_vars_long))
-    if ( ! missing(cov_long)) cov_long <- jmvcore::resolveQuo(jmvcore::enquo(cov_long))
     if ( ! missing(subject_id_var)) subject_id_var <- jmvcore::resolveQuo(jmvcore::enquo(subject_id_var))
     if ( ! missing(time_var)) time_var <- jmvcore::resolveQuo(jmvcore::enquo(time_var))
     if ( ! missing(wave_vars)) wave_vars <- jmvcore::resolveQuo(jmvcore::enquo(wave_vars))
@@ -1034,8 +952,6 @@ effectSize <- function(
             `if`( ! missing(indep_vars_cs), indep_vars_cs, NULL),
             `if`( ! missing(cov), cov, NULL),
             `if`( ! missing(dep_vars_long), dep_vars_long, NULL),
-            `if`( ! missing(indep_vars_long), indep_vars_long, NULL),
-            `if`( ! missing(cov_long), cov_long, NULL),
             `if`( ! missing(subject_id_var), subject_id_var, NULL),
             `if`( ! missing(time_var), time_var, NULL),
             `if`( ! missing(wave_vars), wave_vars, NULL),
@@ -1049,8 +965,6 @@ effectSize <- function(
         indep_vars_cs = indep_vars_cs,
         cov = cov,
         dep_vars_long = dep_vars_long,
-        indep_vars_long = indep_vars_long,
-        cov_long = cov_long,
         subject_id_var = subject_id_var,
         time_var = time_var,
         wave_vars = wave_vars,
@@ -1060,6 +974,7 @@ effectSize <- function(
         es_method = es_method,
         show_cles = show_cles,
         reference_group = reference_group,
+        glass_references = glass_references,
         es_method_long = es_method_long,
         show_cles_long = show_cles_long,
         reference_group_long = reference_group_long,
@@ -1073,7 +988,6 @@ effectSize <- function(
         show_es_plot = show_es_plot,
         plot_width = plot_width,
         plot_height = plot_height,
-        show_categorical_es = show_categorical_es,
         cat_var1 = cat_var1,
         cat_var2 = cat_var2,
         calc_from_test_stat = calc_from_test_stat,
@@ -1081,6 +995,8 @@ effectSize <- function(
         stat_val = stat_val,
         stat_df1 = stat_df1,
         stat_df2 = stat_df2,
+        stat_rows = stat_rows,
+        stat_cols = stat_cols,
         stat_n = stat_n)
 
     analysis <- effectSizeClass$new(

@@ -8,8 +8,9 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
         initialize = function(
             vars = NULL,
             method = "yeojohnson",
+            bounded_scale = "proportion",
             auto_shift = TRUE,
-            suffix = "_transfrmd",
+            suffix = "_transformed",
             show_lambda_table = TRUE,
             show_normality_table = TRUE,
             normality_test = "shapiro",
@@ -45,6 +46,13 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     "logit",
                     "int"),
                 default="yeojohnson")
+            private$..bounded_scale <- jmvcore::OptionList$new(
+                "bounded_scale",
+                bounded_scale,
+                options=list(
+                    "proportion",
+                    "percentage"),
+                default="proportion")
             private$..auto_shift <- jmvcore::OptionBool$new(
                 "auto_shift",
                 auto_shift,
@@ -52,7 +60,7 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
             private$..suffix <- jmvcore::OptionString$new(
                 "suffix",
                 suffix,
-                default="_transfrmd")
+                default="_transformed")
             private$..show_lambda_table <- jmvcore::OptionBool$new(
                 "show_lambda_table",
                 show_lambda_table,
@@ -105,6 +113,7 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
 
             self$.addOption(private$..vars)
             self$.addOption(private$..method)
+            self$.addOption(private$..bounded_scale)
             self$.addOption(private$..auto_shift)
             self$.addOption(private$..suffix)
             self$.addOption(private$..show_lambda_table)
@@ -121,6 +130,7 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
     active = list(
         vars = function() private$..vars$value,
         method = function() private$..method$value,
+        bounded_scale = function() private$..bounded_scale$value,
         auto_shift = function() private$..auto_shift$value,
         suffix = function() private$..suffix$value,
         show_lambda_table = function() private$..show_lambda_table$value,
@@ -136,6 +146,7 @@ dataTransformOptions <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
     private = list(
         ..vars = NA,
         ..method = NA,
+        ..bounded_scale = NA,
         ..auto_shift = NA,
         ..suffix = NA,
         ..show_lambda_table = NA,
@@ -154,13 +165,12 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
     "dataTransformResults",
     inherit = jmvcore::Group,
     active = list(
+        transformStatus = function() private$.items[["transformStatus"]],
         transformInfo = function() private$.items[["transformInfo"]],
         lambdaTable = function() private$.items[["lambdaTable"]],
         normalityTable = function() private$.items[["normalityTable"]],
         recommendationTable = function() private$.items[["recommendationTable"]],
-        qqPlots = function() private$.items[["qqPlots"]],
-        histPlots = function() private$.items[["histPlots"]],
-        densityPlots = function() private$.items[["densityPlots"]],
+        distributionPlots = function() private$.items[["distributionPlots"]],
         transformedVarsOutput = function() private$.items[["transformedVarsOutput"]]),
     private = list(),
     public=list(
@@ -169,6 +179,15 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 options=options,
                 name="",
                 title="Data Transformation")
+            self$add(jmvcore::Preformatted$new(
+                options=options,
+                name="transformStatus",
+                title="Transformation Availability",
+                visible=TRUE,
+                clearWith=list(
+                    "vars",
+                    "method",
+                    "bounded_scale")))
             self$add(jmvcore::Html$new(
                 options=options,
                 name="transformInfo",
@@ -182,42 +201,42 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 refs=list(
                     "bestNormalize",
                     "SuppDists",
+                    "SmithsonVerkuilen2006",
                     "Bartlett1937",
                     "Blom1958",
                     "VanDerWaerden1952"),
                 clearWith=list(
                     "vars",
                     "method",
+                    "bounded_scale",
                     "auto_shift",
                     "int_formula"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="method", 
-                        `title`="Method", 
+                        `name`="method",
+                        `title`="Method",
                         `type`="text"),
                     list(
-                        `name`="parameter", 
-                        `title`="Parameter", 
+                        `name`="parameter",
+                        `title`="Parameter",
                         `type`="text"),
                     list(
-                        `name`="value", 
-                        `title`="Value", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="value",
+                        `title`="Value",
+                        `type`="number"),
                     list(
-                        `name`="shift_applied", 
-                        `title`="Shift Applied", 
+                        `name`="shift_applied",
+                        `title`="Shift Applied",
                         `type`="text"),
                     list(
-                        `name`="shift_value", 
-                        `title`="Shift Value", 
-                        `type`="number", 
-                        `format`="dp:4"))))
+                        `name`="shift_value",
+                        `title`="Shift Value",
+                        `type`="number"))))
             self$add(jmvcore::Table$new(
                 options=options,
                 name="normalityTable",
@@ -230,33 +249,33 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 clearWith=list(
                     "vars",
                     "method",
+                    "bounded_scale",
                     "auto_shift",
                     "int_formula",
                     "normality_test",
                     "alpha_sw"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="moment", 
-                        `title`="Moment", 
+                        `name`="moment",
+                        `title`="Moment",
                         `type`="text"),
                     list(
-                        `name`="W", 
-                        `title`="Statistic", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="W",
+                        `title`="Statistic",
+                        `type`="number"),
                     list(
-                        `name`="p", 
-                        `title`="p-value", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="p",
+                        `title`="p-value",
+                        `type`="number",
+                        `format`="zto,pvalue"),
                     list(
-                        `name`="result", 
-                        `title`="Normality", 
+                        `name`="result",
+                        `title`="Decision",
                         `type`="text"))))
             self$add(jmvcore::Table$new(
                 options=options,
@@ -266,6 +285,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                 refs=list(
                     "Blom1958",
                     "VanDerWaerden1952",
+                    "SmithsonVerkuilen2006",
                     "bestNormalize"),
                 clearWith=list(
                     "vars",
@@ -274,105 +294,61 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     "normality_test"),
                 columns=list(
                     list(
-                        `name`="variable", 
-                        `title`="Variable", 
-                        `type`="text", 
+                        `name`="variable",
+                        `title`="Variable",
+                        `type`="text",
                         `combineBelow`=TRUE),
                     list(
-                        `name`="rank", 
-                        `title`="Rank", 
+                        `name`="rank",
+                        `title`="Rank",
                         `type`="integer"),
                     list(
-                        `name`="method", 
-                        `title`="Method", 
+                        `name`="method",
+                        `title`="Method",
                         `type`="text"),
                     list(
-                        `name`="skewness", 
-                        `title`="Skewness", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="skewness",
+                        `title`="Skewness",
+                        `type`="number"),
                     list(
-                        `name`="kurtosis", 
-                        `title`="Excess Kurtosis", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="kurtosis",
+                        `title`="Excess Kurtosis",
+                        `type`="number"),
                     list(
-                        `name`="score", 
-                        `title`="Criterion (|Skew| + 0.5\u00D7|Kurt|)", 
-                        `type`="number", 
-                        `format`="dp:4"),
+                        `name`="score",
+                        `title`="Criterion (|Skew| + 0.5\u00D7|Kurt|)",
+                        `type`="number"),
                     list(
-                        `name`="normality_p", 
-                        `title`="Normality p (SW)", 
-                        `type`="number", 
+                        `name`="normality_p",
+                        `title`="Normality p (SW)",
+                        `type`="number",
                         `format`="zto,pvalue"),
                     list(
-                        `name`="recommended", 
-                        `title`="Recommendation", 
+                        `name`="recommended",
+                        `title`="Recommendation",
                         `type`="text"))))
             self$add(jmvcore::Array$new(
                 options=options,
-                name="qqPlots",
-                title="Q-Q Plot",
+                name="distributionPlots",
+                title="Distribution Diagnostics (Before & After)",
                 items="(vars)",
-                visible="(show_qq_plot)",
-                refs=list(
-                    "ggplot2",
-                    "gridExtra"),
+                visible="(show_qq_plot || show_hist_plot || show_density_plot)",
                 clearWith=list(
                     "vars",
                     "method",
+                    "bounded_scale",
                     "auto_shift",
-                    "int_formula"),
+                    "int_formula",
+                    "show_qq_plot",
+                    "show_hist_plot",
+                    "show_density_plot"),
                 template=jmvcore::Image$new(
                     options=options,
                     title="$key",
                     width=650,
                     height=400,
-                    renderFun=".qqPlot",
-                    requiresData=TRUE)))
-            self$add(jmvcore::Array$new(
-                options=options,
-                name="histPlots",
-                title="Histogram",
-                items="(vars)",
-                visible="(show_hist_plot)",
-                refs=list(
-                    "ggplot2",
-                    "gridExtra"),
-                clearWith=list(
-                    "vars",
-                    "method",
-                    "auto_shift",
-                    "int_formula"),
-                template=jmvcore::Image$new(
-                    options=options,
-                    title="$key",
-                    width=650,
-                    height=400,
-                    renderFun=".histPlot",
-                    requiresData=TRUE)))
-            self$add(jmvcore::Array$new(
-                options=options,
-                name="densityPlots",
-                title="Density Plot (Before & After)",
-                items="(vars)",
-                visible="(show_density_plot)",
-                refs=list(
-                    "ggplot2",
-                    "gridExtra"),
-                clearWith=list(
-                    "vars",
-                    "method",
-                    "auto_shift",
-                    "int_formula"),
-                template=jmvcore::Image$new(
-                    options=options,
-                    title="$key",
-                    width=650,
-                    height=400,
-                    renderFun=".densityPlot",
-                    requiresData=TRUE)))
+                    renderFun=".distributionPlot",
+                    requiresData=FALSE)))
             self$add(jmvcore::Output$new(
                 options=options,
                 name="transformedVarsOutput",
@@ -382,6 +358,7 @@ dataTransformResults <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Cla
                     "data",
                     "vars",
                     "method",
+                    "bounded_scale",
                     "auto_shift",
                     "int_formula",
                     "suffix")))}))
@@ -409,10 +386,11 @@ dataTransformBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 
 #' Data Transformation
 #'
-#' 
+#'
 #' @param data .
 #' @param vars .
 #' @param method .
+#' @param bounded_scale .
 #' @param auto_shift .
 #' @param suffix .
 #' @param show_lambda_table .
@@ -426,13 +404,12 @@ dataTransformBase <- if (requireNamespace("jmvcore", quietly=TRUE)) R6::R6Class(
 #' @param show_recommendation_table .
 #' @return A results object containing:
 #' \tabular{llllll}{
+#'   \code{results$transformStatus} \tab \tab \tab \tab \tab a preformatted \cr
 #'   \code{results$transformInfo} \tab \tab \tab \tab \tab a html \cr
 #'   \code{results$lambdaTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$normalityTable} \tab \tab \tab \tab \tab a table \cr
 #'   \code{results$recommendationTable} \tab \tab \tab \tab \tab a table \cr
-#'   \code{results$qqPlots} \tab \tab \tab \tab \tab an array of images \cr
-#'   \code{results$histPlots} \tab \tab \tab \tab \tab an array of images \cr
-#'   \code{results$densityPlots} \tab \tab \tab \tab \tab an array of images \cr
+#'   \code{results$distributionPlots} \tab \tab \tab \tab \tab an array of images \cr
 #'   \code{results$transformedVarsOutput} \tab \tab \tab \tab \tab an output \cr
 #' }
 #'
@@ -447,8 +424,9 @@ dataTransform <- function(
     data,
     vars,
     method = "yeojohnson",
+    bounded_scale = "proportion",
     auto_shift = TRUE,
-    suffix = "_transfrmd",
+    suffix = "_transformed",
     show_lambda_table = TRUE,
     show_normality_table = TRUE,
     normality_test = "shapiro",
@@ -472,6 +450,7 @@ dataTransform <- function(
     options <- dataTransformOptions$new(
         vars = vars,
         method = method,
+        bounded_scale = bounded_scale,
         auto_shift = auto_shift,
         suffix = suffix,
         show_lambda_table = show_lambda_table,
